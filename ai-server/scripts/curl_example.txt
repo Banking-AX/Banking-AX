@@ -1,0 +1,3 @@
+curl -X POST http://localhost:9000/api/v1/rag/search \
+  -H "Content-Type: application/json" \
+  -d '{"task_code":"HOUSING_SAVINGS_CLOSE","query":"청약통장 우대이율 신청하면 어떤 서류가 필요한가요?","top_k":4}'

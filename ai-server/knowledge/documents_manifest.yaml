@@ -1,0 +1,266 @@
+schema_version: 1
+documents:
+- doc_id: B01-01
+  path: knowledge/curated/B01/B01-01_채무변제충당순서_변경신청서.md
+  title: 채무변제충당순서 변경 신청서
+  task_codes:
+  - REPAYMENT_ORDER_CHANGE
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/B01-01_repayment_order_change_form.pdf
+  source_pages:
+  - 1
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: B02-01
+  path: knowledge/curated/B02/B02-01_청년주택드림청약통장_상품설명서_해지발췌.md
+  title: 청년 주택드림 청약통장 상품설명서 (해지 관련 발췌)
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/B02-01_youth_housing_product_description.pdf
+  source_pages:
+  - 4
+  - 5
+  - 6
+  - 9
+  - 11
+  - 12
+  - 13
+  - 14
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: B02-02
+  path: knowledge/curated/B02/B02-02_청년주택드림청약통장_가이드라인_동의서.md
+  title: 청년주택드림청약통장 가이드라인 (각서 유의사항·동의서)
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_OTHER
+  source_file: knowledge/sources/B02-02_youth_housing_guideline.pdf
+  source_pages:
+  - 13
+  - 14
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: B02-03
+  path: knowledge/reference_only/B02/B02-03_해지시_무주택확인_출처미확인FAQ.md
+  title: 'FAQ: 청년 주택드림 청약통장 해지 시 무주택 여부에 대하여 확인을 하나요?'
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: REFERENCE_ONLY
+  trust_level: UNKNOWN_SOURCE
+  source_file: knowledge/sources/B02-03_housing_proof_faq_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: false
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: B02-04
+  path: knowledge/reference_only/B02/B02-04_2년이내_특별해지_출처미확인안내.md
+  title: 청년 주택드림 청약통장 2년 이내 해지(특별중도해지) 시 필요서류 안내
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: REFERENCE_ONLY
+  trust_level: UNKNOWN_SOURCE
+  source_file: knowledge/sources/B02-04_special_termination_docs_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: false
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: B02-05
+  path: knowledge/reference_only/B02/B02-05_KB국민은행_청약통장해지_참고.md
+  title: 청약통장 해지 방법, 준비물 (KB국민은행)
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: REFERENCE_ONLY
+  trust_level: OTHER_BANK
+  source_file: knowledge/sources/B02-05_kb_other_bank.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: false
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: B02-06
+  path: knowledge/curated/B02/B02-06_청년우대형_전환계좌_해지시_서류.md
+  title: 기존 청년우대형 주택청약종합저축에서 전환된 계좌의 해지 시 추가 확인
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/B02-01_youth_housing_product_description.pdf
+  source_pages:
+  - 9
+  - 10
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: PDF_DERIVED_EXPLANATION
+- doc_id: B02-07
+  path: knowledge/curated/B02/B02-07_비과세_특별해지_설명용.md
+  title: 비과세 혜택과 2년 이내 특별해지 (설명용)
+  task_codes:
+  - HOUSING_SAVINGS_CLOSE
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/B02-01_youth_housing_product_description.pdf
+  source_pages:
+  - 5
+  - 6
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: PDF_DERIVED_EXPLANATION
+- doc_id: C01-01
+  path: knowledge/curated/C01/C01-01_채무조정요청권_안내.md
+  title: 채무조정 요청권 안내
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: CUSTOMER_AND_STAFF
+  trust_level: UNCONFIRMED_CAPTURE
+  source_file: knowledge/sources/C01-01_debt_adjustment_rights_part1.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: C01-02
+  path: knowledge/reference_only/C01/C01-02_채무조정프로그램_출처확인필요.md
+  title: 채무조정 프로그램 안내
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: REFERENCE_ONLY
+  trust_level: UNKNOWN_SOURCE
+  source_file: knowledge/sources/C01-02_bank_programs_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: false
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: C01-03
+  path: knowledge/curated/C01/C01-03_변제계획불이행_채무조정합의해지_안내.md
+  title: 변제계획 불이행 및 채무조정 합의해지 관련 안내사항
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: STAFF_ONLY
+  trust_level: UNCONFIRMED_CAPTURE
+  source_file: knowledge/sources/C01-03_termination_guidance_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: C01-04
+  path: knowledge/curated/C01/C01-04_채무조정요청서_양식및안내.md
+  title: 채무조정 요청서 (양식·안내사항)
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/C01-04_debt_adjustment_request_form.pdf
+  source_pages:
+  - 1
+  - 2
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: C01-05
+  path: knowledge/curated/C01/C01-05_채무조정서_양식.md
+  title: 채무조정서 (양식)
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: STAFF_ONLY
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/C01-05_debt_adjustment_agreement_form.pdf
+  source_pages:
+  - 1
+  - 2
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: C01-06
+  path: knowledge/reference_only/C01/C01-06_채무조정절차_외부지원제도_캡처확인필요.md
+  title: 채무조정 절차 및 외부 지원제도 캡처
+  task_codes:
+  - DEBT_ADJUSTMENT
+  audience: REFERENCE_ONLY
+  trust_level: UNKNOWN_SOURCE
+  source_file: knowledge/sources/C01-06_debt_adjustment_process_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: false
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: C02-01
+  path: knowledge/curated/C02/C02-01_상속예금_해지지급_FAQ.md
+  title: 상속예금 해지·지급 FAQ
+  task_codes:
+  - INHERITANCE_DEPOSIT
+  audience: CUSTOMER_AND_STAFF
+  trust_level: UNCONFIRMED_CAPTURE
+  source_file: knowledge/sources/C02-01_inheritance_faq_unconfirmed.png
+  source_pages: []
+  source_verified: false
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_CAPTURE
+- doc_id: C02-02
+  path: knowledge/curated/C02/C02-02_위임장_상속_양식.md
+  title: 위임장(상속) 양식
+  task_codes:
+  - INHERITANCE_DEPOSIT
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/C02-02_inheritance_power_of_attorney.pdf
+  source_pages:
+  - 1
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF
+- doc_id: CM-01
+  path: knowledge/curated/common/CM-01_전세자금대출_상품설명서_발췌.md
+  title: 전세자금대출 상품설명서 (발췌)
+  task_codes:
+  - REPAYMENT_ORDER_CHANGE
+  - DEBT_ADJUSTMENT
+  audience: CUSTOMER_AND_STAFF
+  trust_level: OFFICIAL_SHINHAN
+  source_file: knowledge/sources/CM-01_jeonse_loan_shinhan.pdf
+  source_pages:
+  - 8
+  - 9
+  - 20
+  - 21
+  - 22
+  source_verified: true
+  verified: false
+  retrieval_enabled_dev: true
+  retrieval_enabled_prod: false
+  origin: USER_PDF

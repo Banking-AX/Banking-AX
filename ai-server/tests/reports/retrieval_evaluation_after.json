@@ -1,0 +1,730 @@
+{
+  "vector": {
+    "summary": {
+      "REPAYMENT_ORDER_CHANGE": {
+        "tests": 3,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.7778,
+        "precision_at_5": 0.2667,
+        "avg_elapsed_ms": 3116.06
+      },
+      "HOUSING_SAVINGS_CLOSE": {
+        "tests": 6,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.8056,
+        "precision_at_5": 0.2667,
+        "avg_elapsed_ms": 34.1
+      },
+      "DEBT_ADJUSTMENT": {
+        "tests": 4,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.875,
+        "precision_at_5": 0.3,
+        "avg_elapsed_ms": 32.23
+      },
+      "INHERITANCE_DEPOSIT": {
+        "tests": 4,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.8125,
+        "precision_at_5": 0.3,
+        "avg_elapsed_ms": 34.56
+      }
+    },
+    "details": [
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "충당순서를 원금 먼저 갚도록 바꾸려면 어떻게 신청하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 9280.956300033722,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "B01-01",
+          "CM-01",
+          "B01-01",
+          "CM-01"
+        ]
+      },
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "채무변제충당순서는 어떤 경우 자동 변경되나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 33.28889998374507,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "B01-01",
+          "B01-01",
+          "B01-01",
+          "B01-01"
+        ]
+      },
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "충당순서 변경 후 연체하면 어떤 불이익이 있나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.3333333333333333,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 33.94629998365417,
+        "relevant_ranks": [
+          3
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "CM-01",
+          "B01-01",
+          "B01-01",
+          "B01-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "청년주택드림 청약통장을 해지할 때 우대이율 적용을 위해 필요한 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.3333333333333333,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 36.17939999094233,
+        "relevant_ranks": [
+          3
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-06",
+          "B02-01",
+          "B02-06",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "청년주택드림 해지할 때 지방세 세목별 과세증명서는 언제 발급해야 하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 32.91269997134805,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-06",
+          "B02-01",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "과세사실이 있으면 등기부등본을 제출해야 하는 경우는 언제인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 32.80699998140335,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-01",
+          "B02-07",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "무주택으로 인정되는 예외는 해지 이율 자격을 어떻게 입증하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.5,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 34.047900000587106,
+        "relevant_ranks": [
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-01",
+          "B02-02",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "기존 주택청약종합저축 이율 적용을 희망하면 어떤 동의서를 제출하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 33.72980002313852,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-06",
+          "B02-01",
+          "B02-01",
+          "B02-06"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "기존 청년우대형에서 전환한 계좌를 해지할 때 추가로 확인할 조건은 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.6,
+        "elapsed_ms": 34.93070002878085,
+        "relevant_ranks": [
+          1,
+          2,
+          5
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-06",
+          "B02-06",
+          "B02-01",
+          "B02-01",
+          "B02-06"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 신청을 할 수 없는 경우는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 33.732700045220554,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-01",
+          "C01-04",
+          "C01-01",
+          "C01-04"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 요청 시 필요한 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 32.62949996860698,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-01",
+          "C01-04",
+          "C01-04",
+          "C01-04"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 요청 결과는 언제 안내되고 누가 심사하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 32.138300011865795,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-04",
+          "C01-04",
+          "C01-04",
+          "C01-01"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 합의가 해지되는 사유는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.5,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 30.40420002071187,
+        "relevant_ranks": [
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-04",
+          "C01-01",
+          "C01-04",
+          "C01-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속예금 해지 시 상속인 전원이 방문해야 하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 33.51139998994768,
+        "relevant_ranks": [
+          1,
+          5
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속예금 해지에 필요한 기본 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.25,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 31.05290001258254,
+        "relevant_ranks": [
+          4
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "불참 상속인의 위임장과 인감증명서는 어떻게 준비하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 31.44099999917671,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-02",
+          "C02-02",
+          "C02-02",
+          "C02-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속인 사이에 분쟁이 예상되면 일부 상속인만 예금을 해지할 수 있나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 42.238199966959655,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-02"
+        ]
+      }
+    ]
+  },
+  "hybrid": {
+    "summary": {
+      "REPAYMENT_ORDER_CHANGE": {
+        "tests": 3,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.8333,
+        "precision_at_5": 0.2667,
+        "avg_elapsed_ms": 77.51
+      },
+      "HOUSING_SAVINGS_CLOSE": {
+        "tests": 6,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.9167,
+        "precision_at_5": 0.2667,
+        "avg_elapsed_ms": 119.85
+      },
+      "DEBT_ADJUSTMENT": {
+        "tests": 4,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 1.0,
+        "precision_at_5": 0.3,
+        "avg_elapsed_ms": 66.53
+      },
+      "INHERITANCE_DEPOSIT": {
+        "tests": 4,
+        "recall_at_5": 1.0,
+        "mrr_at_5": 0.875,
+        "precision_at_5": 0.3,
+        "avg_elapsed_ms": 38.38
+      }
+    },
+    "details": [
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "충당순서를 원금 먼저 갚도록 바꾸려면 어떻게 신청하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 82.91840000310913,
+        "relevant_ranks": [
+          1,
+          3
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "CM-01",
+          "B01-01",
+          "B01-01",
+          "B01-01"
+        ]
+      },
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "채무변제충당순서는 어떤 경우 자동 변경되나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 75.89279999956489,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "B01-01",
+          "B01-01",
+          "B01-01",
+          "B01-01"
+        ]
+      },
+      {
+        "task_code": "REPAYMENT_ORDER_CHANGE",
+        "question": "충당순서 변경 후 연체하면 어떤 불이익이 있나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.5,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 73.72390001546592,
+        "relevant_ranks": [
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B01-01",
+          "B01-01",
+          "B01-01",
+          "CM-01",
+          "B01-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "청년주택드림 청약통장을 해지할 때 우대이율 적용을 위해 필요한 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 161.7979000438936,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-06",
+          "B02-02",
+          "B02-01",
+          "B02-02"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "청년주택드림 해지할 때 지방세 세목별 과세증명서는 언제 발급해야 하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 76.05610002065077,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-06",
+          "B02-01",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "과세사실이 있으면 등기부등본을 제출해야 하는 경우는 언제인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 85.03249997738749,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-02",
+          "B02-02",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "무주택으로 인정되는 예외는 해지 이율 자격을 어떻게 입증하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.5,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 133.93660000292584,
+        "relevant_ranks": [
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-02",
+          "B02-01",
+          "B02-06",
+          "B02-02",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "기존 주택청약종합저축 이율 적용을 희망하면 어떤 동의서를 제출하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 109.16499997256324,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-01",
+          "B02-02",
+          "B02-06",
+          "B02-01",
+          "B02-06"
+        ]
+      },
+      {
+        "task_code": "HOUSING_SAVINGS_CLOSE",
+        "question": "기존 청년우대형에서 전환한 계좌를 해지할 때 추가로 확인할 조건은 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.6,
+        "elapsed_ms": 153.11519999522716,
+        "relevant_ranks": [
+          1,
+          2,
+          3
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "B02-06",
+          "B02-06",
+          "B02-06",
+          "B02-01",
+          "B02-01"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 신청을 할 수 없는 경우는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 71.0568000213243,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-01",
+          "C01-04",
+          "C01-04",
+          "C01-01",
+          "CM-01"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 요청 시 필요한 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 61.32259999867529,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-01",
+          "C01-01",
+          "C01-04",
+          "CM-01"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 요청 결과는 언제 안내되고 누가 심사하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 71.80689997039735,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-04",
+          "C01-04",
+          "C01-01",
+          "C01-04"
+        ]
+      },
+      {
+        "task_code": "DEBT_ADJUSTMENT",
+        "question": "채무조정 합의가 해지되는 사유는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 61.947999987751245,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C01-04",
+          "C01-01",
+          "C01-04",
+          "C01-04",
+          "CM-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속예금 해지 시 상속인 전원이 방문해야 하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 36.99759999290109,
+        "relevant_ranks": [
+          1,
+          5
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속예금 해지에 필요한 기본 서류는 무엇인가요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 0.5,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 41.92599997622892,
+        "relevant_ranks": [
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-02"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "불참 상속인의 위임장과 인감증명서는 어떻게 준비하나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.4,
+        "elapsed_ms": 37.23230003379285,
+        "relevant_ranks": [
+          1,
+          2
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-02",
+          "C02-01",
+          "C02-01",
+          "C02-01"
+        ]
+      },
+      {
+        "task_code": "INHERITANCE_DEPOSIT",
+        "question": "상속인 사이에 분쟁이 예상되면 일부 상속인만 예금을 해지할 수 있나요?",
+        "recall_at_k": 1.0,
+        "mrr_at_k": 1.0,
+        "precision_at_k": 0.2,
+        "elapsed_ms": 37.37070003990084,
+        "relevant_ranks": [
+          1
+        ],
+        "leaked_doc_ids": [],
+        "result_ids": [
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-01",
+          "C02-02"
+        ]
+      }
+    ]
+  }
+}

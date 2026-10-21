@@ -1,0 +1,142 @@
+[
+  {
+    "question": "충당순서를 원금 먼저 갚도록 바꾸려면 어떻게 신청하나요?",
+    "task_code": "REPAYMENT_ORDER_CHANGE",
+    "expected_doc_ids": ["B01-01"],
+    "expected_sections": ["변경 신청시 유의사항"],
+    "expected_evidence_terms": ["영업점", "신청서"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "채무변제충당순서는 어떤 경우 자동 변경되나요?",
+    "task_code": "REPAYMENT_ORDER_CHANGE",
+    "expected_doc_ids": ["B01-01"],
+    "expected_sections": ["자동 변경"],
+    "expected_evidence_terms": ["자동변경"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "충당순서 변경 후 연체하면 어떤 불이익이 있나요?",
+    "task_code": "REPAYMENT_ORDER_CHANGE",
+    "expected_doc_ids": ["B01-01"],
+    "expected_evidence_terms": ["연체", "등록"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "청년주택드림 청약통장을 해지할 때 우대이율 적용을 위해 필요한 서류는 무엇인가요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-01"],
+    "expected_sections": ["이율 자격 입증서류"],
+    "expected_evidence_terms": ["지방세 세목별 과세증명서"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "청년주택드림 해지할 때 지방세 세목별 과세증명서는 언제 발급해야 하나요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-01"],
+    "expected_evidence_terms": ["최근 3개월 내 발급분"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "과세사실이 있으면 등기부등본을 제출해야 하는 경우는 언제인가요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-01"],
+    "expected_evidence_terms": ["등기부등본"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "무주택으로 인정되는 예외는 해지 이율 자격을 어떻게 입증하나요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-01"],
+    "expected_evidence_terms": ["입증할 수 있는 서류"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "기존 주택청약종합저축 이율 적용을 희망하면 어떤 동의서를 제출하나요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-01"],
+    "expected_evidence_terms": ["동의서(별첨 양식)"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "기존 청년우대형에서 전환한 계좌를 해지할 때 추가로 확인할 조건은 무엇인가요?",
+    "task_code": "HOUSING_SAVINGS_CLOSE",
+    "expected_doc_ids": ["B02-06"],
+    "expected_evidence_terms": ["전환"],
+    "excluded_doc_ids": ["B02-05"],
+    "top_k": 5
+  },
+  {
+    "question": "채무조정 신청을 할 수 없는 경우는 무엇인가요?",
+    "task_code": "DEBT_ADJUSTMENT",
+    "expected_doc_ids": ["C01-01", "C01-04"],
+    "expected_sections": ["요청이 불가한 경우"],
+    "expected_evidence_terms": ["채무조정"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "채무조정 요청 시 필요한 서류는 무엇인가요?",
+    "task_code": "DEBT_ADJUSTMENT",
+    "expected_doc_ids": ["C01-01", "C01-04"],
+    "expected_evidence_terms": ["필요서류"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "채무조정 요청 결과는 언제 안내되고 누가 심사하나요?",
+    "task_code": "DEBT_ADJUSTMENT",
+    "expected_doc_ids": ["C01-04"],
+    "expected_evidence_terms": ["10영업일 이내", "채권금융회사 심사"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "채무조정 합의가 해지되는 사유는 무엇인가요?",
+    "task_code": "DEBT_ADJUSTMENT",
+    "expected_doc_ids": ["C01-04", "C01-05"],
+    "expected_evidence_terms": ["합의가 해지"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "상속예금 해지 시 상속인 전원이 방문해야 하나요?",
+    "task_code": "INHERITANCE_DEPOSIT",
+    "expected_doc_ids": ["C02-01"],
+    "expected_evidence_terms": ["상속인 전원 영업점 방문"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "상속예금 해지에 필요한 기본 서류는 무엇인가요?",
+    "task_code": "INHERITANCE_DEPOSIT",
+    "expected_doc_ids": ["C02-01"],
+    "expected_evidence_terms": ["가족관계증명서"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "불참 상속인의 위임장과 인감증명서는 어떻게 준비하나요?",
+    "task_code": "INHERITANCE_DEPOSIT",
+    "expected_doc_ids": ["C02-01", "C02-02"],
+    "expected_evidence_terms": ["인감증명서", "위임장"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  },
+  {
+    "question": "상속인 사이에 분쟁이 예상되면 일부 상속인만 예금을 해지할 수 있나요?",
+    "task_code": "INHERITANCE_DEPOSIT",
+    "expected_doc_ids": ["C02-01"],
+    "expected_evidence_terms": ["영업점으로 방문하여 상담 및 확인"],
+    "excluded_doc_ids": [],
+    "top_k": 5
+  }
+]

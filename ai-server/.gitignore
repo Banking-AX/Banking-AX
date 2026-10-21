@@ -1,0 +1,26 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Local RAG data
+.vector_db/
+.index/
+
+# Logs and local reports
+*.log
+tests/retrieval_report.json
+tests/retrieval_audit.md
+
+# Original documents (local only)
+knowledge/sources/
+
+# OS / IDE
+.DS_Store
