@@ -1,0 +1,3 @@
+package com.bankingax.core.caseport;
+
+public enum CaseStatus { DRAFT, SUBMITTED, IN_REVIEW, REVIEW_PASSED, REVIEW_REJECTED_REQUIREMENT, REVIEW_REJECTED_DOCUMENT, CANCELED }

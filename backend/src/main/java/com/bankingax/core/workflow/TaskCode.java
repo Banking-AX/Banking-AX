@@ -1,0 +1,6 @@
+package com.bankingax.core.workflow;
+
+public enum TaskCode {
+    TRANSACTION_SEARCH, LOAN_INQUIRY, REPAYMENT_ORDER_CHANGE,
+    HOUSING_SAVINGS_CLOSE, DEBT_ADJUSTMENT, INHERITANCE_DEPOSIT
+}
