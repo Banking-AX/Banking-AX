@@ -6,3 +6,4 @@ chromadb>=0.5,<2
 sentence-transformers>=3,<6
 openai>=1.50,<3
 python-dotenv>=1,<2
+langgraph>=0.2,<2
