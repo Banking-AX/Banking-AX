@@ -1,0 +1,9 @@
+{
+  "name": "banking-ax-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {"dev": "vite", "build": "tsc -b && vite build", "test": "vitest run"},
+  "dependencies": {"@vitejs/plugin-react": "latest", "react": "latest", "react-dom": "latest", "react-router-dom": "latest"},
+  "devDependencies": {"@types/react": "latest", "@types/react-dom": "latest", "typescript": "latest", "vite": "latest", "vitest": "latest"}
+}

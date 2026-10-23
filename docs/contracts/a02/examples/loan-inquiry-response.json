@@ -1,0 +1,1 @@
+{"requestId":"req-a02-001","taskCode":"LOAN_INQUIRY","workItemId":1001,"caseId":null,"revision":null,"data":{"loans":[{"loanId":101,"loanNoMasked":"210-***-557731","loanName":"AX 개인 신용대출","balance":17200000.00,"interestRate":7.2,"overdueDays":45,"accelerationDeclared":true,"repaymentOrder":"INTEREST_FIRST"}]},"error":null}
