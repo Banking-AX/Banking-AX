@@ -1,0 +1,24 @@
+{
+  "requestId": "c01-start-001",
+  "taskCode": "DEBT_ADJUSTMENT",
+  "workItemId": 1001,
+  "caseId": 2001,
+  "revision": 0,
+  "data": {
+    "caseStatus": "DRAFT",
+    "reviewStatus": null,
+    "visitRequired": false,
+    "ruleEvaluation": {
+      "submissionAllowed": true,
+      "items": [
+        {
+          "ruleCode": "C1-R5",
+          "code": "OTHER_PROCEDURE",
+          "disposition": "NEEDS_STAFF_REVIEW",
+          "message": "다른 채무조정 절차 진행 여부를 직원이 확인해야 합니다."
+        }
+      ]
+    }
+  },
+  "error": null
+}

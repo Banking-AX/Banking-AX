@@ -10,11 +10,18 @@ class FakeSpringToolGateway:
                 "caseId": None, "revision": None,
                 "data": {"loans": [{"loanId": 101, "loanNoMasked": "210-***-557731", "overdueDays": 45}]}, "error": None}
 
+    def debt_adjustment_start(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "DEBT_ADJUSTMENT", "workItemId": 1201,
+                "caseId": 2201, "revision": 0,
+                "data": {"caseStatus": "DRAFT", "reviewStatus": None, "visitRequired": False,
+                         "ruleEvaluation": {"submissionAllowed": True, "items": []}}, "error": None}
+
 
 class FakeT2Ports:
     """Phase 0 C-01/C-02 fixtures; never substitute for T2 implementations."""
     def document(self) -> dict[str, Any]: return {"status": "UPLOADED", "version": 1}
     def register_check(self, case_id: int, revision: int, task_code: str) -> dict[str, Any]:
-        return {"caseId": case_id, "revision": revision, "taskCode": task_code, "status": "READY_FOR_STAFF", "reviewItems": []}
+        return {"caseId": case_id, "revision": revision, "taskCode": task_code,
+                "status": "SUCCEEDED", "reviewStatus": "READY_FOR_STAFF", "reviewItems": [], "error": None}
     def notification(self) -> dict[str, Any]: return {"eventId": "fake-notification", "deduplicated": False}
     def visit(self) -> dict[str, Any]: return {"status": "NOT_IMPLEMENTED_BY_T1"}
