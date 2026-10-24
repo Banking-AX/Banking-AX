@@ -8,12 +8,16 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import org.springframework.stereotype.Service;
 
 /** C-02 deterministic intake rules. It never decides entitlement or staff outcome. */
+@Service
 public final class C02IntakeService {
     public static final String RULE_VERSION = "c02-g1";
     private static final LocalDate SUPPORTED_DEATH_DATE = LocalDate.of(2008, 1, 1);
     private final CasePort casePort;
+    private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
 
     public C02IntakeService(CasePort casePort) { this.casePort = casePort; }
 
@@ -66,7 +70,20 @@ public final class C02IntakeService {
     }
 
     public ServiceCaseView createDraft(long customerId, long workItemId, Intake intake) {
-        return casePort.create(new CreateCaseCommand(customerId, workItemId, TaskCode.INHERITANCE_DEPOSIT, null, Map.of("c02", intake)));
+        return casePort.create(new CreateCaseCommand(customerId, workItemId, TaskCode.INHERITANCE_DEPOSIT, null, Map.of("c02", intake), null, true));
+    }
+    public synchronized Prepared prepare(long customerId, long workItemId, String requestId, Intake intake, Map<String, DocumentStatus> statuses) {
+        Fingerprint fingerprint = new Fingerprint(customerId, workItemId, intake, statuses);
+        PreparedRequest existing = preparedRequests.get(requestId);
+        if (existing != null) {
+            if (!existing.fingerprint().equals(fingerprint)) throw new com.bankingax.core.api.DomainException("DUPLICATE_REQUEST_CONFLICT", "requestId was reused for another C-02 preparation.");
+            return existing.prepared();
+        }
+        Submission submission = assessSubmission(intake, statuses);
+        ServiceCaseView view = submission.outOfScope().isEmpty() ? createDraft(customerId, workItemId, intake) : null;
+        Prepared result = new Prepared(view, requiredDocuments(intake), submission);
+        preparedRequests.put(requestId, new PreparedRequest(fingerprint, result));
+        return result;
     }
     private static DocumentSlot slot(String code, Requirement requirement, String personRef, String note) { return new DocumentSlot(code, requirement, personRef, note); }
 
@@ -76,6 +93,9 @@ public final class C02IntakeService {
     public record Validation(List<String> errors, List<String> outOfScope) {}
     public record DocumentSlot(String documentTypeCode, Requirement requirement, String personRef, String note) { public String key(){ return documentTypeCode + ":" + (personRef == null ? "COMMON" : personRef); } }
     public record Submission(boolean submittable, List<String> errors, List<String> outOfScope, List<String> missingDocuments) {}
+    public record Prepared(ServiceCaseView caseView, List<DocumentSlot> requiredDocuments, Submission submission) {}
+    public record Fingerprint(long customerId, long workItemId, Intake intake, Map<String, DocumentStatus> documentStatuses) {}
+    private record PreparedRequest(Fingerprint fingerprint, Prepared prepared) {}
     public enum VisitStatus { UNKNOWN, ATTENDING, ABSENT, UNCONFIRMED_ABSENT }
     public enum DelegationMethod { NONE, DOCUMENT, RECEIPT }
     public enum Requirement { REQUIRED, CONDITIONAL, VISIT_ONLY }
