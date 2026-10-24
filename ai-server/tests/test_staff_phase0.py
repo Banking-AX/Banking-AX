@@ -10,6 +10,7 @@ from app.core.staff_engine import (
 from app.core.staff_engine.fakes import FakeCase, PortError
 from app.core.staff_engine.rag_adapter import RagEvidenceAdapter, existing_rag_search
 from app.tasks.c02 import register_c02_check
+from app.tasks.c02 import InheritanceDepositTask
 
 
 def verified_search(_: str, __: str, ___: int, ____: str) -> list[dict]:
@@ -56,6 +57,21 @@ class StaffPhaseZeroTests(unittest.TestCase):
         ))
         self.assertTrue(any(item.evidence.get('errorCode') == 'RAG_UNVERIFIED' for item in response.review_items))
         self.assertNotIn('PASS', {item.result for item in response.review_items})
+
+    def test_c02_rule_and_missing_document_snapshot_become_staff_items(self) -> None:
+        response = self._executor().run(CheckRequest(
+            request_id='c02-rules', case_id=200, revision=1, task_code='INHERITANCE_DEPOSIT',
+            case_snapshot={'decedent': {}, 'heirs': [], 'outOfScope': ['MINOR_HEIR'], 'missingDocuments': ['HEIR_IDENTITY_CARD:h1']},
+        ))
+        categories = {item.category for item in response.review_items}
+        self.assertTrue({'REQUIRED_INPUT', 'SCOPE', 'DOCUMENT_SLOT'} <= categories)
+
+    def test_c02_customer_task_builds_structured_payload_without_submission(self) -> None:
+        class Gateway:
+            def validate_c02_intake(self, request): return {'accepted': False, 'echo': request['decedent']}
+        response = InheritanceDepositTask(Gateway()).run({'requestId': 'c02-customer', 'workItemId': 1, 'customerId': 2, 'decedent': {'deathDate': '2020-01-01'}, 'heirs': []})
+        self.assertEqual(response['taskCode'], 'INHERITANCE_DEPOSIT')
+        self.assertFalse(response['submitted'])
 
     @patch('app.retrieve.search', return_value=[{
         'doc_id': 'C02-02', 'title': '위임장(상속) 양식', 'section': '본문',

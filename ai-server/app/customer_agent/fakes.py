@@ -16,6 +16,11 @@ class FakeSpringToolGateway:
                 "data": {"caseStatus": "DRAFT", "reviewStatus": None, "visitRequired": False,
                          "ruleEvaluation": {"submissionAllowed": True, "items": []}}, "error": None}
 
+    def inheritance_deposit_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "INHERITANCE_DEPOSIT", "workItemId": request["workItemId"],
+                "caseId": 2301, "revision": 0, "data": {"caseView": {"visitRequired": True},
+                "requiredDocuments": [], "submission": {"submittable": False, "errors": [], "outOfScope": [], "missingDocuments": []}}, "error": None}
+
 
 class FakeT2Ports:
     """Phase 0 C-01/C-02 fixtures; never substitute for T2 implementations."""

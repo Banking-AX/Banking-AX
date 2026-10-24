@@ -18,6 +18,8 @@ server:
     include-message: never
 app:
   tool-gateway-token: ${APP_TOOL_GATEWAY_TOKEN:}
+  staff-agent-base-url: ${APP_STAFF_AGENT_BASE_URL:}
+  staff-agent-token: ${APP_STAFF_AGENT_GATEWAY_TOKEN:}
   sms:
     provider: ${APP_SMS_PROVIDER:fake}
     otp-ttl-seconds: ${APP_OTP_TTL_SECONDS:180}
