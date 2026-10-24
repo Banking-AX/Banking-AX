@@ -1,0 +1,30 @@
+import unittest
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from app.customer_agent.fakes import FakeSpringToolGateway, FakeT2Ports
+from app.customer_agent.registry import TaskRegistry
+from app.customer_agent.router import create_router
+from app.customer_agent.tasks.loan_inquiry import LoanInquiryTask
+
+
+class CustomerAgentContractTests(unittest.TestCase):
+    def test_explicit_a02_registration_and_fake_roundtrip(self) -> None:
+        registry = TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())])
+        result = registry.get("LOAN_INQUIRY").run({"requestId": "req-a02-test", "workItemId": 1001, "customerId": 1})
+        self.assertEqual(101, result["data"]["loans"][0]["loanId"])
+
+
+    def test_t2_fake_ports_keep_case_boundaries_explicit(self) -> None:
+        ports = FakeT2Ports()
+        self.assertEqual("READY_FOR_STAFF", ports.register_check(2001, 0, "DEBT_ADJUSTMENT")["status"])
+        self.assertEqual("READY_FOR_STAFF", ports.register_check(2002, 0, "INHERITANCE_DEPOSIT")["status"])
+
+    def test_router_exposes_a02_without_editing_shared_main(self) -> None:
+        app = FastAPI()
+        app.include_router(create_router(TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())])), prefix="/api/v1")
+        response = TestClient(app).post("/api/v1/customer-agent/execute", json={
+            "taskCode": "LOAN_INQUIRY", "requestId": "req-router", "workItemId": 1001, "customerId": 1,
+        })
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("LOAN_INQUIRY", response.json()["taskCode"])
