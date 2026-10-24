@@ -9,7 +9,7 @@ class C02ValidationGateway(Protocol):
 def build_intake_payload(request: dict[str, Any]) -> dict[str, Any]:
     return {'requestId': request['requestId'], 'workItemId': request['workItemId'], 'customerId': request['customerId'],
             'decedent': request.get('decedent', {}), 'heirs': request.get('heirs', []),
-            'documentStatuses': request.get('documentStatuses', {}), 'submissionConfirmed': bool(request.get('submissionConfirmed'))}
+            'documentStatuses': request.get('documentStatuses', {}), 'registeredPhone': request.get('registeredPhone'), 'submissionConfirmed': bool(request.get('submissionConfirmed'))}
 
 class InheritanceDepositTask:
     definition = TaskDefinition('INHERITANCE_DEPOSIT', '상속예금 사전접수', ('inheritance_deposit_prepare',))

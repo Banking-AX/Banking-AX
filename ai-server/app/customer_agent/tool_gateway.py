@@ -36,7 +36,7 @@ class SpringHttpToolGateway:
         if not token:
             raise RuntimeError("SPRING_TOOL_GATEWAY_TOKEN_MISSING")
         headers = {"Content-Type": "application/json", "X-Actor-Id": str(customer_id), "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": token}
-        payload = {key: request[key] for key in ("customerId", "workItemId", "requestId", "decedent", "heirs", "documentStatuses") if key in request}
+        payload = {key: request[key] for key in ("customerId", "workItemId", "requestId", "registeredPhone", "decedent", "heirs", "documentStatuses") if key in request}
         return self._post("/api/v1/c02/prepare", payload, headers)
 
     def _post(self, path: str, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
