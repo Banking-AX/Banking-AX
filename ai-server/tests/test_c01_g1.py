@@ -30,6 +30,7 @@ class C01G1Tests(unittest.TestCase):
                 {'ruleCode': 'C1-W3', 'disposition': 'NEEDS_STAFF_REVIEW', 'message': 'prescription'},
             ]},
         )))
+        self.assertEqual(response.status, 'SUCCEEDED')
         self.assertEqual(response.review_status, 'WAITING_CUSTOMER')
         self.assertEqual({item.category for item in response.review_items}, {'CUSTOMER_FACTS', 'C1-R5', 'C1-W3'})
         stale = executor.run(CheckRequest(request_id='c01-stale', case_id=300, revision=1, task_code='DEBT_ADJUSTMENT'))

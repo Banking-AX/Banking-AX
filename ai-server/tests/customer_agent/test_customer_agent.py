@@ -17,8 +17,9 @@ class CustomerAgentContractTests(unittest.TestCase):
 
     def test_t2_fake_ports_keep_case_boundaries_explicit(self) -> None:
         ports = FakeT2Ports()
-        self.assertEqual("READY_FOR_STAFF", ports.register_check(2001, 0, "DEBT_ADJUSTMENT")["status"])
-        self.assertEqual("READY_FOR_STAFF", ports.register_check(2002, 0, "INHERITANCE_DEPOSIT")["status"])
+        self.assertEqual("SUCCEEDED", ports.register_check(2001, 0, "DEBT_ADJUSTMENT")["status"])
+        self.assertEqual("READY_FOR_STAFF", ports.register_check(2001, 0, "DEBT_ADJUSTMENT")["reviewStatus"])
+        self.assertEqual("SUCCEEDED", ports.register_check(2002, 0, "INHERITANCE_DEPOSIT")["status"])
 
     def test_router_exposes_a02_without_editing_shared_main(self) -> None:
         app = FastAPI()

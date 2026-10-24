@@ -6,6 +6,7 @@ import com.bankingax.core.caseport.InMemoryCasePort;
 import com.bankingax.core.verification.*;
 import com.bankingax.core.workflow.InMemoryTaskHandler;
 import java.time.LocalDate;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class C01IntakeServiceTest {
@@ -29,6 +30,29 @@ class C01IntakeServiceTest {
     service.recordConsentAndMockSignature(1,draft.caseId(),0,true,true);
     service.revise(1,draft.caseId(),0,"추가 사실");
     assertThrows(DomainException.class,()->service.issueOtp(1,draft.caseId(),0));
+  }
+  @Test void startIsIdempotentAndRejectsConflictingRequestReuse() {
+    C01IntakeService service=service(new RecordingSender());
+    var first=service.start(new C01IntakeService.C01StartCommand(1,20,0,"start-idempotent",101,"01012345678"));
+    var replay=service.start(new C01IntakeService.C01StartCommand(1,20,0,"start-idempotent",101,"01012345678"));
+    assertEquals(first,replay);
+    assertThrows(DomainException.class,()->service.start(new C01IntakeService.C01StartCommand(2,20,0,"start-idempotent",101,"01012345678")));
+    assertThrows(DomainException.class,()->service.start(new C01IntakeService.C01StartCommand(1,20,0,"start-idempotent",101,"01099999999")));
+  }
+  @Test void draftReviewStatusIsNullUntilSubmission() {
+    C01IntakeService service=service(new RecordingSender());
+    var draft=service.start(new C01IntakeService.C01StartCommand(1,21,0,"start-null-review",101,"01012345678"));
+    assertNull(draft.reviewStatus());
+  }
+  @Test void concurrentStartReplayCreatesOneDraft() throws Exception {
+    C01IntakeService service=service(new RecordingSender());
+    var command=new C01IntakeService.C01StartCommand(1,22,0,"start-concurrent",101,"01012345678");
+    var pool=Executors.newFixedThreadPool(2);
+    try {
+      var first=pool.submit(()->service.start(command));
+      var second=pool.submit(()->service.start(command));
+      assertEquals(first.get(),second.get());
+    } finally { pool.shutdownNow(); }
   }
   @Test void systemRulesBlockAndStaffRulesRemainReviewItems() {
     DebtAdjustmentRuleValidator validator=new DebtAdjustmentRuleValidator();
