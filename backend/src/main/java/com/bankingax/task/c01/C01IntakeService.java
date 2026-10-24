@@ -16,15 +16,25 @@ public class C01IntakeService {
     private final TaskHandler tasks; private final CasePort cases; private final VerificationPort verification;
     private final DebtAdjustmentLoanPort loans; private final DebtAdjustmentRuleValidator rules;
     private final Map<Long, Draft> drafts = new HashMap<>(); private final Map<String, C01Submission> submissions = new HashMap<>();
+    private final Map<String, StartResult> starts = new HashMap<>();
     public C01IntakeService(TaskHandler tasks, CasePort cases, VerificationPort verification, DebtAdjustmentLoanPort loans, DebtAdjustmentRuleValidator rules) {
         this.tasks=tasks; this.cases=cases; this.verification=verification; this.loans=loans; this.rules=rules;
     }
     public synchronized C01Draft start(C01StartCommand command) {
+        StartFingerprint fingerprint = StartFingerprint.from(command);
+        StartResult previous = starts.get(command.requestId());
+        if (previous != null) {
+            if (!previous.fingerprint().equals(fingerprint))
+                throw new DomainException("DUPLICATE_REQUEST_CONFLICT", "requestId was reused for another C-01 start request.");
+            return previous.draft();
+        }
         C01LoanProfile loan = loans.findOwned(command.customerId(), command.loanId());
         WorkItemView work = tasks.start(new StartTaskCommand(command.customerId(), command.workflowId(), TaskCode.DEBT_ADJUSTMENT, command.expectedWorkflowVersion(), command.requestId()));
         ServiceCaseView view = cases.create(new CreateCaseCommand(command.customerId(), work.workItemId(), TaskCode.DEBT_ADJUSTMENT, loan.loanId(), Map.of()));
         Draft draft = new Draft(command.customerId(), work, view, loan, command.registeredPhone()); drafts.put(view.caseId(), draft);
-        return draft.view(rules.evaluate(loan, LocalDate.now()));
+        C01Draft result = draft.view(rules.evaluate(loan, LocalDate.now()));
+        starts.put(command.requestId(), new StartResult(fingerprint, result));
+        return result;
     }
     public synchronized C01Draft saveIntake(long customerId, long caseId, int expectedRevision, String reason, String situation, long monthlyRepaymentCapacity, boolean requiredDocumentsSatisfied) {
         Draft d=owned(customerId, caseId); requireRevision(d, expectedRevision); if (blank(reason)||blank(situation)||monthlyRepaymentCapacity<0) throw new DomainException("INTAKE_REQUIRED","신청 사유, 현재 상황, 변제능력은 필수입니다.");
@@ -54,7 +64,7 @@ public class C01IntakeService {
         C01Submission result=new C01Submission(command.customerId(),submitted.caseId(),submitted.workItemId(),submitted.revision(),submitted.caseStatus().name(),submitted.reviewStatus().name(),false,evaluation.items()); submissions.put(command.requestId(),result); return result;
     }
     public synchronized C01Draft revise(long customerId,long caseId,int expectedRevision,String reason) { Draft d=owned(customerId,caseId); requireRevision(d,expectedRevision); d.view=cases.revise(customerId,caseId,expectedRevision,Map.of("reason",reason),"CUSTOMER_UPDATE"); return d.view(rules.evaluate(d.loan,LocalDate.now())); }
-    public synchronized Map<String,Object> staffSnapshot(long customerId,long caseId) { Draft d=owned(customerId,caseId); return Map.of("caseStatus",d.view.caseStatus().name(),"reviewStatus",String.valueOf(d.view.reviewStatus()),"ruleResults",rules.evaluate(d.loan,LocalDate.now()).items(),"reason",d.reason,"currentSituation",d.situation,"monthlyRepaymentCapacity",d.monthlyRepaymentCapacity); }
+    public synchronized Map<String,Object> staffSnapshot(long customerId,long caseId) { Draft d=owned(customerId,caseId); Map<String,Object> snapshot=new HashMap<>(); snapshot.put("caseStatus",d.view.caseStatus().name()); snapshot.put("reviewStatus",reviewStatus(d.view)); snapshot.put("ruleResults",rules.evaluate(d.loan,LocalDate.now()).items()); snapshot.put("reason",d.reason); snapshot.put("currentSituation",d.situation); snapshot.put("monthlyRepaymentCapacity",d.monthlyRepaymentCapacity); return snapshot; }
     private Draft owned(long customerId,long caseId){ Draft d=drafts.get(caseId); if(d==null) throw new DomainException("NOT_FOUND","C-01 draft was not found."); if(d.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return d; }
     private static void requireRevision(Draft d,int revision){if(d.view.revision()!=revision) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true);}
     private static boolean blank(String text){return text==null||text.isBlank();}
@@ -62,8 +72,13 @@ public class C01IntakeService {
     public record C01SubmitCommand(long customerId,long caseId,int expectedRevision,String requestId,String bindingId) { }
     public record C01Draft(long caseId,long workItemId,int revision,String caseStatus,String reviewStatus,boolean visitRequired,C01RuleEvaluation ruleEvaluation) { }
     public record C01Submission(long customerId,long caseId,long workItemId,int revision,String caseStatus,String reviewStatus,boolean visitReservationCreated,List<C01RuleItem> ruleItems) { }
+    private record StartFingerprint(long customerId, long workflowId, int expectedWorkflowVersion, long loanId, String registeredPhone) {
+        static StartFingerprint from(C01StartCommand command) { return new StartFingerprint(command.customerId(), command.workflowId(), command.expectedWorkflowVersion(), command.loanId(), command.registeredPhone()); }
+    }
+    private record StartResult(StartFingerprint fingerprint, C01Draft draft) { }
     private static final class Draft { final long customerId; final WorkItemView work; final C01LoanProfile loan; final String phone; ServiceCaseView view; String reason; String situation; long monthlyRepaymentCapacity=-1; boolean requiredDocumentsSatisfied; boolean consented; boolean mockSignatureCompleted;
         Draft(long customerId,WorkItemView work,ServiceCaseView view,C01LoanProfile loan,String phone){this.customerId=customerId;this.work=work;this.view=view;this.loan=loan;this.phone=phone;}
-        C01Draft view(C01RuleEvaluation evaluation){return new C01Draft(view.caseId(),work.workItemId(),view.revision(),view.caseStatus().name(),String.valueOf(view.reviewStatus()),false,evaluation);}
+        C01Draft view(C01RuleEvaluation evaluation){return new C01Draft(view.caseId(),work.workItemId(),view.revision(),view.caseStatus().name(),reviewStatus(view),false,evaluation);}
     }
+    private static String reviewStatus(ServiceCaseView view) { return view.reviewStatus() == null ? null : view.reviewStatus().name(); }
 }

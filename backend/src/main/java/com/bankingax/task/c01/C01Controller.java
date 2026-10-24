@@ -16,29 +16,43 @@ public class C01Controller {
     private final InternalGatewayAuthenticator authenticator;
     public C01Controller(C01IntakeService service, InternalGatewayAuthenticator authenticator) { this.service = service; this.authenticator = authenticator; }
     @PostMapping("/start") public ApiEnvelope<C01IntakeService.C01Draft> start(@RequestHeader("X-Actor-Id") long actorId,
-            @RequestHeader("X-Actor-Role") ActorRole role, @RequestHeader("X-Tool-Gateway-Token") String gatewayToken, @RequestBody StartBody b) {
-        authenticator.verify(gatewayToken);
-        if (role != ActorRole.CUSTOMER || actorId != b.customerId) throw new DomainException("FORBIDDEN", "Customer ownership cannot be verified.");
+            @RequestHeader("X-Actor-Role") ActorRole role, @RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken, @RequestBody StartBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.start(new C01IntakeService.C01StartCommand(b.customerId,b.workflowId,b.expectedWorkflowVersion,b.requestId,b.loanId,b.registeredPhone));
         return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",data.workItemId(),data.caseId(),data.revision(),data);
     }
-    @PutMapping("/{caseId}/intake") public ApiEnvelope<C01IntakeService.C01Draft> intake(@PathVariable long caseId,@RequestBody IntakeBody b) {
+    @PutMapping("/{caseId}/intake") public ApiEnvelope<C01IntakeService.C01Draft> intake(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken,@RequestBody IntakeBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.saveIntake(b.customerId,caseId,b.revision,b.reason,b.currentSituation,b.monthlyRepaymentCapacity,b.requiredDocumentsSatisfied);
         return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",data.workItemId(),caseId,data.revision(),data);
     }
-    @PostMapping("/{caseId}/consent") public ApiEnvelope<C01IntakeService.C01Draft> consent(@PathVariable long caseId,@RequestBody ConsentBody b) {
+    @PostMapping("/{caseId}/consent") public ApiEnvelope<C01IntakeService.C01Draft> consent(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken,@RequestBody ConsentBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.recordConsentAndMockSignature(b.customerId,caseId,b.revision,b.consented,b.mockSignatureCompleted);
         return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",data.workItemId(),caseId,data.revision(),data);
     }
-    @PostMapping("/{caseId}/verification/issue") public ApiEnvelope<VerificationIssue> issue(@PathVariable long caseId,@RequestBody RevisionBody b) {
+    @PostMapping("/{caseId}/verification/issue") public ApiEnvelope<VerificationIssue> issue(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken,@RequestBody RevisionBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.issueOtp(b.customerId,caseId,b.revision); return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",null,caseId,b.revision,data);
     }
-    @PostMapping("/verification/verify") public ApiEnvelope<VerificationBinding> verify(@RequestBody VerifyBody b) {
+    @PostMapping("/verification/verify") public ApiEnvelope<VerificationBinding> verify(@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken,@RequestBody VerifyBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.verifyOtp(b.customerId,b.challengeId,b.otp); return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",null,null,null,data);
     }
-    @PostMapping("/{caseId}/submit") public ApiEnvelope<C01IntakeService.C01Submission> submit(@PathVariable long caseId,@RequestBody SubmitBody b) {
+    @PostMapping("/{caseId}/submit") public ApiEnvelope<C01IntakeService.C01Submission> submit(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token", required=false, defaultValue="") String gatewayToken,@RequestBody SubmitBody b) {
+        authenticateCustomer(actorId, role, gatewayToken, b.customerId);
         var data=service.submit(new C01IntakeService.C01SubmitCommand(b.customerId,caseId,b.revision,b.requestId,b.bindingId));
         return ApiEnvelope.success(b.requestId,"DEBT_ADJUSTMENT",data.workItemId(),caseId,data.revision(),data);
+    }
+    private void authenticateCustomer(long actorId, ActorRole role, String gatewayToken, long customerId) {
+        authenticator.verify(gatewayToken);
+        if (role != ActorRole.CUSTOMER || actorId != customerId)
+            throw new DomainException("FORBIDDEN", "Customer ownership cannot be verified.");
     }
     public record StartBody(long customerId,long workflowId,int expectedWorkflowVersion,String requestId,long loanId,String registeredPhone){}
     public record IntakeBody(long customerId,int revision,String requestId,String reason,String currentSituation,long monthlyRepaymentCapacity,boolean requiredDocumentsSatisfied){}
