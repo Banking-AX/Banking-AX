@@ -10,6 +10,13 @@ class FakeSpringToolGateway:
                 "caseId": None, "revision": None,
                 "data": {"loans": [{"loanId": 101, "loanNoMasked": "210-***-557731", "overdueDays": 45}]}, "error": None}
 
+    def transaction_search(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "TRANSACTION_SEARCH", "workItemId": request["workItemId"],
+                "caseId": None, "revision": None, "error": None,
+                "data": {"accountId": request["accountId"], "accountNoMasked": "110-***-000001", "accountName": "AX 입출금 통장",
+                         "timeZone": "Asia/Seoul", "page": request.get("page", 0), "size": request.get("size", 20),
+                         "totalElements": 0, "totalPages": 0, "transactions": []}}
+
     def debt_adjustment_start(self, request: dict[str, Any]) -> dict[str, Any]:
         return {"requestId": request["requestId"], "taskCode": "DEBT_ADJUSTMENT", "workItemId": 1201,
                 "caseId": 2201, "revision": 0,

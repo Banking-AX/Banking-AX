@@ -6,6 +6,7 @@ from app.customer_agent.fakes import FakeSpringToolGateway, FakeT2Ports
 from app.customer_agent.registry import TaskRegistry
 from app.customer_agent.router import create_router
 from app.customer_agent.tasks.loan_inquiry import LoanInquiryTask
+from app.customer_agent.tasks.transaction_search import TransactionSearchTask
 
 
 class CustomerAgentContractTests(unittest.TestCase):
@@ -13,6 +14,13 @@ class CustomerAgentContractTests(unittest.TestCase):
         registry = TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())])
         result = registry.get("LOAN_INQUIRY").run({"requestId": "req-a02-test", "workItemId": 1001, "customerId": 1})
         self.assertEqual(101, result["data"]["loans"][0]["loanId"])
+
+    def test_a01_registration_requires_structured_conditions_and_uses_langgraph(self) -> None:
+        registry = TaskRegistry([TransactionSearchTask(FakeSpringToolGateway())])
+        result = registry.get("TRANSACTION_SEARCH").run({"requestId": "req-a01-test", "workItemId": 1001, "customerId": 1,
+            "accountId": 1001, "startDate": "2026-10-01", "endDate": "2026-10-31", "page": 0, "size": 20})
+        self.assertEqual("TRANSACTION_SEARCH", result["taskCode"])
+        self.assertEqual(1001, result["data"]["accountId"])
 
 
     def test_t2_fake_ports_keep_case_boundaries_explicit(self) -> None:
