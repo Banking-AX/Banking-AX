@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from .registry import TaskRegistry
 from .tasks.loan_inquiry import LoanInquiryTask
 from .tasks.transaction_search import TransactionSearchTask
+from .tasks.housing_savings_close import HousingSavingsCloseTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway
@@ -25,6 +26,12 @@ class CustomerTaskRequest(BaseModel):
     workflowId: int | None = None
     expectedWorkflowVersion: int = 0
     registeredPhone: str | None = None
+    taxed: bool | None = None
+    waivePreferredRate: bool = False
+    consented: bool = False
+    mockSignatureCompleted: bool = False
+    bindingId: str | None = None
+    version: int = 0
     decedent: dict[str, object] | None = None
     heirs: list[dict[str, object]] = Field(default_factory=list)
     documentStatuses: dict[str, str] = Field(default_factory=dict)
@@ -34,7 +41,7 @@ class CustomerTaskRequest(BaseModel):
 
 def build_registry(gateway: SpringHttpToolGateway | None = None) -> TaskRegistry:
     selected = gateway or SpringHttpToolGateway()
-    return TaskRegistry([TransactionSearchTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
+    return TaskRegistry([TransactionSearchTask(selected), HousingSavingsCloseTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
 
 
 def create_router(registry: TaskRegistry | None = None) -> APIRouter:

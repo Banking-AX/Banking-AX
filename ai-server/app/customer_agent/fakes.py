@@ -4,6 +4,8 @@ from typing import Any
 
 
 class FakeSpringToolGateway:
+    def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"rate":"BASE_RATE","rule":"B2-R3","manual":False}}
+    def b02_execute(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"status":"CLOSED"}}
     """Consumer-test fixture. It has no database or HTTP side effect."""
     def loan_inquiry(self, request: dict[str, Any]) -> dict[str, Any]:
         return {"requestId": request["requestId"], "taskCode": "LOAN_INQUIRY", "workItemId": request["workItemId"],

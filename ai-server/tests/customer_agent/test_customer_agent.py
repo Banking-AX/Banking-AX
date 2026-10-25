@@ -7,6 +7,7 @@ from app.customer_agent.registry import TaskRegistry
 from app.customer_agent.router import create_router
 from app.customer_agent.tasks.loan_inquiry import LoanInquiryTask
 from app.customer_agent.tasks.transaction_search import TransactionSearchTask
+from app.customer_agent.tasks.housing_savings_close import HousingSavingsCloseTask
 
 
 class CustomerAgentContractTests(unittest.TestCase):
@@ -21,6 +22,10 @@ class CustomerAgentContractTests(unittest.TestCase):
             "accountId": 1001, "startDate": "2026-10-01", "endDate": "2026-10-31", "page": 0, "size": 20})
         self.assertEqual("TRANSACTION_SEARCH", result["taskCode"])
         self.assertEqual(1001, result["data"]["accountId"])
+    def test_b02_prepare_does_not_execute_without_explicit_confirmation(self) -> None:
+        task=HousingSavingsCloseTask(FakeSpringToolGateway())
+        self.assertEqual("B2-R3",task.run({"requestId":"b","customerId":1,"accountId":3001,"waivePreferredRate":True})["data"]["rule"])
+        with self.assertRaises(ValueError): task.run({"requestId":"e","customerId":1,"accountId":3001,"submissionConfirmed":True})
 
 
     def test_t2_fake_ports_keep_case_boundaries_explicit(self) -> None:
