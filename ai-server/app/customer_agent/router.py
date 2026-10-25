@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from .registry import TaskRegistry
 from .tasks.loan_inquiry import LoanInquiryTask
+from .tasks.transaction_search import TransactionSearchTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway
@@ -15,6 +16,12 @@ class CustomerTaskRequest(BaseModel):
     workItemId: int | None = None
     customerId: int
     loanId: int | None = None
+    accountId: int | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+    transactionType: str | None = None
+    page: int | None = None
+    size: int | None = None
     workflowId: int | None = None
     expectedWorkflowVersion: int = 0
     registeredPhone: str | None = None
@@ -27,7 +34,7 @@ class CustomerTaskRequest(BaseModel):
 
 def build_registry(gateway: SpringHttpToolGateway | None = None) -> TaskRegistry:
     selected = gateway or SpringHttpToolGateway()
-    return TaskRegistry([LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
+    return TaskRegistry([TransactionSearchTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
 
 
 def create_router(registry: TaskRegistry | None = None) -> APIRouter:

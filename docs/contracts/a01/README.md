@@ -1,3 +1,9 @@
-# A-01 Tool 계약 경계 — T2 Phase 0
+# A-01 거래내역 조회 Tool 계약 — G1
 
-`TRANSACTION_SEARCH`의 실제 Spring 조회 Tool은 T2 업무 소유이나 Spring 프로젝트가 아직 없다. 이후 계약에는 요청 ID, 인증된 고객 ID, 계좌/기간/조건과 조회 결과만 둔다. A 조회는 직원 Agent, OCR, 이메일, VisitPort를 호출하지 않는다. Phase 0에는 구현·Fake를 추가하지 않는다.
+`POST /api/v1/tools/transaction-search`는 내부 Customer Agent→Spring 경계다. 호출자는 `X-Tool-Gateway-Token`, `X-Actor-Id`, `X-Actor-Role: CUSTOMER`를 포함한다. Spring은 actor/customerId와 계좌 customerId를 재검증한다.
+
+요청 DTO: `requestId`, `workItemId`, `customerId`, `accountId`, `startDate`, `endDate`, 선택 `transactionType(IN|OUT)`, `page`, `size`.
+
+응답은 표준 `ApiEnvelope`의 `data`에 마스킹 계좌번호, `Asia/Seoul` 기준 거래시각, `BigDecimal` 금액, 안정 정렬(`tx_at DESC, id DESC`), 페이지 메타데이터를 담는다. 날짜 범위 역전은 `INVALID_DATE_RANGE`, 존재하지 않는 계좌는 `NOT_FOUND`, 타 고객 계좌/actor 불일치는 `FORBIDDEN`이다.
+
+G1은 `FakeTransactionQueryPort`를 사용한다. 이는 DDL의 `deposit_account`/`account_transaction` projection일 뿐 실제 DB·은행 연동이 아니다. A 조회는 직원 Agent, OCR, 이메일, VisitPort를 호출하지 않는다. 자연어 조건 추출은 현재 계약 범위 밖이며, Agent에는 구조화된 조건만 전달한다.
