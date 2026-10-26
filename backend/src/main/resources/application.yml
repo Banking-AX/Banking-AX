@@ -29,6 +29,7 @@ app:
     account-port: ${APP_B02_ACCOUNT_PORT:fake}
     rule-version: ${APP_B02_RULE_VERSION:1.7.1}
   c02:
+    # jpa requires the document metadata migration assigned by T1; local remains the default PoC adapter.
     document-port: ${APP_C02_DOCUMENT_PORT:local}
     file-storage-root: ${APP_C02_FILE_STORAGE_ROOT:./var/c02-documents}
     max-file-bytes: ${APP_C02_MAX_FILE_BYTES:10485760}
