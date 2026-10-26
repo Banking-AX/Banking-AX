@@ -37,7 +37,7 @@ class SpringHttpToolGateway:
         if not token:
             raise RuntimeError("SPRING_TOOL_GATEWAY_TOKEN_MISSING")
         headers = {"Content-Type": "application/json", "X-Actor-Id": str(customer_id), "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": token}
-        payload = {key: request[key] for key in ("requestId", "workItemId", "customerId", "accountId", "startDate", "endDate", "transactionType", "page", "size") if request.get(key) is not None}
+        payload = {key: request[key] for key in ("requestId", "workItemId", "customerId", "accountId", "startDate", "endDate", "transactionType", "minimumAmount", "maximumAmount", "keyword", "sortOrder", "page", "size") if request.get(key) is not None}
         return self._post("/api/v1/tools/transaction-search", payload, headers)
 
     def debt_adjustment_start(self, request: dict[str, Any]) -> dict[str, Any]:
