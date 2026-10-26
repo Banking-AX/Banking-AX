@@ -24,6 +24,10 @@ app:
   a01:
     # jdbc requires the DDL's Mock-financial tables to be provisioned; default remains the G1 fixture.
     transaction-query-port: ${APP_A01_TRANSACTION_QUERY_PORT:fake}
+  b02:
+    # jdbc requires the authoritative Mock-financial tables; default remains the G1 fixture.
+    account-port: ${APP_B02_ACCOUNT_PORT:fake}
+    rule-version: ${APP_B02_RULE_VERSION:1.7.1}
   c02:
     document-port: ${APP_C02_DOCUMENT_PORT:local}
     file-storage-root: ${APP_C02_FILE_STORAGE_ROOT:./var/c02-documents}
