@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /** C-02 deterministic intake rules. It never decides entitlement or staff outcome. */
@@ -22,11 +23,16 @@ public final class C02IntakeService {
     private final CasePort casePort;
     private final VerificationPort verification;
     private final StaffAgentPort staffAgent;
+    private final DocumentPort documents;
     private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
     private final Map<Long, Draft> drafts = new HashMap<>();
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
+    private final Map<String, PrecheckRequest> prechecks = new HashMap<>();
+    private final Map<String, DocumentUpdate> documentUpdates = new HashMap<>();
+    private final Map<ReviewKey, StaffPrecheckResult> reviewResults = new HashMap<>();
 
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort()); }
+    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; }
 
     public Validation validate(Intake intake) {
         List<String> errors = new ArrayList<>();
@@ -72,7 +78,10 @@ public final class C02IntakeService {
         Validation validation = validate(intake);
         if (!validation.outOfScope().isEmpty()) return new Submission(false, validation.errors(), validation.outOfScope(), List.of());
         List<String> missing = new ArrayList<>();
-        for (DocumentSlot slot : requiredDocuments(intake)) if (slot.requirement() == Requirement.REQUIRED && statuses.getOrDefault(slot.key(), DocumentStatus.NOT_SUBMITTED) == DocumentStatus.NOT_SUBMITTED) missing.add(slot.key());
+        for (DocumentSlot slot : requiredDocuments(intake)) {
+            DocumentStatus status=statuses.getOrDefault(slot.key(),DocumentStatus.NOT_SUBMITTED);
+            if (slot.requirement()==Requirement.REQUIRED && (status==DocumentStatus.NOT_SUBMITTED || status==DocumentStatus.VALIDATION_FAILED || status==DocumentStatus.NEEDS_SUPPLEMENT)) missing.add(slot.key());
+        }
         return new Submission(validation.errors().isEmpty() && missing.isEmpty(), validation.errors(), List.of(), missing);
     }
 
@@ -106,7 +115,7 @@ public final class C02IntakeService {
         SubmittedRequest previous=submissions.get(command.requestId());
         if(previous!=null) { if(!previous.command().equals(command)) throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 submission."); return previous.result(); }
         Draft draft=owned(command.customerId(),command.caseId()); requireRevision(draft,command.expectedRevision());
-        Submission assessment=assessSubmission(draft.intake,draft.documentStatuses);
+        Submission assessment=assessSubmission(draft.intake,documentStatuses(draft));
         if(!assessment.submittable()) throw new DomainException("C02_SUBMISSION_BLOCKED","C-02 input, scope, or required document slots are incomplete.");
         if(!draft.consented||!draft.mockSignatureCompleted) throw new DomainException("CONSENT_OR_SIGNATURE_REQUIRED","필수 동의와 모의 서명이 필요합니다.");
         verification.consume(new VerificationConsumeCommand(command.bindingId(),command.customerId(),draft.view.workItemId(),VerificationAction.C02_SUBMIT,command.expectedRevision()));
@@ -114,8 +123,9 @@ public final class C02IntakeService {
         StaffAgentPort.StaffAgentResponse report;
         try { report=dispatchStaffCheck(draft,command.requestId());
         } catch (DomainException exception) {
-            casePort.recordCheckResult(submitted.caseId(),submitted.revision(),ReviewStatus.FAILED_NEEDS_STAFF);
+            draft.view=casePort.recordCheckResult(submitted.caseId(),submitted.revision(),ReviewStatus.FAILED_NEEDS_STAFF);
             report=new StaffAgentPort.StaffAgentResponse("FAILED","FAILED_NEEDS_STAFF",List.of(),Map.of("code",exception.code(),"message",exception.getMessage()));
+            reviewResults.put(new ReviewKey(submitted.caseId(),submitted.revision()),new StaffPrecheckResult(submitted.caseId(),submitted.workItemId(),submitted.revision(),report.status(),report.reviewStatus(),report.reviewItems(),report.error(),false));
         }
         SubmissionResult result=new SubmissionResult(command.customerId(),submitted.caseId(),submitted.workItemId(),submitted.revision(),submitted.caseStatus().name(),report.status(),report.reviewStatus(),report.reviewItems(),report.error());
         submissions.put(command.requestId(),new SubmittedRequest(command,result)); return result;
@@ -130,11 +140,57 @@ public final class C02IntakeService {
         if(!"SUCCEEDED".equals(report.status())) status=ReviewStatus.FAILED_NEEDS_STAFF;
         else try { status=ReviewStatus.valueOf(report.reviewStatus()); }
         catch (IllegalArgumentException | NullPointerException exception) { throw new DomainException("STAFF_AGENT_INVALID_RESPONSE","Staff Agent returned an invalid review status.",true); }
-        casePort.recordCheckResult(after.caseId(),after.revision(),status); return report;
+        draft.view=casePort.recordCheckResult(after.caseId(),after.revision(),status);
+        reviewResults.put(new ReviewKey(after.caseId(), after.revision()), new StaffPrecheckResult(after.caseId(), after.workItemId(), after.revision(), report.status(), status.name(), report.reviewItems(), report.error(), false));
+        return report;
+    }
+    /** Registers metadata only. File bytes/storage remain outside this development adapter. */
+    public synchronized DocumentUpdate registerDocument(long customerId, long caseId, int expectedRevision, String requestId, DocumentPort.DocumentRegistration registration) {
+        DocumentUpdate previous=documentUpdates.get(requestId);
+        if(previous!=null) return previous;
+        Draft draft=owned(customerId,caseId); requireRevision(draft,expectedRevision);
+        if(registration.caseId()!=caseId || requiredDocuments(draft.intake).stream().noneMatch(slot -> slot.key().equals(registration.documentSlotKey())))
+            throw new DomainException("DOCUMENT_SLOT_UNKNOWN","The document slot is not required for this C-02 case.");
+        DocumentPort.DocumentMetadata metadata=documents.register(new DocumentPort.DocumentRegistration(caseId,expectedRevision,registration.documentSlotKey(),registration.fileName(),registration.mimeType(),registration.sizeBytes(),registration.storageReference(),registration.status()));
+        draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED");
+        StaffPrecheckResult precheck=draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
+        DocumentUpdate update=new DocumentUpdate(metadata,draft.view.revision(),draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),precheck);
+        documentUpdates.put(requestId,update); return update;
+    }
+    public synchronized List<DocumentPort.DocumentMetadata> documents(long customerId,long caseId) { owned(customerId,caseId); return documents.findByCase(caseId); }
+    public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
+    /** The controller enforces STAFF role; this never records a final staff decision. */
+    public synchronized StaffPrecheckResult staffReview(long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); return reviewFor(draft); }
+    public synchronized StaffPrecheckResult runStaffPrecheck(long caseId,int expectedRevision,String requestId) {
+        Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); requireRevision(draft,expectedRevision);
+        if(draft.view.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only submitted cases can be prechecked.");
+        return runStaffPrecheckInternal(draft,requestId);
+    }
+    private StaffPrecheckResult runStaffPrecheckInternal(Draft draft,String requestId) {
+        PrecheckRequest previous=prechecks.get(requestId);
+        if(previous!=null) { if(previous.caseId()!=draft.view.caseId() || previous.revision()!=draft.view.revision()) throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another staff precheck."); return previous.result(); }
+        try { dispatchStaffCheck(draft,requestId); }
+        catch(DomainException exception) {
+            draft.view=casePort.recordCheckResult(draft.view.caseId(),draft.view.revision(),ReviewStatus.FAILED_NEEDS_STAFF);
+            reviewResults.put(new ReviewKey(draft.view.caseId(),draft.view.revision()),new StaffPrecheckResult(draft.view.caseId(),draft.view.workItemId(),draft.view.revision(),"FAILED","FAILED_NEEDS_STAFF",List.of(),Map.of("code",exception.code(),"message",exception.getMessage()),false));
+        }
+        StaffPrecheckResult result=reviewFor(draft); prechecks.put(requestId,new PrecheckRequest(draft.view.caseId(),draft.view.revision(),result)); return result;
+    }
+    private StaffPrecheckResult reviewFor(Draft draft) {
+        StaffPrecheckResult result=reviewResults.get(new ReviewKey(draft.view.caseId(),draft.view.revision()));
+        return result==null ? new StaffPrecheckResult(draft.view.caseId(),draft.view.workItemId(),draft.view.revision(),"NOT_RUN",draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),List.of(),null,false) : result;
+    }
+    private Map<String,DocumentStatus> documentStatuses(Draft draft) {
+        Map<String,DocumentStatus> statuses=new HashMap<>(draft.documentStatuses);
+        for(DocumentSlot slot:requiredDocuments(draft.intake)) {
+            DocumentStatus status=documents.status(draft.view.caseId(),slot.key());
+            if(status!=DocumentStatus.NOT_SUBMITTED) statuses.put(slot.key(),status);
+        }
+        return statuses;
     }
     private Map<String,Object> snapshot(ServiceCaseView view,Draft draft) {
         List<Map<String,Object>> heirs=draft.intake.heirs().stream().map(h -> Map.<String,Object>of("personRef",h.personRef(),"visitStatus",h.visitStatus().name(),"delegationMethod",h.delegationMethod().name())).toList();
-        Submission assessment=assessSubmission(draft.intake,draft.documentStatuses);
+        Submission assessment=assessSubmission(draft.intake,documentStatuses(draft));
         return Map.of("caseStatus",view.caseStatus().name(),"reviewStatus",String.valueOf(view.reviewStatus()),"decedent",Map.of("deathDate",draft.intake.decedent().deathDate().toString()),"heirs",heirs,"outOfScope",assessment.outOfScope(),"missingDocuments",assessment.missingDocuments());
     }
     private Draft owned(long customerId,long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found."); if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return draft; }
@@ -151,9 +207,14 @@ public final class C02IntakeService {
     public record C02Draft(long caseId,long workItemId,int revision,String caseStatus,String reviewStatus,boolean visitRequired) {}
     public record C02SubmitCommand(long customerId,long caseId,int expectedRevision,String requestId,String bindingId) {}
     public record SubmissionResult(long customerId,long caseId,long workItemId,int revision,String caseStatus,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error) {}
+    /** This is an Agent precheck result, never a staff_review final decision. */
+    public record StaffPrecheckResult(long caseId,long workItemId,int revision,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error,boolean finalStaffDecision) {}
+    public record DocumentUpdate(DocumentPort.DocumentMetadata document,int revision,String reviewStatus,StaffPrecheckResult precheck) {}
     public record Fingerprint(long customerId, long workItemId, Intake intake, Map<String, DocumentStatus> documentStatuses) {}
     private record PreparedRequest(Fingerprint fingerprint, Prepared prepared) {}
     private record SubmittedRequest(C02SubmitCommand command, SubmissionResult result) {}
+    private record PrecheckRequest(long caseId,int revision,StaffPrecheckResult result) {}
+    private record ReviewKey(long caseId,int revision) {}
     private static final class Draft { final long customerId; final Intake intake; final Map<String,DocumentStatus> documentStatuses; final String phone; ServiceCaseView view; boolean consented; boolean mockSignatureCompleted;
         Draft(long customerId,ServiceCaseView view,Intake intake,Map<String,DocumentStatus> documentStatuses,String phone){this.customerId=customerId;this.view=view;this.intake=intake;this.documentStatuses=documentStatuses;this.phone=phone;}
         C02Draft view(){return new C02Draft(view.caseId(),view.workItemId(),view.revision(),view.caseStatus().name(),view.reviewStatus()==null?null:view.reviewStatus().name(),view.visitRequired());}
