@@ -21,6 +21,10 @@ class CustomerTaskRequest(BaseModel):
     startDate: str | None = None
     endDate: str | None = None
     transactionType: str | None = None
+    minimumAmount: str | None = None
+    maximumAmount: str | None = None
+    keyword: str | None = None
+    sortOrder: str | None = None
     page: int | None = None
     size: int | None = None
     workflowId: int | None = None

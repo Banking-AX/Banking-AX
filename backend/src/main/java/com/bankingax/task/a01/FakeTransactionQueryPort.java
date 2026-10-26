@@ -2,14 +2,17 @@ package com.bankingax.task.a01;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /** Deterministic non-production fixture. It never connects to a bank or database. */
 @Component
 @Profile("!production")
+@ConditionalOnProperty(name="app.a01.transaction-query-port", havingValue="fake", matchIfMissing=true)
 public class FakeTransactionQueryPort implements TransactionQueryPort {
     private static final TransactionAccount CUSTOMER_ONE = new TransactionAccount(1001L, 1L, "110-***-000001", "AX 입출금 통장", true);
     private static final TransactionAccount CUSTOMER_TWO = new TransactionAccount(2001L, 2L, "110-***-000002", "AX 입출금 통장", true);
@@ -25,7 +28,16 @@ public class FakeTransactionQueryPort implements TransactionQueryPort {
         if (accountId == CUSTOMER_TWO.accountId()) return Optional.of(CUSTOMER_TWO);
         return Optional.empty();
     }
-    @Override public List<TransactionRecord> findTransactions(long accountId) {
-        return RECORDS.stream().filter(item -> item.accountId() == accountId).toList();
+    @Override public TransactionPage search(TransactionQuery query) {
+        var filtered=RECORDS.stream().filter(item -> item.accountId() == query.accountId())
+            .filter(item -> !item.occurredAt().isBefore(query.startInclusive()) && item.occurredAt().isBefore(query.endExclusive()))
+            .filter(item -> query.direction()==null || item.direction()==query.direction())
+            .filter(item -> query.minimumAmount()==null || item.amount().compareTo(query.minimumAmount())>=0)
+            .filter(item -> query.maximumAmount()==null || item.amount().compareTo(query.maximumAmount())<=0)
+            .filter(item -> query.keyword()==null || contains(item.counterparty(),query.keyword()) || contains(item.memo(),query.keyword()))
+            .sorted(order(query.sortOrder())).toList();
+        return new TransactionPage(filtered.stream().skip(query.offset()).limit(query.size()).toList(),filtered.size());
     }
+    private static boolean contains(String value,String keyword){return value!=null&&value.toLowerCase(java.util.Locale.ROOT).contains(keyword.toLowerCase(java.util.Locale.ROOT));}
+    private static Comparator<TransactionRecord> order(TransactionSortOrder sort){ Comparator<TransactionRecord> ascending=Comparator.comparing(TransactionRecord::occurredAt).thenComparing(TransactionRecord::transactionId); return sort==TransactionSortOrder.OLDEST?ascending:ascending.reversed(); }
 }
