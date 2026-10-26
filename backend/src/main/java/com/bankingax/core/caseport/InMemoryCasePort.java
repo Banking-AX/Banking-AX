@@ -6,9 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 /** Fake adapter for contract tests; it is intentionally not an employee-decision engine. */
 @Service
+@ConditionalOnProperty(name = "app.case-port", havingValue = "inmemory", matchIfMissing = true)
 public class InMemoryCasePort implements CasePort {
     private final AtomicLong ids = new AtomicLong(2000);
     private final Map<Long, MutableCase> cases = new HashMap<>();
