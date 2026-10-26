@@ -43,7 +43,31 @@ public class C02Controller {
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody SubmitBody body) {
         authenticateCustomer(actorId,role,token,body.customerId()); var data=service.submit(new C02IntakeService.C02SubmitCommand(body.customerId(),caseId,body.revision(),body.requestId(),body.bindingId())); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
     }
+    @PostMapping("/{caseId}/documents/metadata") public ApiEnvelope<C02IntakeService.DocumentUpdate> registerMetadata(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody DocumentMetadataBody body) {
+        authenticateCustomer(actorId,role,token,body.customerId());
+        var registration=new DocumentPort.DocumentRegistration(caseId,body.revision(),body.documentSlotKey(),body.fileName(),body.mimeType(),body.sizeBytes(),body.storageReference(),body.status());
+        var data=service.registerDocument(body.customerId(),caseId,body.revision(),body.requestId(),registration);
+        return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",null,caseId,data.revision(),data);
+    }
+    @GetMapping("/{caseId}/documents") public ApiEnvelope<List<DocumentPort.DocumentMetadata>> documents(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); var data=service.documents(customerId,caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,caseId,null,data);
+    }
+    @GetMapping("/{caseId}/review") public ApiEnvelope<C02IntakeService.StaffPrecheckResult> customerReview(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); var data=service.customerReview(customerId,caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+    }
+    @PostMapping("/{caseId}/staff-precheck") public ApiEnvelope<C02IntakeService.StaffPrecheckResult> precheck(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody StaffPrecheckBody body) {
+        authenticateStaff(role,token); var data=service.runStaffPrecheck(caseId,body.revision(),body.requestId()); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+    }
+    @GetMapping("/{caseId}/staff-review") public ApiEnvelope<C02IntakeService.StaffPrecheckResult> staffReview(@PathVariable long caseId,@RequestHeader("X-Actor-Role") ActorRole role,
+            @RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam String requestId) {
+        authenticateStaff(role,token); var data=service.staffReview(caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+    }
     private void authenticateCustomer(long actorId, ActorRole role, String token, long customerId) { authenticator.verify(token); if(role!=ActorRole.CUSTOMER || actorId!=customerId) throw new DomainException("FORBIDDEN","Customer ownership cannot be verified."); }
+    private void authenticateStaff(ActorRole role,String token) { authenticator.verify(token); if(role!=ActorRole.STAFF) throw new DomainException("FORBIDDEN","Staff role is required."); }
     public record PrepareBody(long customerId,long workItemId,String requestId,String registeredPhone,DecedentBody decedent,List<HeirBody> heirs,Map<String,C02IntakeService.DocumentStatus> documentStatuses) {}
     public record DecedentBody(String name,LocalDate birthDate,LocalDate deathDate,long depositTotal) {}
     public record HeirBody(String personRef,String name,LocalDate birthDate,String relationship,boolean applicant,boolean higherOrderOrSubrogation,C02IntakeService.VisitStatus visitStatus,C02IntakeService.DelegationMethod delegationMethod,String delegationReceiptNo) {}
@@ -51,4 +75,6 @@ public class C02Controller {
     public record RevisionBody(long customerId,int revision,String requestId) {}
     public record VerifyBody(long customerId,String requestId,String challengeId,String otp) {}
     public record SubmitBody(long customerId,int revision,String requestId,String bindingId) {}
+    public record DocumentMetadataBody(long customerId,int revision,String requestId,String documentSlotKey,String fileName,String mimeType,long sizeBytes,String storageReference,C02IntakeService.DocumentStatus status) {}
+    public record StaffPrecheckBody(int revision,String requestId) {}
 }
