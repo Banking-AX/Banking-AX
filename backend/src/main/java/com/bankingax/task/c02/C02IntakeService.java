@@ -24,6 +24,7 @@ public final class C02IntakeService {
     private final VerificationPort verification;
     private final StaffAgentPort staffAgent;
     private final DocumentPort documents;
+    private final C02FileStorage files;
     private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
     private final Map<Long, Draft> drafts = new HashMap<>();
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
@@ -35,8 +36,9 @@ public final class C02IntakeService {
     private final Map<Long, StaffDecisionResult> staffDecisionsByCase = new HashMap<>();
     private final Map<Long, List<CustomerNotification>> notificationsByCustomer = new HashMap<>();
 
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort()); }
-    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null); }
+    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files; }
 
     public Validation validate(Intake intake) {
         List<String> errors = new ArrayList<>();
@@ -155,12 +157,26 @@ public final class C02IntakeService {
         Draft draft=owned(customerId,caseId); requireRevision(draft,expectedRevision);
         if(registration.caseId()!=caseId || requiredDocuments(draft.intake).stream().noneMatch(slot -> slot.key().equals(registration.documentSlotKey())))
             throw new DomainException("DOCUMENT_SLOT_UNKNOWN","The document slot is not required for this C-02 case.");
-        DocumentPort.DocumentMetadata metadata=documents.register(new DocumentPort.DocumentRegistration(caseId,expectedRevision,registration.documentSlotKey(),registration.fileName(),registration.mimeType(),registration.sizeBytes(),registration.storageReference(),registration.status()));
-        draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED");
+        DocumentPort.DocumentMetadata metadata=documents.register(new DocumentPort.DocumentRegistration(caseId,expectedRevision,registration.documentSlotKey(),registration.fileName(),registration.mimeType(),registration.sizeBytes(),registration.storageReference(),registration.status(),documentType(registration.documentSlotKey()),registration.checksum(),java.time.Instant.now(),customerId));
+        try { draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED"); }
+        catch(RuntimeException error) { documents.delete(metadata.documentFileId()); throw error; }
         StaffPrecheckResult precheck=draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
+        staffDecisionsByCase.remove(caseId);
         DocumentUpdate update=new DocumentUpdate(metadata,draft.view.revision(),draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),precheck);
         documentUpdates.put(requestId,update); return update;
     }
+    public synchronized DocumentUpdate uploadDocument(long customerId,long caseId,int expectedRevision,String requestId,String slot,org.springframework.web.multipart.MultipartFile upload) {
+        DocumentUpdate replay=documentUpdates.get(requestId); if(replay!=null)return replay;
+        Draft draft=owned(customerId,caseId); requireRevision(draft,expectedRevision);
+        if(requiredDocuments(draft.intake).stream().noneMatch(item->item.key().equals(slot)))throw new DomainException("DOCUMENT_SLOT_UNKNOWN","The document slot is not required for this C-02 case.");
+        if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true);
+        C02FileStorage.StoredFile stored=files.store(upload);
+        try { return registerDocument(customerId,caseId,expectedRevision,requestId,new DocumentPort.DocumentRegistration(caseId,expectedRevision,slot,stored.originalFilename(),stored.contentType(),stored.fileSize(),stored.storageKey(),DocumentStatus.UPLOADED,documentType(slot),stored.checksum(),java.time.Instant.now(),customerId)); }
+        catch(RuntimeException error) { files.deleteQuietly(stored.storageKey()); throw error; }
+    }
+    public synchronized FileDownload customerDocument(long customerId,long caseId,long documentId) { return download(owned(customerId,caseId),documentId); }
+    public synchronized FileDownload staffDocument(long caseId,long documentId) { Draft draft=drafts.get(caseId); if(draft==null)throw new DomainException("NOT_FOUND","C-02 case was not found."); return download(draft,documentId); }
+    private FileDownload download(Draft draft,long documentId) { DocumentPort.DocumentMetadata meta=documents.findById(documentId).orElseThrow(()->new DomainException("DOCUMENT_NOT_FOUND","Document metadata was not found.")); if(meta.caseId()!=draft.view.caseId())throw new DomainException("FORBIDDEN","Document does not belong to this C-02 case."); if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true); return new FileDownload(meta,files.open(meta.storageReference())); }
     public synchronized List<DocumentPort.DocumentMetadata> documents(long customerId,long caseId) { owned(customerId,caseId); return documents.findByCase(caseId); }
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
     /** The controller enforces STAFF role; this never records a final staff decision. */
@@ -246,6 +262,7 @@ public final class C02IntakeService {
     private Draft owned(long customerId,long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found."); if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return draft; }
     private static void requireRevision(Draft draft,int revision) { if(draft.view.revision()!=revision) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true); }
     private static DocumentSlot slot(String code, Requirement requirement, String personRef, String note) { return new DocumentSlot(code, requirement, personRef, note); }
+    private static String documentType(String slotKey) { int delimiter=slotKey.indexOf(':'); return delimiter < 0 ? slotKey : slotKey.substring(0,delimiter); }
 
     public record DecedentInput(String name, LocalDate birthDate, LocalDate deathDate, long depositTotal) {}
     public record HeirInput(String personRef, String name, LocalDate birthDate, String relationship, boolean applicant, boolean higherOrderOrSubrogation, VisitStatus visitStatus, DelegationMethod delegationMethod, String delegationReceiptNo) {}
@@ -265,6 +282,7 @@ public final class C02IntakeService {
     public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}
     public record CustomerNotification(String notificationId,long caseId,int revision,String outcome,String message,boolean externalDeliveryAttempted) {}
     public record DocumentUpdate(DocumentPort.DocumentMetadata document,int revision,String reviewStatus,StaffPrecheckResult precheck) {}
+    public record FileDownload(DocumentPort.DocumentMetadata metadata,java.io.InputStream content) {}
     public record Fingerprint(long customerId, long workItemId, Intake intake, Map<String, DocumentStatus> documentStatuses) {}
     private record PreparedRequest(Fingerprint fingerprint, Prepared prepared) {}
     private record SubmittedRequest(C02SubmitCommand command, SubmissionResult result) {}

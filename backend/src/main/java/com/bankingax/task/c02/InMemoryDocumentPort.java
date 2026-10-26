@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 /** Development-only metadata store; it never stores file content. */
 @Component
+@ConditionalOnProperty(name="app.c02.document-port", havingValue="inmemory", matchIfMissing=true)
 public final class InMemoryDocumentPort implements DocumentPort {
     private static final long MAX_SIZE_BYTES = 10L * 1024 * 1024;
     private final AtomicLong ids = new AtomicLong(9000);
@@ -28,13 +30,21 @@ public final class InMemoryDocumentPort implements DocumentPort {
             .mapToInt(DocumentMetadata::version).max().orElse(0) + 1;
         DocumentMetadata metadata = new DocumentMetadata(ids.incrementAndGet(), command.caseId(), command.caseRevision(),
             command.documentSlotKey(), version, command.fileName(), command.mimeType(), command.sizeBytes(),
-            command.storageReference(), command.status());
+            command.storageReference(), command.status(), command.documentType(), command.checksum(),
+            command.uploadedAt(), command.uploadedBy());
         caseDocuments.add(metadata);
         return metadata;
     }
 
     @Override public synchronized List<DocumentMetadata> findByCase(long caseId) {
         return List.copyOf(documents.getOrDefault(caseId, List.of()));
+    }
+    @Override public synchronized java.util.Optional<DocumentMetadata> findById(long documentFileId) {
+        return documents.values().stream().flatMap(List::stream).filter(d -> d.documentFileId()==documentFileId).findFirst();
+    }
+    @Override public synchronized void delete(long documentFileId) {
+        documents.values().forEach(items -> items.removeIf(item -> item.documentFileId() == documentFileId));
+        documents.entrySet().removeIf(entry -> entry.getValue().isEmpty());
     }
 
     @Override public synchronized C02IntakeService.DocumentStatus status(long caseId, String documentSlotKey) {

@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: ${APP_C02_MAX_FILE_BYTES:10485760}
+      max-request-size: ${APP_C02_MAX_FILE_BYTES:10485760}
   application:
     name: banking-ax-backend
   datasource:
@@ -17,6 +21,10 @@ server:
   error:
     include-message: never
 app:
+  c02:
+    document-port: ${APP_C02_DOCUMENT_PORT:local}
+    file-storage-root: ${APP_C02_FILE_STORAGE_ROOT:./var/c02-documents}
+    max-file-bytes: ${APP_C02_MAX_FILE_BYTES:10485760}
   case-port: ${APP_CASE_PORT:inmemory}
   tool-gateway-token: ${APP_TOOL_GATEWAY_TOKEN:}
   staff-agent-base-url: ${APP_STAFF_AGENT_BASE_URL:}
