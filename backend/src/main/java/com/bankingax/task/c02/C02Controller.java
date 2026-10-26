@@ -66,6 +66,18 @@ public class C02Controller {
             @RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam String requestId) {
         authenticateStaff(role,token); var data=service.staffReview(caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
     }
+    @GetMapping("/{caseId}/staff-case") public ApiEnvelope<C02IntakeService.StaffCaseOverview> staffCase(@PathVariable long caseId,@RequestHeader("X-Actor-Role") ActorRole role,
+            @RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam String requestId) {
+        authenticateStaff(role,token); var data=service.staffCaseOverview(caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.caseView().workItemId(),caseId,data.caseView().revision(),data);
+    }
+    @PostMapping("/{caseId}/staff-decision") public ApiEnvelope<C02IntakeService.StaffDecisionResult> staffDecision(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody StaffDecisionBody body) {
+        authenticateStaff(role,token); var data=service.recordStaffDecision(new C02IntakeService.StaffDecisionCommand(actorId,caseId,body.revision(),body.requestId(),body.outcome(),body.customerMessage())); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+    }
+    @GetMapping("/notifications") public ApiEnvelope<List<C02IntakeService.CustomerNotification>> notifications(@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); var data=service.customerNotifications(customerId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,null,null,data);
+    }
     private void authenticateCustomer(long actorId, ActorRole role, String token, long customerId) { authenticator.verify(token); if(role!=ActorRole.CUSTOMER || actorId!=customerId) throw new DomainException("FORBIDDEN","Customer ownership cannot be verified."); }
     private void authenticateStaff(ActorRole role,String token) { authenticator.verify(token); if(role!=ActorRole.STAFF) throw new DomainException("FORBIDDEN","Staff role is required."); }
     public record PrepareBody(long customerId,long workItemId,String requestId,String registeredPhone,DecedentBody decedent,List<HeirBody> heirs,Map<String,C02IntakeService.DocumentStatus> documentStatuses) {}
@@ -77,4 +89,5 @@ public class C02Controller {
     public record SubmitBody(long customerId,int revision,String requestId,String bindingId) {}
     public record DocumentMetadataBody(long customerId,int revision,String requestId,String documentSlotKey,String fileName,String mimeType,long sizeBytes,String storageReference,C02IntakeService.DocumentStatus status) {}
     public record StaffPrecheckBody(int revision,String requestId) {}
+    public record StaffDecisionBody(int revision,String requestId,C02IntakeService.StaffOutcome outcome,String customerMessage) {}
 }
