@@ -4,6 +4,7 @@ import { ChatShellPage, LoginPage, StaffShellPage } from './pages/ShellPages'
 import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02StaffReviewPage } from './pages/C02StaffReviewPage'
+import { C02NotificationsPage } from './pages/C02NotificationsPage'
 import { TransactionSearchPage } from './features/a01/TransactionSearchPage'
 import { HousingSavingsClosePage } from './features/b02/HousingSavingsClosePage'
 
@@ -14,6 +15,7 @@ export function App() {
       <Route path="/chat/:roomId?" element={<ChatShellPage />} />
       <Route path="/tasks/c01" element={<DebtAdjustmentPage />} />
       <Route path="/tasks/c02/:workItemId" element={<C02IntakePage />} />
+      <Route path="/tasks/c02/notifications" element={<C02NotificationsPage />} />
       <Route path="/staff/c02/:caseId" element={<C02StaffReviewPage />} />
       <Route path="/tasks/a01/:workItemId" element={<TransactionSearchPage />} />
       <Route path="/tasks/b02/:workItemId" element={<HousingSavingsClosePage />} />

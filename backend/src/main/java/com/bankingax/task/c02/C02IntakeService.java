@@ -30,6 +30,10 @@ public final class C02IntakeService {
     private final Map<String, PrecheckRequest> prechecks = new HashMap<>();
     private final Map<String, DocumentUpdate> documentUpdates = new HashMap<>();
     private final Map<ReviewKey, StaffPrecheckResult> reviewResults = new HashMap<>();
+    /** G3 development-only staff outcome and web-notification store. It is intentionally not a CasePort substitute. */
+    private final Map<String, StaffDecisionResult> staffDecisionsByRequest = new HashMap<>();
+    private final Map<Long, StaffDecisionResult> staffDecisionsByCase = new HashMap<>();
+    private final Map<Long, List<CustomerNotification>> notificationsByCustomer = new HashMap<>();
 
     public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort()); }
     @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; }
@@ -161,6 +165,44 @@ public final class C02IntakeService {
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
     /** The controller enforces STAFF role; this never records a final staff decision. */
     public synchronized StaffPrecheckResult staffReview(long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); return reviewFor(draft); }
+    /** Staff-only caller obtains the same current revision snapshot used for a final manual decision. */
+    public synchronized StaffCaseOverview staffCaseOverview(long caseId) {
+        Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found.");
+        ServiceCaseView latest=casePort.get(draft.customerId,caseId); requireRevision(draft,latest.revision()); draft.view=latest;
+        return new StaffCaseOverview(latest, requiredDocuments(draft.intake), documents.findByCase(caseId), reviewFor(draft), staffDecisionsByCase.get(caseId));
+    }
+    /**
+     * Records a staff outcome only after checking the CasePort's current revision and the
+     * precheck generated for that exact revision.  It does not approve a payout and does
+     * not mutate CasePort's caseStatus because that transition is owned by the common port.
+     */
+    public synchronized StaffDecisionResult recordStaffDecision(StaffDecisionCommand command) {
+        StaffDecisionResult replay=staffDecisionsByRequest.get(command.requestId());
+        if(replay!=null) {
+            if(replay.caseId()!=command.caseId() || replay.staffId()!=command.staffId() || replay.revision()!=command.expectedRevision() || replay.outcome()!=command.outcome() || !java.util.Objects.equals(replay.customerMessage(),command.customerMessage()))
+                throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 staff decision.");
+            return replay;
+        }
+        Draft draft=drafts.get(command.caseId()); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found.");
+        ServiceCaseView latest=casePort.get(draft.customerId,command.caseId()); requireRevision(draft,command.expectedRevision());
+        if(latest.revision()!=command.expectedRevision()) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true);
+        if(latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only a submitted C-02 case can receive a staff decision.");
+        StaffPrecheckResult precheck=reviewResults.get(new ReviewKey(command.caseId(),command.expectedRevision()));
+        if(precheck==null || precheck.finalStaffDecision()) throw new DomainException("STAFF_PRECHECK_REQUIRED","A current C-02 staff precheck is required before final review.");
+        StaffDecisionResult existing=staffDecisionsByCase.get(command.caseId());
+        if(existing!=null) throw new DomainException("STAFF_DECISION_ALREADY_RECORDED","A final staff decision is already recorded for this C-02 case.");
+        String proposedCaseStatus=switch(command.outcome()) {
+            case PROCEED -> "REVIEW_PASSED";
+            case REQUIREMENT_FAILED -> "REVIEW_REJECTED_REQUIREMENT";
+            case DOCUMENT_INSUFFICIENT -> "REVIEW_REJECTED_DOCUMENT";
+        };
+        CustomerNotification notification=new CustomerNotification("c02-web-"+command.caseId()+"-"+command.expectedRevision(),command.caseId(),command.expectedRevision(),command.outcome().name(),notificationMessage(command.outcome(),command.customerMessage()),false);
+        StaffDecisionResult result=new StaffDecisionResult(command.caseId(),latest.workItemId(),draft.customerId,command.staffId(),command.expectedRevision(),command.outcome(),latest.caseStatus().name(),proposedCaseStatus,command.customerMessage(),notification);
+        staffDecisionsByRequest.put(command.requestId(),result); staffDecisionsByCase.put(command.caseId(),result);
+        notificationsByCustomer.computeIfAbsent(draft.customerId,ignored->new ArrayList<>()).add(notification);
+        return result;
+    }
+    public synchronized List<CustomerNotification> customerNotifications(long customerId) { return List.copyOf(notificationsByCustomer.getOrDefault(customerId,List.of())); }
     public synchronized StaffPrecheckResult runStaffPrecheck(long caseId,int expectedRevision,String requestId) {
         Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); requireRevision(draft,expectedRevision);
         if(draft.view.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only submitted cases can be prechecked.");
@@ -179,6 +221,14 @@ public final class C02IntakeService {
     private StaffPrecheckResult reviewFor(Draft draft) {
         StaffPrecheckResult result=reviewResults.get(new ReviewKey(draft.view.caseId(),draft.view.revision()));
         return result==null ? new StaffPrecheckResult(draft.view.caseId(),draft.view.workItemId(),draft.view.revision(),"NOT_RUN",draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),List.of(),null,false) : result;
+    }
+    private static String notificationMessage(StaffOutcome outcome,String customerMessage) {
+        if(customerMessage!=null && !customerMessage.isBlank()) return customerMessage;
+        return switch(outcome) {
+            case PROCEED -> "직원 사전 검토가 완료되었습니다. 방문 예약은 별도 단계에서 진행됩니다.";
+            case REQUIREMENT_FAILED -> "접수 요건을 충족하지 않아 직원 검토 결과가 등록되었습니다.";
+            case DOCUMENT_INSUFFICIENT -> "필수 서류 보완이 필요합니다. 안내된 서류를 확인해 주세요.";
+        };
     }
     private Map<String,DocumentStatus> documentStatuses(Draft draft) {
         Map<String,DocumentStatus> statuses=new HashMap<>(draft.documentStatuses);
@@ -209,6 +259,11 @@ public final class C02IntakeService {
     public record SubmissionResult(long customerId,long caseId,long workItemId,int revision,String caseStatus,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error) {}
     /** This is an Agent precheck result, never a staff_review final decision. */
     public record StaffPrecheckResult(long caseId,long workItemId,int revision,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error,boolean finalStaffDecision) {}
+    public record StaffCaseOverview(ServiceCaseView caseView,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,StaffPrecheckResult precheck,StaffDecisionResult finalDecision) {}
+    public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) {}
+    /** proposedCaseStatus is informational until the common CasePort provides an owned final-transition API. */
+    public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}
+    public record CustomerNotification(String notificationId,long caseId,int revision,String outcome,String message,boolean externalDeliveryAttempted) {}
     public record DocumentUpdate(DocumentPort.DocumentMetadata document,int revision,String reviewStatus,StaffPrecheckResult precheck) {}
     public record Fingerprint(long customerId, long workItemId, Intake intake, Map<String, DocumentStatus> documentStatuses) {}
     private record PreparedRequest(Fingerprint fingerprint, Prepared prepared) {}
@@ -223,4 +278,5 @@ public final class C02IntakeService {
     public enum DelegationMethod { NONE, DOCUMENT, RECEIPT }
     public enum Requirement { REQUIRED, CONDITIONAL, VISIT_ONLY }
     public enum DocumentStatus { NOT_SUBMITTED, UPLOADED, VALIDATION_FAILED, SYSTEM_VALIDATED, HUMAN_VERIFIED, NEEDS_SUPPLEMENT }
+    public enum StaffOutcome { PROCEED, REQUIREMENT_FAILED, DOCUMENT_INSUFFICIENT }
 }
