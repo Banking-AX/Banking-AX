@@ -17,6 +17,7 @@ server:
   error:
     include-message: never
 app:
+  case-port: ${APP_CASE_PORT:inmemory}
   tool-gateway-token: ${APP_TOOL_GATEWAY_TOKEN:}
   staff-agent-base-url: ${APP_STAFF_AGENT_BASE_URL:}
   staff-agent-token: ${APP_STAFF_AGENT_GATEWAY_TOKEN:}
