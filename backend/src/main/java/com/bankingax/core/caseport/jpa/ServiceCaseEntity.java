@@ -19,5 +19,6 @@ class ServiceCaseEntity {
     @Column(name="decedent_id") Long decedentId;
     @Column(name="visit_required") Boolean visitRequired;
     @Column(columnDefinition="json", nullable=false) String application;
+    @Column(name="submit_request_id", unique=true) String submitRequestId;
     @Version @Column(nullable=false) int version;
 }
