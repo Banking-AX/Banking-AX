@@ -5,6 +5,27 @@ from app.core.staff_engine.models import CheckRequest, ReviewItem
 from app.core.staff_engine.registry import CheckRegistry
 
 
+def _document_manifest_items(manifest: list[dict]) -> list[ReviewItem]:
+    """Translate Spring's document metadata into review items without reading file bodies."""
+    items: list[ReviewItem] = []
+    for document in manifest:
+        if document.get('requirement') != 'REQUIRED':
+            continue
+        status = document.get('status', 'NOT_SUBMITTED')
+        evidence = {'requiredDocument': document.get('slot'), 'scope': document.get('scope'), 'status': status}
+        if document.get('personRef'):
+            evidence['personRef'] = document['personRef']
+        if document.get('documentVersion') is not None:
+            evidence['documentVersion'] = document['documentVersion']
+        if status == 'NOT_SUBMITTED':
+            items.append(ReviewItem(source='SPRING_RULE', category='DOCUMENT_MISSING', result='NEEDS_STAFF_REVIEW', message='Required document has not been submitted.', document_file_id=document.get('documentFileId'), evidence=evidence))
+        elif status in ('VALIDATION_FAILED', 'NEEDS_SUPPLEMENT'):
+            items.append(ReviewItem(source='SPRING_RULE', category='DOCUMENT_NEEDS_SUPPLEMENT', result='NEEDS_STAFF_REVIEW', message='Submitted document requires correction or staff confirmation.', document_file_id=document.get('documentFileId'), evidence=evidence))
+        elif document.get('documentFileId') is None:
+            items.append(ReviewItem(source='SPRING_RULE', category='DOCUMENT_METADATA_MISSING', result='NEEDS_STAFF_REVIEW', message='Document status has no persisted file metadata; staff confirmation is required.', evidence=evidence))
+    return items
+
+
 def c02_staff_precheck(request: CheckRequest) -> list[ReviewItem]:
     snapshot = request.case_snapshot
     heirs = snapshot.get('heirs', [])
@@ -13,6 +34,10 @@ def c02_staff_precheck(request: CheckRequest) -> list[ReviewItem]:
         items.append(ReviewItem(source='SPRING_RULE', category='REQUIRED_INPUT', result='NEEDS_STAFF_REVIEW', message='피상속인 사망일 또는 상속인 정보가 누락되어 직원 확인이 필요합니다.'))
     for code in snapshot.get('outOfScope', []):
         items.append(ReviewItem(source='SPRING_RULE', category='SCOPE', result='NEEDS_STAFF_REVIEW', message=f'C-02 사전접수 범위 밖 조건: {code}', evidence={'ruleCode': code}))
+    manifest = snapshot.get('requiredDocuments')
+    if isinstance(manifest, list) and manifest:
+        items.extend(_document_manifest_items(manifest))
+        snapshot = {**snapshot, 'missingDocuments': []}
     for code in snapshot.get('missingDocuments', []):
         items.append(ReviewItem(source='SPRING_RULE', category='DOCUMENT_SLOT', result='NEEDS_STAFF_REVIEW', message='필수 서류 슬롯 미충족', evidence={'requiredDocument': code}))
     for code in snapshot.get('ruleResults', []):
