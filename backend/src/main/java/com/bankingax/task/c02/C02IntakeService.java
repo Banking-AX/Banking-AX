@@ -25,6 +25,7 @@ public final class C02IntakeService {
     private final StaffAgentPort staffAgent;
     private final DocumentPort documents;
     private final C02FileStorage files;
+    private final C02AgentReviewPersistence reviewPersistence;
     private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
     private final Map<Long, Draft> drafts = new HashMap<>();
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
@@ -36,9 +37,11 @@ public final class C02IntakeService {
     private final Map<Long, StaffDecisionResult> staffDecisionsByCase = new HashMap<>();
     private final Map<Long, List<CustomerNotification>> notificationsByCustomer = new HashMap<>();
 
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null); }
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null); }
-    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files; }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null, (C02AgentReviewPersistence) null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null, (C02AgentReviewPersistence) null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this(casePort, verification, staffAgent, documents, files, (C02AgentReviewPersistence) null); }
+    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files, org.springframework.beans.factory.ObjectProvider<C02AgentReviewPersistence> reviewPersistence) { this(casePort,verification,staffAgent,documents,files,reviewPersistence.getIfAvailable()); }
+    private C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files, C02AgentReviewPersistence reviewPersistence) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files; this.reviewPersistence=reviewPersistence; }
 
     public Validation validate(Intake intake) {
         List<String> errors = new ArrayList<>();
@@ -146,6 +149,7 @@ public final class C02IntakeService {
         if(!"SUCCEEDED".equals(report.status())) status=ReviewStatus.FAILED_NEEDS_STAFF;
         else try { status=ReviewStatus.valueOf(report.reviewStatus()); }
         catch (IllegalArgumentException | NullPointerException exception) { throw new DomainException("STAFF_AGENT_INVALID_RESPONSE","Staff Agent returned an invalid review status.",true); }
+        if (reviewPersistence != null) reviewPersistence.persist(requestId, after.caseId(), after.revision(), report);
         draft.view=casePort.recordCheckResult(after.caseId(),after.revision(),status);
         reviewResults.put(new ReviewKey(after.caseId(), after.revision()), new StaffPrecheckResult(after.caseId(), after.workItemId(), after.revision(), report.status(), status.name(), report.reviewItems(), report.error(), false));
         return report;
