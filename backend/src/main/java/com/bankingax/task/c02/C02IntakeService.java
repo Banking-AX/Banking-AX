@@ -257,7 +257,28 @@ public final class C02IntakeService {
     private Map<String,Object> snapshot(ServiceCaseView view,Draft draft) {
         List<Map<String,Object>> heirs=draft.intake.heirs().stream().map(h -> Map.<String,Object>of("personRef",h.personRef(),"visitStatus",h.visitStatus().name(),"delegationMethod",h.delegationMethod().name())).toList();
         Submission assessment=assessSubmission(draft.intake,documentStatuses(draft));
-        return Map.of("caseStatus",view.caseStatus().name(),"reviewStatus",String.valueOf(view.reviewStatus()),"decedent",Map.of("deathDate",draft.intake.decedent().deathDate().toString()),"heirs",heirs,"outOfScope",assessment.outOfScope(),"missingDocuments",assessment.missingDocuments());
+        return Map.of("caseStatus",view.caseStatus().name(),"reviewStatus",String.valueOf(view.reviewStatus()),"decedent",Map.of("deathDate",draft.intake.decedent().deathDate().toString()),"heirs",heirs,"outOfScope",assessment.outOfScope(),"missingDocuments",assessment.missingDocuments(),"requiredDocuments",documentManifest(draft));
+    }
+    /** Sends only Spring-derived document metadata to the internal Staff Agent. */
+    private List<Map<String,Object>> documentManifest(Draft draft) {
+        Map<String,DocumentPort.DocumentMetadata> latest=new HashMap<>();
+        for (DocumentPort.DocumentMetadata item : documents.findByCase(draft.view.caseId())) {
+            DocumentPort.DocumentMetadata previous=latest.get(item.documentSlotKey());
+            if (previous==null || item.version()>previous.version()) latest.put(item.documentSlotKey(),item);
+        }
+        Map<String,DocumentStatus> statuses=documentStatuses(draft);
+        List<Map<String,Object>> manifest=new ArrayList<>();
+        for (DocumentSlot slot : requiredDocuments(draft.intake)) {
+            DocumentPort.DocumentMetadata item=latest.get(slot.key());
+            Map<String,Object> row=new HashMap<>();
+            row.put("slot",slot.key()); row.put("requirement",slot.requirement().name());
+            row.put("scope",slot.personRef()==null ? "COMMON" : "HEIR");
+            if (slot.personRef()!=null) row.put("personRef",slot.personRef());
+            row.put("status",statuses.getOrDefault(slot.key(),DocumentStatus.NOT_SUBMITTED).name());
+            if (item!=null) { row.put("documentFileId",item.documentFileId()); row.put("documentVersion",item.version()); row.put("caseRevision",item.caseRevision()); }
+            manifest.add(Map.copyOf(row));
+        }
+        return List.copyOf(manifest);
     }
     private Draft owned(long customerId,long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found."); if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return draft; }
     private static void requireRevision(Draft draft,int revision) { if(draft.view.revision()!=revision) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true); }

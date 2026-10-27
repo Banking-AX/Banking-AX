@@ -139,5 +139,21 @@ class StaffPhaseZeroTests(unittest.TestCase):
         self.assertEqual(visits.request(case_review_passed=True, result_notified=True, case_id=200, branch_slot_id=701, request_id='visit-2')['status'], 'SELECTED')
 
 
+    def test_c02_manifest_distinguishes_common_missing_heir_supplement_and_latest_version(self) -> None:
+        response = self._executor().run(CheckRequest(
+            request_id='c02-document-manifest', case_id=200, revision=1, task_code='INHERITANCE_DEPOSIT',
+            case_snapshot={'decedent': {'deathDate': '2020-01-01'}, 'heirs': [{'visitStatus': 'ATTENDING'}],
+                           'requiredDocuments': [
+                               {'slot': 'DECEDENT_BASIC_CERTIFICATE:COMMON', 'requirement': 'REQUIRED', 'scope': 'COMMON', 'status': 'NOT_SUBMITTED'},
+                               {'slot': 'HEIR_IDENTITY_CARD:h1', 'requirement': 'REQUIRED', 'scope': 'HEIR', 'personRef': 'h1', 'status': 'NEEDS_SUPPLEMENT', 'documentFileId': 71, 'documentVersion': 2},
+                               {'slot': 'DECEDENT_DETAILED_FAMILY_RELATION:COMMON', 'requirement': 'REQUIRED', 'scope': 'COMMON', 'status': 'UPLOADED', 'documentFileId': 72, 'documentVersion': 3},
+                           ]},
+        ))
+        docs = [item for item in response.review_items if item.category in {'DOCUMENT_MISSING', 'DOCUMENT_NEEDS_SUPPLEMENT', 'DOCUMENT_METADATA_MISSING'}]
+        self.assertEqual({'DOCUMENT_MISSING', 'DOCUMENT_NEEDS_SUPPLEMENT'}, {item.category for item in docs})
+        supplement = next(item for item in docs if item.category == 'DOCUMENT_NEEDS_SUPPLEMENT')
+        self.assertEqual((supplement.document_file_id, supplement.evidence['personRef'], supplement.evidence['documentVersion']), (71, 'h1', 2))
+
+
 if __name__ == '__main__':
     unittest.main()
