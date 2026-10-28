@@ -4,10 +4,12 @@ import com.bankingax.core.api.DomainException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /** Phase 0 fake only. The JPA implementation will enforce the DDL's active-work-item constraint. */
 @Service
+@ConditionalOnProperty(name = "app.case-port", havingValue = "inmemory", matchIfMissing = true)
 public class InMemoryTaskHandler implements TaskHandler {
     private final AtomicLong ids = new AtomicLong(1000);
     private final Map<Long, MutableWorkItem> items = new HashMap<>();
