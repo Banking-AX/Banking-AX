@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from .contracts import SpringToolGateway
 from .registry import TaskRegistry
 from .tasks.loan_inquiry import LoanInquiryTask
 from .tasks.transaction_search import TransactionSearchTask
@@ -11,9 +15,12 @@ from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway
 from .intent_classifier import (
     IntentClassifier,
+    IntentClassification,
     IntentOutputValidationError,
     IntentProviderError,
     OpenAiIntentClient,
+    RequestKind,
+    TaskCode,
 )
 
 
@@ -54,7 +61,50 @@ class CustomerIntentRequest(BaseModel):
     recentMessages: list[str] = Field(default_factory=list, max_length=5)
 
 
-def build_registry(gateway: SpringHttpToolGateway | None = None) -> TaskRegistry:
+class CustomerNaturalStartRequest(CustomerIntentRequest):
+    requestId: str = Field(min_length=1, max_length=90)
+    customerId: int = Field(gt=0)
+
+
+class WorkflowStartData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    workflowId: int = Field(gt=0)
+    workItemId: int = Field(gt=0)
+    taskCode: TaskCode
+    status: Literal["ACTIVE"]
+
+
+class WorkflowStartEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    requestId: str
+    taskCode: TaskCode
+    workItemId: int = Field(gt=0)
+    caseId: None
+    revision: None
+    data: WorkflowStartData
+    error: None
+
+    @model_validator(mode="after")
+    def validate_consistency(self) -> "WorkflowStartEnvelope":
+        if self.workItemId != self.data.workItemId or self.taskCode != self.data.taskCode:
+            raise ValueError("workflow start envelope fields do not match")
+        return self
+
+
+class CustomerNaturalStartResponse(BaseModel):
+    requestId: str
+    customerId: int
+    outcome: Literal[
+        "STARTED", "INFORMATION_ONLY", "CLARIFICATION_REQUIRED", "UNSUPPORTED",
+        "NO_EXECUTABLE_TASK", "COMPOSITE_NOT_SUPPORTED", "TASK_NOT_AUTOSTART_ENABLED",
+    ]
+    classification: IntentClassification
+    workflow: WorkflowStartData | None = None
+
+
+def build_registry(gateway: SpringToolGateway | None = None) -> TaskRegistry:
     selected = gateway or SpringHttpToolGateway()
     return TaskRegistry([TransactionSearchTask(selected), HousingSavingsCloseTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
 
@@ -64,10 +114,15 @@ def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
     return IntentClassifier(OpenAiIntentClient(), available)
 
 
-def create_router(registry: TaskRegistry | None = None, intent_classifier: IntentClassifier | None = None) -> APIRouter:
+def create_router(registry: TaskRegistry | None = None, intent_classifier: IntentClassifier | None = None,
+                  workflow_gateway: SpringToolGateway | None = None,
+                  natural_start_enabled: bool | None = None) -> APIRouter:
     router = APIRouter(tags=["customer-agent"])
     selected_registry = registry or build_registry()
     selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
+    selected_workflow_gateway = workflow_gateway or SpringHttpToolGateway()
+    start_enabled = natural_start_enabled if natural_start_enabled is not None else (
+        os.getenv("CUSTOMER_AGENT_WORKFLOW_START_ENABLED", "false").strip().lower() == "true")
 
     @router.get("/customer-agent/tasks")
     def registered_tasks() -> list[dict[str, object]]:
@@ -91,4 +146,57 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
         except IntentProviderError as exc:
             raise HTTPException(503, str(exc)) from exc
 
+    if start_enabled:
+        @router.post("/customer-agent/messages/start")
+        def classify_and_start(request: CustomerNaturalStartRequest) -> dict:
+            try:
+                classification = selected_classifier.classify(request.message, request.recentMessages)
+            except IntentOutputValidationError as exc:
+                raise HTTPException(502, "INTENT_LLM_OUTPUT_INVALID") from exc
+            except IntentProviderError as exc:
+                raise HTTPException(503, "INTENT_CLASSIFICATION_UNAVAILABLE") from exc
+
+            outcome = _non_start_outcome(classification)
+            if outcome is not None:
+                return CustomerNaturalStartResponse(
+                    requestId=request.requestId, customerId=request.customerId, outcome=outcome,
+                    classification=classification).model_dump(mode="json")
+
+            try:
+                raw = selected_workflow_gateway.workflow_start({
+                    "requestId": request.requestId,
+                    "customerId": request.customerId,
+                    "taskCode": TaskCode.LOAN_INQUIRY.value,
+                })
+                envelope = WorkflowStartEnvelope.model_validate(raw)
+                if envelope.requestId != request.requestId or envelope.taskCode is not TaskCode.LOAN_INQUIRY:
+                    raise ValueError("workflow start response does not match the request")
+            except ValidationError as exc:
+                raise HTTPException(502, "WORKFLOW_START_INVALID_RESPONSE") from exc
+            except ValueError as exc:
+                raise HTTPException(502, "WORKFLOW_START_INVALID_RESPONSE") from exc
+            except RuntimeError as exc:
+                raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
+
+            return CustomerNaturalStartResponse(
+                requestId=request.requestId, customerId=request.customerId, outcome="STARTED",
+                classification=classification, workflow=envelope.data).model_dump(mode="json")
+
     return router
+
+
+def _non_start_outcome(classification: IntentClassification) -> str | None:
+    if classification.requiresClarification:
+        return "CLARIFICATION_REQUIRED"
+    if classification.unsupported:
+        return "UNSUPPORTED"
+    if len(classification.tasks) > 1:
+        return "COMPOSITE_NOT_SUPPORTED"
+    if not classification.tasks:
+        return "NO_EXECUTABLE_TASK"
+    task = classification.tasks[0]
+    if task.requestKind is RequestKind.INFORMATION:
+        return "INFORMATION_ONLY"
+    if classification.executionTargets != [TaskCode.LOAN_INQUIRY]:
+        return "TASK_NOT_AUTOSTART_ENABLED" if classification.executionTargets else "NO_EXECUTABLE_TASK"
+    return None

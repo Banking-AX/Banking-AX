@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+import json
+import os
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest.mock import patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.customer_agent.intent_classifier import (
+    ClassifiedTask,
+    IntentClassification,
+    RequestKind,
+    TaskCode,
+)
+from app.customer_agent.registry import TaskRegistry
+from app.customer_agent.router import create_router
+from app.customer_agent.tool_gateway import SpringHttpToolGateway
+
+
+def classified(*tasks: tuple[TaskCode, RequestKind, bool], clarification: bool = False,
+               unsupported: bool = False) -> IntentClassification:
+    items = [ClassifiedTask(order=index, taskCode=code, requestKind=kind, executionAvailable=available)
+             for index, (code, kind, available) in enumerate(tasks, 1)]
+    return IntentClassification(
+        tasks=items,
+        executionTargets=[item.taskCode for item in items
+                          if item.requestKind is RequestKind.ACTION and item.executionAvailable],
+        requiresClarification=clarification,
+        clarificationQuestion="어떤 대출 업무를 원하시나요?" if clarification else None,
+        unsupported=unsupported,
+        unsupportedReason="지원하지 않는 요청입니다." if unsupported else None,
+    )
+
+
+class StaticClassifier:
+    def __init__(self, results: dict[str, IntentClassification]) -> None:
+        self.results = results
+
+    def classify(self, message: str, recent_messages: list[str] | None = None) -> IntentClassification:
+        return self.results[message]
+
+
+class RecordingWorkflowGateway:
+    def __init__(self) -> None:
+        self.requests: list[dict[str, object]] = []
+        self.fail = False
+
+    def workflow_start(self, request: dict[str, object]) -> dict[str, object]:
+        self.requests.append(request)
+        if self.fail:
+            raise RuntimeError("SPRING_TOOL_HTTP_503: sensitive upstream detail")
+        return {
+            "requestId": request["requestId"], "taskCode": request["taskCode"], "workItemId": 1001,
+            "caseId": None, "revision": None, "error": None,
+            "data": {"workflowId": 501, "workItemId": 1001,
+                     "taskCode": request["taskCode"], "status": "ACTIVE"},
+        }
+
+
+class NaturalWorkflowStartTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.results = {
+            "내 대출 잔액 알려줘": classified((TaskCode.LOAN_INQUIRY, RequestKind.ACTION, True)),
+            "대출 조회 방법 알려줘": classified((TaskCode.LOAN_INQUIRY, RequestKind.INFORMATION, True)),
+            "대출 업무 처리해줘": classified(clarification=True),
+            "적금 가입해줘": classified(unsupported=True),
+            "대출과 거래내역 조회해줘": classified(
+                (TaskCode.LOAN_INQUIRY, RequestKind.ACTION, True),
+                (TaskCode.TRANSACTION_SEARCH, RequestKind.ACTION, True)),
+            "채무조정 신청해줘": classified((TaskCode.DEBT_ADJUSTMENT, RequestKind.ACTION, True)),
+            "충당순서 바꿔줘": classified((TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.ACTION, False)),
+        }
+        self.gateway = RecordingWorkflowGateway()
+        app = FastAPI()
+        app.include_router(create_router(
+            TaskRegistry(), StaticClassifier(self.results), self.gateway, natural_start_enabled=True),
+            prefix="/api/v1")
+        self.client = TestClient(app)
+
+    def post(self, message: str, request_id: str = "natural-a02-1"):
+        return self.client.post("/api/v1/customer-agent/messages/start", json={
+            "requestId": request_id, "customerId": 1, "message": message,
+        })
+
+    def test_single_a02_action_starts_workflow_and_returns_active_ids(self) -> None:
+        response = self.post("내 대출 잔액 알려줘")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("STARTED", response.json()["outcome"])
+        self.assertEqual({"workflowId": 501, "workItemId": 1001,
+                          "taskCode": "LOAN_INQUIRY", "status": "ACTIVE"}, response.json()["workflow"])
+        self.assertEqual([{"requestId": "natural-a02-1", "customerId": 1,
+                           "taskCode": "LOAN_INQUIRY"}], self.gateway.requests)
+
+    def test_non_action_ambiguous_unsupported_composite_and_other_tasks_never_call_spring(self) -> None:
+        expected = {
+            "대출 조회 방법 알려줘": "INFORMATION_ONLY",
+            "대출 업무 처리해줘": "CLARIFICATION_REQUIRED",
+            "적금 가입해줘": "UNSUPPORTED",
+            "대출과 거래내역 조회해줘": "COMPOSITE_NOT_SUPPORTED",
+            "채무조정 신청해줘": "TASK_NOT_AUTOSTART_ENABLED",
+            "충당순서 바꿔줘": "NO_EXECUTABLE_TASK",
+        }
+        for message, outcome in expected.items():
+            with self.subTest(message=message):
+                response = self.post(message, f"request-{len(self.gateway.requests)}")
+                self.assertEqual(200, response.status_code)
+                self.assertEqual(outcome, response.json()["outcome"])
+                self.assertIsNone(response.json()["workflow"])
+        self.assertEqual([], self.gateway.requests)
+
+    def test_retry_forwards_the_original_request_id_and_returns_the_same_result(self) -> None:
+        first = self.post("내 대출 잔액 알려줘", "stable-request")
+        second = self.post("내 대출 잔액 알려줘", "stable-request")
+
+        self.assertEqual(first.json()["workflow"], second.json()["workflow"])
+        self.assertEqual(["stable-request", "stable-request"],
+                         [request["requestId"] for request in self.gateway.requests])
+
+    def test_spring_failure_is_sanitized_and_never_reported_as_started(self) -> None:
+        self.gateway.fail = True
+
+        response = self.post("내 대출 잔액 알려줘")
+
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("WORKFLOW_START_UNAVAILABLE", response.json()["detail"])
+        self.assertNotIn("sensitive", response.text)
+
+    def test_natural_start_route_is_absent_when_disabled(self) -> None:
+        app = FastAPI()
+        app.include_router(create_router(
+            TaskRegistry(), StaticClassifier(self.results), self.gateway, natural_start_enabled=False),
+            prefix="/api/v1")
+
+        response = TestClient(app).post("/api/v1/customer-agent/messages/start", json={
+            "requestId": "disabled", "customerId": 1, "message": "내 대출 잔액 알려줘",
+        })
+
+        self.assertEqual(404, response.status_code)
+
+
+class _WorkflowStartHandler(BaseHTTPRequestHandler):
+    received: tuple[str, dict[str, str], dict[str, object]] | None = None
+
+    def do_POST(self) -> None:  # noqa: N802 - stdlib handler contract
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        type(self).received = (self.path, dict(self.headers), body)
+        payload = {
+            "requestId": body["requestId"], "taskCode": body["taskCode"], "workItemId": 1001,
+            "caseId": None, "revision": None, "error": None,
+            "data": {"workflowId": 501, "workItemId": 1001,
+                     "taskCode": body["taskCode"], "status": "ACTIVE"},
+        }
+        encoded = json.dumps(payload).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def log_message(self, *_: object) -> None:
+        pass
+
+
+class WorkflowStartHttpGatewayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), _WorkflowStartHandler)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join()
+
+    @patch.dict(os.environ, {"SPRING_TOOL_GATEWAY_TOKEN": "workflow-test-token"})
+    def test_http_gateway_reuses_internal_token_and_exact_spring_contract(self) -> None:
+        gateway = SpringHttpToolGateway(f"http://127.0.0.1:{self.server.server_port}")
+
+        response = gateway.workflow_start({
+            "requestId": "http-start-1", "customerId": 1, "taskCode": "LOAN_INQUIRY",
+        })
+
+        self.assertEqual("ACTIVE", response["data"]["status"])
+        path, headers, body = _WorkflowStartHandler.received or (None, {}, {})
+        self.assertEqual("/api/v1/tools/workflows/start", path)
+        self.assertEqual("1", headers["X-Actor-Id"])
+        self.assertEqual("CUSTOMER", headers["X-Actor-Role"])
+        self.assertEqual("workflow-test-token", headers["X-Tool-Gateway-Token"])
+        self.assertEqual({"requestId": "http-start-1", "customerId": 1,
+                          "taskCode": "LOAN_INQUIRY"}, body)
+
+
+if __name__ == "__main__":
+    unittest.main()
