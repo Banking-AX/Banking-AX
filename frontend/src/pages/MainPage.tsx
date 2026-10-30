@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
+import { ChatModal } from '../features/chat/ChatModal'
 
 const ARROW_CIRCLE = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M10.5 8.5L14 12l-3.5 3.5"></path></svg>
 
@@ -25,12 +26,18 @@ const PRODUCTS = [
 export function MainPage() {
   const { status } = useAuth()
   const navigate = useNavigate()
-  // Connection point for the chat modal in step 4; nothing renders from it yet.
   const [chatOpen, setChatOpen] = useState(false)
+  const openerRef = useRef<HTMLButtonElement | null>(null)
 
-  const startChat = () => {
-    if (status === 'authenticated') setChatOpen(true)
-    else if (status === 'anonymous') navigate('/login?from=chat&returnTo=/')
+  const startChat = (event: MouseEvent<HTMLButtonElement>) => {
+    if (status === 'authenticated') {
+      openerRef.current = event.currentTarget
+      setChatOpen(true)
+    } else if (status === 'anonymous') navigate('/login?from=chat&returnTo=/')
+  }
+  const closeChat = () => {
+    setChatOpen(false)
+    openerRef.current?.focus()
   }
   const loading = status === 'loading'
 
@@ -156,5 +163,8 @@ export function MainPage() {
       </span>
       AI 금융 도우미
     </button>
+
+    {/* Stays mounted while signed in so the conversation survives closing; unmounts on logout. */}
+    {status === 'authenticated' && <ChatModal open={chatOpen} onClose={closeChat} />}
   </div>
 }
