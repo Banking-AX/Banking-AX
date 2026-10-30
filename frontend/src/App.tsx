@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
-import { ChatShellPage, LoginPage, StaffShellPage } from './pages/ShellPages'
+import { ChatShellPage, StaffShellPage } from './pages/ShellPages'
+import { LoginPage } from './pages/LoginPage'
 import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02StaffReviewPage } from './pages/C02StaffReviewPage'
@@ -10,8 +11,8 @@ import { HousingSavingsClosePage } from './features/b02/HousingSavingsClosePage'
 
 export function App() {
   return <Routes>
+    <Route path="/login" element={<LoginPage />} />
     <Route element={<AppShell />}>
-      <Route path="/login" element={<LoginPage />} />
       <Route path="/chat/:roomId?" element={<ChatShellPage />} />
       <Route path="/tasks/c01" element={<DebtAdjustmentPage />} />
       <Route path="/tasks/c02/:workItemId" element={<C02IntakePage />} />
