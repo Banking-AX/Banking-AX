@@ -1,19 +1,44 @@
 package com.bankingax.core.workflow.jpa;
 
 import com.bankingax.core.api.DomainException;
+import com.bankingax.core.workflow.ActiveWorkItemValidator;
+import com.bankingax.core.workflow.TaskCode;
+import com.bankingax.core.workflow.WorkItemStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @ConditionalOnProperty(name = "app.case-port", havingValue = "jpa")
-public class WorkflowService {
+public class WorkflowService implements ActiveWorkItemValidator {
     private static final String WAITING_CONTINUE = "WAITING_CONTINUE";
 
     private final WorkflowRepository workflows;
+    private final WorkItemRepository workItems;
 
-    public WorkflowService(WorkflowRepository workflows) {
+    public WorkflowService(WorkflowRepository workflows, WorkItemRepository workItems) {
         this.workflows = workflows;
+        this.workItems = workItems;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void validate(Long workItemId, long customerId, TaskCode expectedTaskCode) {
+        if (workItemId == null) {
+            throw unavailableWorkItem();
+        }
+        WorkItemEntity workItem = workItems.findById(workItemId).orElseThrow(WorkflowService::unavailableWorkItem);
+        WorkflowEntity workflow = workflows.findById(workItem.workflowId)
+                .orElseThrow(WorkflowService::unavailableWorkItem);
+        if (workflow.customerId != customerId
+                || workItem.taskCode != expectedTaskCode
+                || workItem.status != WorkItemStatus.ACTIVE) {
+            throw unavailableWorkItem();
+        }
+    }
+
+    private static DomainException unavailableWorkItem() {
+        return new DomainException("WORK_ITEM_NOT_AVAILABLE", "An active WorkItem is not available for this task.");
     }
 
     @Transactional

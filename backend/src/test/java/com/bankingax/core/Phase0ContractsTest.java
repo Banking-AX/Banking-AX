@@ -30,7 +30,8 @@ class Phase0ContractsTest {
         assertEquals(WorkItemStatus.ACTIVE, handler.resume(1, first.workItemId(), held.version()).status());
     }
     @Test void tool_gateway_rechecks_customer_ownership() {
-        ToolGatewayService gateway = new ToolGatewayService(new FakeLoanQueryPort());
+        ToolGatewayService gateway = new ToolGatewayService(
+                new FakeLoanQueryPort(), (workItemId, customerId, taskCode) -> { });
         var response = gateway.loanInquiry(new ToolActor(1, ActorRole.CUSTOMER), new LoanInquiryToolRequest("req-a02", 1001L, 1, null));
         assertEquals(101L, response.loans().get(0).loanId());
         assertThrows(DomainException.class, () -> gateway.loanInquiry(new ToolActor(2, ActorRole.CUSTOMER), new LoanInquiryToolRequest("req-a02", 1001L, 1, null)));

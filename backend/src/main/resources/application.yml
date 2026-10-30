@@ -24,6 +24,9 @@ app:
   a01:
     # jdbc requires the DDL's Mock-financial tables to be provisioned; default remains the G1 fixture.
     transaction-query-port: ${APP_A01_TRANSACTION_QUERY_PORT:fake}
+  a02:
+    # Fake is a non-production fixture. Use jdbc for the Flyway-managed loan table.
+    loan-query-port: ${APP_A02_LOAN_QUERY_PORT:fake}
   b02:
     # jdbc requires the authoritative Mock-financial tables; default remains the G1 fixture.
     account-port: ${APP_B02_ACCOUNT_PORT:fake}
