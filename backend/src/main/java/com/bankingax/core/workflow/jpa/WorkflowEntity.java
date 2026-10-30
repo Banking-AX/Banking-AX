@@ -7,7 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "workflow")
@@ -30,8 +30,8 @@ class WorkflowEntity {
     int version;
 
     @Column(name = "created_at", insertable = false, updatable = false)
-    LocalDateTime createdAt;
+    Instant createdAt;
 
     @Column(name = "updated_at", insertable = false)
-    LocalDateTime updatedAt;
+    Instant updatedAt;
 }
