@@ -9,6 +9,12 @@ from .tasks.housing_savings_close import HousingSavingsCloseTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway
+from .intent_classifier import (
+    IntentClassifier,
+    IntentOutputValidationError,
+    IntentProviderError,
+    OpenAiIntentClient,
+)
 
 
 class CustomerTaskRequest(BaseModel):
@@ -43,14 +49,25 @@ class CustomerTaskRequest(BaseModel):
     additionalInput: dict[str, object] = Field(default_factory=dict)
 
 
+class CustomerIntentRequest(BaseModel):
+    message: str = Field(min_length=2, max_length=2000)
+    recentMessages: list[str] = Field(default_factory=list, max_length=5)
+
+
 def build_registry(gateway: SpringHttpToolGateway | None = None) -> TaskRegistry:
     selected = gateway or SpringHttpToolGateway()
     return TaskRegistry([TransactionSearchTask(selected), HousingSavingsCloseTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
 
 
-def create_router(registry: TaskRegistry | None = None) -> APIRouter:
+def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
+    available = {str(definition["taskCode"]) for definition in registry.definitions()}
+    return IntentClassifier(OpenAiIntentClient(), available)
+
+
+def create_router(registry: TaskRegistry | None = None, intent_classifier: IntentClassifier | None = None) -> APIRouter:
     router = APIRouter(tags=["customer-agent"])
     selected_registry = registry or build_registry()
+    selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
 
     @router.get("/customer-agent/tasks")
     def registered_tasks() -> list[dict[str, object]]:
@@ -63,6 +80,15 @@ def create_router(registry: TaskRegistry | None = None) -> APIRouter:
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         except RuntimeError as exc:
+            raise HTTPException(503, str(exc)) from exc
+
+    @router.post("/customer-agent/classify")
+    def classify(request: CustomerIntentRequest) -> dict:
+        try:
+            return selected_classifier.classify(request.message, request.recentMessages).model_dump(mode="json")
+        except IntentOutputValidationError as exc:
+            raise HTTPException(502, "INTENT_LLM_OUTPUT_INVALID") from exc
+        except IntentProviderError as exc:
             raise HTTPException(503, str(exc)) from exc
 
     return router
