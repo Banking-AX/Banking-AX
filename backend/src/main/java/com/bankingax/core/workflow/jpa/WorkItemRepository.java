@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 interface WorkItemRepository extends JpaRepository<WorkItemEntity, Long> {
     Optional<WorkItemEntity> findByRequestId(String requestId);
 
+    @Query("select w.workflowId from WorkItemEntity w where w.id = :id")
+    Optional<Long> findWorkflowIdById(@Param("id") long id);
+
     boolean existsByWorkflowIdAndStatus(long workflowId, WorkItemStatus status);
 
     boolean existsByWorkflowIdAndStatusIn(long workflowId, Collection<WorkItemStatus> statuses);

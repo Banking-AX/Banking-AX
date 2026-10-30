@@ -2,12 +2,14 @@ package com.bankingax.task.a02;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Contract fixture only; replace with a JPA adapter for the loan table in A-02. */
 @Component
 @Profile("!production")
+@ConditionalOnProperty(name = "app.a02.loan-query-port", havingValue = "fake", matchIfMissing = true)
 public class FakeLoanQueryPort implements LoanQueryPort {
     private static final LoanSummary DEMO_LOAN = new LoanSummary(101L, "210-***-557731", "AX 개인 신용대출",
             new BigDecimal("17200000.00"), new BigDecimal("7.2000"), 45, true, "INTEREST_FIRST");

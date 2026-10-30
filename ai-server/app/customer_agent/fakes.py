@@ -4,6 +4,11 @@ from typing import Any
 
 
 class FakeSpringToolGateway:
+    def workflow_start(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": request["taskCode"], "workItemId": 1001,
+                "caseId": None, "revision": None, "error": None,
+                "data": {"workflowId": 501, "workItemId": 1001,
+                         "taskCode": request["taskCode"], "status": "ACTIVE"}}
     def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"rate":"BASE_RATE","rule":"B2-R3","manual":False}}
     def b02_execute(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"status":"CLOSED"}}
     """Consumer-test fixture. It has no database or HTTP side effect."""
