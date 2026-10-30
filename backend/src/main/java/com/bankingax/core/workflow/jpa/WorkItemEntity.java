@@ -11,7 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "work_item")
@@ -50,15 +50,15 @@ class WorkItemEntity {
     String requestId;
 
     @Column(name = "last_activity_at", insertable = false)
-    LocalDateTime lastActivityAt;
+    Instant lastActivityAt;
 
     @Column(name = "reset_at")
-    LocalDateTime resetAt;
+    Instant resetAt;
 
     @Version
     @Column(nullable = false)
     int version;
 
     @Column(name = "created_at", insertable = false, updatable = false)
-    LocalDateTime createdAt;
+    Instant createdAt;
 }

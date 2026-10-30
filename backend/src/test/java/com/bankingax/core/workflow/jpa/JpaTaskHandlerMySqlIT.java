@@ -12,7 +12,6 @@ import com.bankingax.core.workflow.StartTaskCommand;
 import com.bankingax.core.workflow.TaskCode;
 import com.bankingax.core.workflow.TaskHandler;
 import com.bankingax.core.workflow.WorkItemStatus;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -41,7 +40,8 @@ class JpaTaskHandlerMySqlIT {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
+        registry.add("spring.datasource.url", () -> MYSQL.getJdbcUrl()
+                + "?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true");
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);
     }
@@ -98,8 +98,12 @@ class JpaTaskHandlerMySqlIT {
         assertEquals(1, number("select sequence_no from work_item where id=?", created.workItemId()));
         assertEquals("RUNNING", jdbc.queryForObject("select status from workflow where id=10", String.class));
         assertEquals(1, number("select version from workflow where id=10"));
-        assertTrue(jdbc.queryForObject("select updated_at from workflow where id=10", LocalDateTime.class)
-                .isAfter(LocalDateTime.of(2000, 1, 1, 0, 0)));
+        assertEquals("+00:00", jdbc.queryForObject("select @@session.time_zone", String.class));
+        String timing = jdbc.queryForObject(
+                "select concat(updated_at, '|', utc_timestamp(6), '|', @@session.time_zone) from workflow where id=10",
+                String.class);
+        assertTrue(number("select abs(timestampdiff(second, updated_at, utc_timestamp(6))) from workflow where id=10") <= 2,
+                timing);
         assertEquals(0, number("select version from work_item where id=?", created.workItemId()));
     }
 

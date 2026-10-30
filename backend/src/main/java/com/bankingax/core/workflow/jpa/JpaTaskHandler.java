@@ -5,7 +5,7 @@ import com.bankingax.core.workflow.StartTaskCommand;
 import com.bankingax.core.workflow.TaskHandler;
 import com.bankingax.core.workflow.WorkItemStatus;
 import com.bankingax.core.workflow.WorkItemView;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -59,7 +59,7 @@ public class JpaTaskHandler implements TaskHandler {
         item.requestId = command.requestId();
 
         workflow.status = RUNNING;
-        workflow.updatedAt = LocalDateTime.now();
+        workflow.updatedAt = utcNow();
         try {
             item = workItems.saveAndFlush(item);
             workflows.flush();
@@ -119,7 +119,7 @@ public class JpaTaskHandler implements TaskHandler {
             throw new DomainException("INVALID_STATE", "Only active work can complete.");
         }
         item.status = WorkItemStatus.DONE;
-        item.lastActivityAt = LocalDateTime.now();
+        item.lastActivityAt = utcNow();
         workItems.flush();
         String workflowStatus = workItems.existsByWorkflowIdAndStatusIn(item.workflowId, UNFINISHED)
                 ? WAITING_CONTINUE : COMPLETED;
@@ -161,14 +161,18 @@ public class JpaTaskHandler implements TaskHandler {
     }
 
     private static void touch(WorkItemEntity item, WorkflowEntity workflow, String workflowStatus) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = utcNow();
         item.lastActivityAt = now;
         touchWorkflow(workflow, workflowStatus, now);
     }
 
-    private static void touchWorkflow(WorkflowEntity workflow, String status, LocalDateTime now) {
+    private static void touchWorkflow(WorkflowEntity workflow, String status, Instant now) {
         workflow.status = status;
         workflow.updatedAt = now;
+    }
+
+    private static Instant utcNow() {
+        return Instant.now();
     }
 
     private static WorkItemView view(WorkItemEntity item) {
