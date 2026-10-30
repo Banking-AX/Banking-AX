@@ -2,28 +2,29 @@ import { ApiError } from '../client'
 import type { AuthApi, AuthUser } from '../auth'
 
 // Mock only: replaced by the Spring session API when VITE_API_MOCK_AUTH=false.
+// Matches the representative test customer in the DB seed; the real password is stored as a BCrypt hash.
 const STORAGE_KEY = 'bankingax.mock.auth'
 const DELAY_MS = 300
-const DEMO_LOGIN_ID = 'minjun_demo'
-const DEMO_PASSWORD = 'demo1234'
-const DEMO_USER: AuthUser = { userId: 1, name: '김민준', role: 'CUSTOMER' }
+const ACCOUNTS = new Map<string, { password: string; user: AuthUser }>([
+  ['customer_demo', { password: 'demo1234', user: { userId: 1, name: '김민수', role: 'CUSTOMER' } }],
+])
 
 function delay() {
   return new Promise<void>(resolve => setTimeout(resolve, DELAY_MS))
 }
 
-function readUser(): AuthUser | null {
+// Only the loginId is stored; user details are rebuilt from ACCOUNTS so stale sessions cannot restore old values.
+function readLoginId(): string | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) as AuthUser : null
+    return sessionStorage.getItem(STORAGE_KEY)
   } catch {
     return null
   }
 }
 
-function writeUser(user: AuthUser | null) {
+function writeLoginId(loginId: string | null) {
   try {
-    if (user) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user))
+    if (loginId) sessionStorage.setItem(STORAGE_KEY, loginId)
     else sessionStorage.removeItem(STORAGE_KEY)
   } catch {
     // Storage may be unavailable (private mode); the mock then keeps no session.
@@ -33,20 +34,22 @@ function writeUser(user: AuthUser | null) {
 export const authMock: AuthApi = {
   async login(loginId, password) {
     await delay()
-    if (loginId !== DEMO_LOGIN_ID || password !== DEMO_PASSWORD) {
+    const account = ACCOUNTS.get(loginId)
+    if (!account || account.password !== password) {
       throw new ApiError('AUTH_INVALID_CREDENTIALS', 401, 'Invalid credentials.')
     }
-    writeUser(DEMO_USER)
-    return DEMO_USER
+    writeLoginId(loginId)
+    return account.user
   },
   async logout() {
     await delay()
-    writeUser(null)
+    writeLoginId(null)
   },
   async me() {
     await delay()
-    const user = readUser()
-    if (!user) throw new ApiError('AUTH_EXPIRED', 401, 'Not authenticated.')
-    return user
+    const loginId = readLoginId()
+    const account = loginId ? ACCOUNTS.get(loginId) : undefined
+    if (!account) throw new ApiError('AUTH_EXPIRED', 401, 'Not authenticated.')
+    return account.user
   },
 }

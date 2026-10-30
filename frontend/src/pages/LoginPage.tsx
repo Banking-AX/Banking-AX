@@ -122,7 +122,7 @@ export function LoginPage() {
 
       <div className="login-notice">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="login-notice__icon"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"></path></svg>
-        <span><strong className="login-notice__strong">교육용 시연 화면입니다.</strong> 실제 은행 아이디나 비밀번호를 입력하지 마세요. 시연용 테스트 계정: <span className="login-notice__account">minjun_demo / demo1234</span></span>
+        <span><strong className="login-notice__strong">교육용 시연 화면입니다.</strong> 실제 은행 아이디나 비밀번호를 입력하지 마세요. 시연용 테스트 계정: <span className="login-notice__account">customer_demo / demo1234</span></span>
       </div>
     </main>
 
