@@ -18,6 +18,7 @@ from app.customer_agent.intent_classifier import (
 )
 from app.customer_agent.registry import TaskRegistry
 from app.customer_agent.router import create_router
+from app.customer_agent.tasks.loan_inquiry import LoanInquiryTask
 from app.customer_agent.tool_gateway import SpringHttpToolGateway
 
 
@@ -47,18 +48,40 @@ class StaticClassifier:
 class RecordingWorkflowGateway:
     def __init__(self) -> None:
         self.requests: list[dict[str, object]] = []
-        self.fail = False
+        self.loan_requests: list[dict[str, object]] = []
+        self.workflow_fail = False
+        self.loan_fail = False
 
     def workflow_start(self, request: dict[str, object]) -> dict[str, object]:
         self.requests.append(request)
-        if self.fail:
+        if self.workflow_fail:
             raise RuntimeError("SPRING_TOOL_HTTP_503: sensitive upstream detail")
+        status = "DONE" if self.loan_requests else "ACTIVE"
         return {
             "requestId": request["requestId"], "taskCode": request["taskCode"], "workItemId": 1001,
             "caseId": None, "revision": None, "error": None,
             "data": {"workflowId": 501, "workItemId": 1001,
-                     "taskCode": request["taskCode"], "status": "ACTIVE"},
+                     "taskCode": request["taskCode"], "status": status},
         }
+
+    def loan_inquiry(self, request: dict[str, object]) -> dict[str, object]:
+        self.loan_requests.append(request)
+        if self.loan_fail:
+            raise RuntimeError("SPRING_TOOL_HTTP_500: sensitive loan detail")
+        loans = [
+            {"loanId": 1, "loanNoMasked": "210-***-000001", "loanName": "정상 대출",
+             "balance": 1000000, "interestRate": 3.5, "overdueDays": 0,
+             "accelerationDeclared": False, "repaymentOrder": "INTEREST_FIRST"},
+            {"loanId": 2, "loanNoMasked": "210-***-000002", "loanName": "연체 대출",
+             "balance": 2000000, "interestRate": 4.5, "overdueDays": 30,
+             "accelerationDeclared": True, "repaymentOrder": "PRINCIPAL_FIRST"},
+            {"loanId": 3, "loanNoMasked": "210-***-000003", "loanName": "제외조건 대출",
+             "balance": 3000000, "interestRate": 5.5, "overdueDays": 0,
+             "accelerationDeclared": False, "repaymentOrder": "PRINCIPAL_FIRST"},
+        ]
+        return {"requestId": request["requestId"], "taskCode": "LOAN_INQUIRY",
+                "workItemId": request["workItemId"], "caseId": None, "revision": None,
+                "data": {"loans": loans}, "error": None}
 
 
 class NaturalWorkflowStartTests(unittest.TestCase):
@@ -77,7 +100,8 @@ class NaturalWorkflowStartTests(unittest.TestCase):
         self.gateway = RecordingWorkflowGateway()
         app = FastAPI()
         app.include_router(create_router(
-            TaskRegistry(), StaticClassifier(self.results), self.gateway, natural_start_enabled=True),
+            TaskRegistry([LoanInquiryTask(self.gateway)]), StaticClassifier(self.results),
+            self.gateway, natural_start_enabled=True),
             prefix="/api/v1")
         self.client = TestClient(app)
 
@@ -86,15 +110,19 @@ class NaturalWorkflowStartTests(unittest.TestCase):
             "requestId": request_id, "customerId": 1, "message": message,
         })
 
-    def test_single_a02_action_starts_workflow_and_returns_active_ids(self) -> None:
+    def test_single_a02_action_starts_workflow_and_returns_three_loans(self) -> None:
         response = self.post("내 대출 잔액 알려줘")
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("STARTED", response.json()["outcome"])
         self.assertEqual({"workflowId": 501, "workItemId": 1001,
                           "taskCode": "LOAN_INQUIRY", "status": "ACTIVE"}, response.json()["workflow"])
+        self.assertEqual(3, len(response.json()["loanInquiry"]["loans"]))
+        self.assertTrue(all("***" in loan["loanNoMasked"]
+                            for loan in response.json()["loanInquiry"]["loans"]))
         self.assertEqual([{"requestId": "natural-a02-1", "customerId": 1,
                            "taskCode": "LOAN_INQUIRY"}], self.gateway.requests)
+        self.assertEqual(1001, self.gateway.loan_requests[0]["workItemId"])
 
     def test_non_action_ambiguous_unsupported_composite_and_other_tasks_never_call_spring(self) -> None:
         expected = {
@@ -111,29 +139,49 @@ class NaturalWorkflowStartTests(unittest.TestCase):
                 self.assertEqual(200, response.status_code)
                 self.assertEqual(outcome, response.json()["outcome"])
                 self.assertIsNone(response.json()["workflow"])
+                self.assertIsNone(response.json()["loanInquiry"])
         self.assertEqual([], self.gateway.requests)
+        self.assertEqual([], self.gateway.loan_requests)
 
     def test_retry_forwards_the_original_request_id_and_returns_the_same_result(self) -> None:
         first = self.post("내 대출 잔액 알려줘", "stable-request")
         second = self.post("내 대출 잔액 알려줘", "stable-request")
 
-        self.assertEqual(first.json()["workflow"], second.json()["workflow"])
+        self.assertEqual(first.json()["workflow"]["workflowId"], second.json()["workflow"]["workflowId"])
+        self.assertEqual(first.json()["workflow"]["workItemId"], second.json()["workflow"]["workItemId"])
+        self.assertEqual("ACTIVE", first.json()["workflow"]["status"])
+        self.assertEqual("DONE", second.json()["workflow"]["status"])
+        self.assertEqual(first.json()["loanInquiry"], second.json()["loanInquiry"])
         self.assertEqual(["stable-request", "stable-request"],
                          [request["requestId"] for request in self.gateway.requests])
+        self.assertEqual([1001, 1001], [request["workItemId"] for request in self.gateway.loan_requests])
 
     def test_spring_failure_is_sanitized_and_never_reported_as_started(self) -> None:
-        self.gateway.fail = True
+        self.gateway.workflow_fail = True
 
         response = self.post("내 대출 잔액 알려줘")
 
         self.assertEqual(503, response.status_code)
         self.assertEqual("WORKFLOW_START_UNAVAILABLE", response.json()["detail"])
         self.assertNotIn("sensitive", response.text)
+        self.assertEqual([], self.gateway.loan_requests)
+
+    def test_loan_inquiry_failure_is_sanitized_after_workflow_start(self) -> None:
+        self.gateway.loan_fail = True
+
+        response = self.post("내 대출 잔액 알려줘")
+
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("LOAN_INQUIRY_UNAVAILABLE", response.json()["detail"])
+        self.assertNotIn("sensitive", response.text)
+        self.assertEqual(1, len(self.gateway.requests))
+        self.assertEqual(1, len(self.gateway.loan_requests))
 
     def test_natural_start_route_is_absent_when_disabled(self) -> None:
         app = FastAPI()
         app.include_router(create_router(
-            TaskRegistry(), StaticClassifier(self.results), self.gateway, natural_start_enabled=False),
+            TaskRegistry([LoanInquiryTask(self.gateway)]), StaticClassifier(self.results),
+            self.gateway, natural_start_enabled=False),
             prefix="/api/v1")
 
         response = TestClient(app).post("/api/v1/customer-agent/messages/start", json={

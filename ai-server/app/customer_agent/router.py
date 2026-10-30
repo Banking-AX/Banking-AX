@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
+from decimal import Decimal
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from .contracts import SpringToolGateway
 from .registry import TaskRegistry
 from .tasks.loan_inquiry import LoanInquiryTask
@@ -72,7 +73,7 @@ class WorkflowStartData(BaseModel):
     workflowId: int = Field(gt=0)
     workItemId: int = Field(gt=0)
     taskCode: TaskCode
-    status: Literal["ACTIVE"]
+    status: Literal["ACTIVE", "DONE"]
 
 
 class WorkflowStartEnvelope(BaseModel):
@@ -93,6 +94,44 @@ class WorkflowStartEnvelope(BaseModel):
         return self
 
 
+class LoanSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    loanId: int = Field(gt=0)
+    loanNoMasked: str = Field(min_length=3, max_length=100)
+    loanName: str = Field(min_length=1, max_length=200)
+    balance: Decimal
+    interestRate: Decimal
+    overdueDays: int = Field(ge=0)
+    accelerationDeclared: bool
+    repaymentOrder: str = Field(min_length=1, max_length=100)
+
+    @field_validator("loanNoMasked")
+    @classmethod
+    def require_masked_loan_number(cls, value: str) -> str:
+        if "***" not in value:
+            raise ValueError("loan number must be masked")
+        return value
+
+
+class LoanInquiryData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    loans: list[LoanSummary]
+
+
+class LoanInquiryEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    requestId: str
+    taskCode: Literal["LOAN_INQUIRY"]
+    workItemId: int = Field(gt=0)
+    caseId: None
+    revision: None
+    data: LoanInquiryData
+    error: None
+
+
 class CustomerNaturalStartResponse(BaseModel):
     requestId: str
     customerId: int
@@ -102,6 +141,7 @@ class CustomerNaturalStartResponse(BaseModel):
     ]
     classification: IntentClassification
     workflow: WorkflowStartData | None = None
+    loanInquiry: LoanInquiryData | None = None
 
 
 def build_registry(gateway: SpringToolGateway | None = None) -> TaskRegistry:
@@ -178,9 +218,26 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
             except RuntimeError as exc:
                 raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
 
+            try:
+                task_result = selected_registry.get(TaskCode.LOAN_INQUIRY.value).run({
+                    "taskCode": TaskCode.LOAN_INQUIRY.value,
+                    "requestId": request.requestId,
+                    "workItemId": envelope.data.workItemId,
+                    "customerId": request.customerId,
+                })
+                loan_envelope = LoanInquiryEnvelope.model_validate(task_result)
+                if (loan_envelope.requestId != request.requestId
+                        or loan_envelope.workItemId != envelope.data.workItemId):
+                    raise ValueError("loan inquiry response does not match the workflow start")
+            except (ValidationError, ValueError) as exc:
+                raise HTTPException(502, "LOAN_INQUIRY_INVALID_RESPONSE") from exc
+            except RuntimeError as exc:
+                raise HTTPException(503, "LOAN_INQUIRY_UNAVAILABLE") from exc
+
             return CustomerNaturalStartResponse(
                 requestId=request.requestId, customerId=request.customerId, outcome="STARTED",
-                classification=classification, workflow=envelope.data).model_dump(mode="json")
+                classification=classification, workflow=envelope.data,
+                loanInquiry=loan_envelope.data).model_dump(mode="json")
 
     return router
 

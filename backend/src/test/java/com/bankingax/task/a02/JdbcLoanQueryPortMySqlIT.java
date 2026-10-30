@@ -43,6 +43,7 @@ class JdbcLoanQueryPortMySqlIT {
 
     @BeforeEach
     void seed() {
+        jdbc.update("DELETE FROM task_result");
         jdbc.update("DELETE FROM loan");
         jdbc.update("DELETE FROM work_item");
         jdbc.update("DELETE FROM workflow");
@@ -109,7 +110,7 @@ class JdbcLoanQueryPortMySqlIT {
     void preservesTheExistingToolGatewayRequestAndResponseContract() {
         var response = gateway.loanInquiry(
                 new ToolActor(1, ActorRole.CUSTOMER),
-                new LoanInquiryToolRequest("a02-jdbc-contract", 101L, 1, 2L));
+                new LoanInquiryToolRequest("a02-active", 101L, 1, 2L));
 
         assertEquals(1, response.loans().size());
         assertEquals(2L, response.loans().get(0).loanId());
