@@ -195,7 +195,7 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
           <input id="chat-input" ref={inputRef} type="text" value={draft} maxLength={MAX_LENGTH} disabled={pending}
             onChange={e => { setDraft(e.target.value); if (hint) setHint('') }} onKeyDown={onInputKeyDown}
             aria-describedby="chat-input-hint"
-            placeholder={pending ? 'AI가 답변을 준비하는 동안에는 입력할 수 없어요' : '예) 거래내역도 조회하고 채무조정도 접수하고 싶어요'}
+            placeholder={pending ? 'AI가 답변을 준비하는 동안에는 입력할 수 없어요' : '예) 내 대출 정보 알려줘'}
             className="chat-input" />
           <button type="button" aria-label="메시지 보내기" onClick={() => send(draft)} disabled={pending} className="chat-send">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7z"></path><path d="M11 13l9-9"></path></svg>

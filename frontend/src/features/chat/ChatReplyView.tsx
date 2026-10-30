@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ChatReply } from '../../api/chat'
+import { LoanTable } from './LoanTable'
 
 export function BotAvatar() {
   return <span className="chat-avatar" aria-hidden="true">
@@ -7,19 +8,25 @@ export function BotAvatar() {
   </span>
 }
 
-export function BotMessage({ label, time, children }: { label: string; time: string; children: ReactNode }) {
+type BotMessageProps = { label: string; time: string; children: ReactNode; wide?: boolean; note?: string }
+
+/** wide: full-width bubble without padding for tables (ChatLookup). note: caption under the bubble. */
+export function BotMessage({ label, time, children, wide = false, note }: BotMessageProps) {
   return <div className="chat-bot">
     <BotAvatar />
-    <div className="chat-bot__body">
+    <div className={`chat-bot__body${wide ? ' chat-loan-body' : ''}`}>
       <span className="chat-bot__label">{label}</span>
-      <div className="chat-bubble chat-bubble--bot">{children}</div>
+      <div className={`chat-bubble chat-bubble--bot${wide ? ' chat-loan-bubble' : ''}`}>{children}</div>
+      {note && <span className="chat-loan-note">{note}</span>}
       <span className="chat-time">{time}</span>
     </div>
   </div>
 }
 
 export function replyLabel(reply: ChatReply): string {
-  return reply.kind === 'unsupported' ? '지원하지 않는 업무' : 'AI 금융 도우미'
+  if (reply.kind === 'unsupported') return '지원하지 않는 업무'
+  if (reply.kind === 'loans') return reply.loans.length > 0 ? 'A-02 대출계좌 정보 조회' : 'A-02 대출계좌 정보 조회 · 없음'
+  return 'AI 금융 도우미'
 }
 
 export function replyText(reply: ChatReply): string {
@@ -28,9 +35,17 @@ export function replyText(reply: ChatReply): string {
     case 'unsupported': return reply.reason
     case 'composite': return '한 번에 한 가지 업무만 도와드릴 수 있어요. 하나씩 말씀해 주세요.'
     case 'notStartable': return '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
+    // Count sentence only, so the live region does not read the whole table.
+    case 'loans': return reply.loans.length > 0 ? `대출 ${reply.loans.length}건을 찾았어요.` : '조회되는 대출이 없어요. AX뱅크 대출만 조회할 수 있어요.'
   }
 }
 
 export function ChatReplyView({ reply, time }: { reply: ChatReply; time: string }) {
+  if (reply.kind === 'loans' && reply.loans.length > 0) {
+    return <BotMessage label={replyLabel(reply)} time={time} wide note="조회만 했어요.">
+      <div className="chat-loan-summary">{replyText(reply)}</div>
+      <LoanTable loans={reply.loans} />
+    </BotMessage>
+  }
   return <BotMessage label={replyLabel(reply)} time={time}>{replyText(reply)}</BotMessage>
 }
