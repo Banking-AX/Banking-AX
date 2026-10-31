@@ -46,7 +46,7 @@ public class AuthSecurityConfiguration {
                                                 AuthProperties properties)
             throws Exception {
         CookieCsrfTokenRepository csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        csrfTokens.setCookiePath("/api/v1/auth");
+        csrfTokens.setCookiePath("/");
         csrfTokens.setCookieCustomizer(cookie -> cookie.secure(properties.cookieSecure()).sameSite("Lax"));
         http
                 .csrf(csrf -> csrf

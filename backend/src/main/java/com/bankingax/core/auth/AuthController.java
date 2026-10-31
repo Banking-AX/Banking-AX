@@ -47,6 +47,8 @@ class AuthController {
         csrfToken.getToken();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
                         refreshCookie(refresh.rawToken(), refresh.absoluteExpiresAt()).toString())
+                .header(HttpHeaders.SET_COOKIE,
+                        deleteCookie(CSRF_COOKIE, false, "/api/v1/auth").toString())
                 .body(ApiEnvelope.success(requestId, "AUTH", null, null, null, result));
     }
 
@@ -72,8 +74,11 @@ class AuthController {
             @CookieValue(name = REFRESH_COOKIE, required = false) String rawToken,
             HttpServletResponse response) {
         refreshTokens.revoke(rawToken);
-        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie(REFRESH_COOKIE, true).toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie(CSRF_COOKIE, false).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                deleteCookie(REFRESH_COOKIE, true, "/api/v1/auth").toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie(CSRF_COOKIE, false, "/").toString());
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                deleteCookie(CSRF_COOKIE, false, "/api/v1/auth").toString());
         return ResponseEntity.ok(ApiEnvelope.success(
                 UUID.randomUUID().toString(), "AUTH", null, null, null, null));
     }
@@ -86,10 +91,10 @@ class AuthController {
                 .path("/api/v1/auth").maxAge(remaining).build();
     }
 
-    private ResponseCookie deleteCookie(String name, boolean httpOnly) {
+    private ResponseCookie deleteCookie(String name, boolean httpOnly, String path) {
         return ResponseCookie.from(name, "").httpOnly(httpOnly)
                 .secure(properties.cookieSecure()).sameSite("Lax")
-                .path("/api/v1/auth").maxAge(Duration.ZERO).build();
+                .path(path).maxAge(Duration.ZERO).build();
     }
 
     private static long parseSubject(String subject) {

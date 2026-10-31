@@ -1,5 +1,5 @@
 import { ApiError } from '../client'
-import type { AuthApi, AuthUser } from '../auth'
+import type { AuthApi, AuthSession, AuthUser } from '../auth'
 
 // Mock only: replaced by the Spring session API when VITE_API_MOCK_AUTH=false.
 // Matches the representative test customer in the DB seed; the real password is stored as a BCrypt hash.
@@ -39,7 +39,11 @@ export const authMock: AuthApi = {
       throw new ApiError('AUTH_INVALID_CREDENTIALS', 401, 'Invalid credentials.')
     }
     writeLoginId(loginId)
-    return account.user
+    return mockSession(account.user)
+  },
+  async refresh() {
+    const user = await authMock.me()
+    return mockSession(user)
   },
   async logout() {
     await delay()
@@ -52,4 +56,8 @@ export const authMock: AuthApi = {
     if (!account) throw new ApiError('AUTH_EXPIRED', 401, 'Not authenticated.')
     return account.user
   },
+}
+
+function mockSession(user: AuthUser): AuthSession {
+  return { ...user, accessToken: null, tokenType: 'Mock', expiresIn: 0 }
 }

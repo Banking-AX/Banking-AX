@@ -87,6 +87,8 @@ class AuthSecurityMySqlIT {
         assertThat(session.refresh().isHttpOnly()).isTrue();
         assertThat(session.refresh().getSecure()).isFalse();
         assertThat(session.refresh().getPath()).isEqualTo("/api/v1/auth");
+        assertThat(session.csrf().isHttpOnly()).isFalse();
+        assertThat(session.csrf().getPath()).isEqualTo("/");
         String storedHash = jdbc.queryForObject("select token_hash from refresh_token", String.class);
         assertThat(storedHash).hasSize(64).isEqualTo(RefreshTokenService.hash(session.refresh().getValue()));
         assertThat(storedHash).doesNotContain(session.refresh().getValue());
@@ -179,6 +181,9 @@ class AuthSecurityMySqlIT {
                 .andExpect(status().isUnauthorized());
         http.perform(post("/api/v1/auth/refresh").cookie(session.refresh(), session.csrf()))
                 .andExpect(status().isForbidden());
+        http.perform(post("/api/v1/auth/refresh").cookie(session.refresh(), session.csrf())
+                        .header("X-XSRF-TOKEN", "wrong-csrf-token"))
+                .andExpect(status().isForbidden());
         http.perform(post("/api/v1/auth/logout").cookie(session.refresh(), session.csrf()))
                 .andExpect(status().isForbidden());
     }
@@ -232,6 +237,9 @@ class AuthSecurityMySqlIT {
         Cookie csrf = result.getResponse().getCookie(AuthController.CSRF_COOKIE);
         assertThat(refresh).isNotNull();
         assertThat(csrf).isNotNull();
+        assertThat(result.getResponse().getHeaders("Set-Cookie"))
+                .anyMatch(value -> value.startsWith(AuthController.CSRF_COOKIE + "=")
+                        && value.contains("Path=/api/v1/auth") && value.contains("Max-Age=0"));
         return new AuthSession(root.path("data").path("accessToken").asText(), refresh, csrf);
     }
 

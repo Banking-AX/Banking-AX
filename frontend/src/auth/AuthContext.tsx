@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authApi, type AuthUser } from '../api/auth'
-import { setUnauthorizedHandler } from '../api/client'
+import { authApi, type AuthSession, type AuthUser } from '../api/auth'
+import { setAccessToken, setAuthenticationLostHandler, setRefreshAccessTokenHandler } from '../api/client'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous'
 
 type AuthContextValue = {
   user: AuthUser | null
+  accessToken: string | null
   status: AuthStatus
   login(loginId: string, password: string): Promise<AuthUser>
   logout(): Promise<void>
@@ -17,39 +18,53 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [accessTokenState, setAccessTokenState] = useState<string | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
   const userRef = useRef<AuthUser | null>(null)
 
-  const applyUser = useCallback((next: AuthUser | null) => {
+  const applyUser = useCallback((next: AuthUser | null, token: string | null = null) => {
     userRef.current = next
     setUser(next)
+    setAccessToken(token)
+    setAccessTokenState(token)
     setStatus(next ? 'authenticated' : 'anonymous')
   }, [])
 
-  useEffect(() => {
-    let active = true
-    // Any failure (401, 404, network) restores as anonymous without surfacing an error.
-    authApi.me()
-      .then(me => { if (active) applyUser(me) })
-      .catch(() => { if (active) applyUser(null) })
-    return () => { active = false }
+  const applySession = useCallback((session: AuthSession) => {
+    applyUser({ userId: session.userId, name: session.name, role: session.role }, session.accessToken)
   }, [applyUser])
 
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      // Only an established session can expire; an anonymous 401 is not an expiry.
+    let active = true
+    // The HttpOnly refresh cookie is the only real-mode bootstrap credential.
+    authApi.refresh()
+      .then(session => { if (active) applySession(session) })
+      .catch(() => { if (active) applyUser(null) })
+    return () => { active = false }
+  }, [applySession, applyUser])
+
+  useEffect(() => {
+    setRefreshAccessTokenHandler(async () => {
+      const session = await authApi.refresh()
+      applySession(session)
+      return session.accessToken
+    })
+    setAuthenticationLostHandler(() => {
       if (!userRef.current) return
       applyUser(null)
       navigate('/login?reason=expired', { replace: true })
     })
-    return () => setUnauthorizedHandler(null)
-  }, [applyUser, navigate])
+    return () => {
+      setRefreshAccessTokenHandler(null)
+      setAuthenticationLostHandler(null)
+    }
+  }, [applySession, applyUser, navigate])
 
   const login = useCallback(async (loginId: string, password: string) => {
-    const next = await authApi.login(loginId, password)
-    applyUser(next)
-    return next
-  }, [applyUser])
+    const session = await authApi.login(loginId, password)
+    applySession(session)
+    return { userId: session.userId, name: session.name, role: session.role }
+  }, [applySession])
 
   const logout = useCallback(async () => {
     try {
@@ -59,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applyUser])
 
-  const value = useMemo(() => ({ user, status, login, logout }), [user, status, login, logout])
+  const value = useMemo(() => ({ user, accessToken: accessTokenState, status, login, logout }),
+    [user, accessTokenState, status, login, logout])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
