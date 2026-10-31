@@ -25,6 +25,14 @@ server:
   error:
     include-message: never
 app:
+  auth:
+    # Disabled by default so a missing JWT secret cannot accidentally expose a half-configured login.
+    enabled: ${APP_AUTH_ENABLED:false}
+    jwt-secret: ${APP_JWT_SECRET:}
+    issuer: ${APP_JWT_ISSUER:banking-ax}
+    access-token-minutes: ${APP_JWT_ACCESS_TOKEN_MINUTES:30}
+    refresh-token-hours: ${APP_REFRESH_TOKEN_HOURS:24}
+    cookie-secure: ${APP_AUTH_COOKIE_SECURE:false}
   a01:
     # jdbc requires the DDL's Mock-financial tables to be provisioned; default remains the G1 fixture.
     transaction-query-port: ${APP_A01_TRANSACTION_QUERY_PORT:fake}

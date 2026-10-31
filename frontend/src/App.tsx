@@ -16,14 +16,14 @@ export function App() {
     <Route path="/" element={<MainPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route element={<AppShell />}>
-      <Route path="/chat/:roomId?" element={<RequireAuth from="chat"><ChatShellPage /></RequireAuth>} />
-      <Route path="/tasks/c01" element={<DebtAdjustmentPage />} />
-      <Route path="/tasks/c02/:workItemId" element={<C02IntakePage />} />
-      <Route path="/tasks/c02/notifications" element={<C02NotificationsPage />} />
-      <Route path="/staff/c02/:caseId" element={<C02StaffReviewPage />} />
-      <Route path="/tasks/a01/:workItemId" element={<TransactionSearchPage />} />
-      <Route path="/tasks/b02/:workItemId" element={<HousingSavingsClosePage />} />
-      <Route path="/staff/*" element={<StaffShellPage />} />
+      <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
+      <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />
+      <Route path="/tasks/c02/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02IntakePage /></RequireAuth>} />
+      <Route path="/tasks/c02/notifications" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02NotificationsPage /></RequireAuth>} />
+      <Route path="/staff/c02/:caseId" element={<RequireAuth roles={['STAFF', 'ADMIN']}><C02StaffReviewPage /></RequireAuth>} />
+      <Route path="/tasks/a01/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><TransactionSearchPage /></RequireAuth>} />
+      <Route path="/tasks/b02/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><HousingSavingsClosePage /></RequireAuth>} />
+      <Route path="/staff/*" element={<RequireAuth roles={['STAFF', 'ADMIN']}><StaffShellPage /></RequireAuth>} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>

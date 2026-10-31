@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { toUserMessage } from '../api/errorMessages'
 import { useAuth } from '../auth/AuthContext'
@@ -23,6 +23,7 @@ export function LoginPage() {
   const fromChat = params.get('from') === 'chat'
   const returnTo = safeReturnTo(params.get('returnTo'))
   const { login } = useAuth()
+  const navigate = useNavigate()
 
   const [tab, setTab] = useState<Tab>('id')
   const [loginId, setLoginId] = useState('')
@@ -46,6 +47,7 @@ export function LoginPage() {
       setError(null)
       setPassword('')
       setSuccessName(user.name)
+      navigate(returnTo, { replace: true })
     } catch (cause) {
       const message = toUserMessage(cause)
       setError(cause instanceof ApiError && cause.code === 'AUTH_INVALID_CREDENTIALS' ? { kind: 'credentials', message } : { kind: 'server', message })

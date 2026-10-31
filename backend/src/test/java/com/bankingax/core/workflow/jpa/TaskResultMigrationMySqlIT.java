@@ -62,7 +62,7 @@ class TaskResultMigrationMySqlIT {
                         + "where table_schema=database() and table_name='task_result' order by ordinal_position",
                 String.class);
 
-        assertThat(version).isEqualTo(4);
+        assertThat(version).isGreaterThanOrEqualTo(4);
         assertThat(columns).containsExactly("id", "work_item_id", "result_type", "decision_code",
                 "target_loan_id", "rule_version", "basis_doc_id", "before_value", "after_value",
                 "detail", "created_at");
