@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import os
+import hmac
 from decimal import Decimal
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from .contracts import SpringToolGateway
 from .registry import TaskRegistry
-from .tasks.loan_inquiry import LoanInquiryTask
+from .tasks.loan_inquiry import LoanInquiryAnswerTask, LoanInquiryTask
 from .tasks.transaction_search import TransactionSearchTask
 from .tasks.housing_savings_close import HousingSavingsCloseTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
-from .tool_gateway import SpringHttpToolGateway
+from .tool_gateway import SpringHttpToolGateway, SpringToolHttpError
 from .intent_classifier import (
     IntentClassifier,
     IntentClassification,
@@ -65,6 +66,7 @@ class CustomerIntentRequest(BaseModel):
 class CustomerNaturalStartRequest(CustomerIntentRequest):
     requestId: str = Field(min_length=1, max_length=90)
     customerId: int = Field(gt=0)
+    chatRoomId: int = Field(gt=0)
 
 
 class WorkflowStartData(BaseModel):
@@ -73,7 +75,7 @@ class WorkflowStartData(BaseModel):
     workflowId: int = Field(gt=0)
     workItemId: int = Field(gt=0)
     taskCode: TaskCode
-    status: Literal["ACTIVE", "DONE"]
+    status: Literal["ACTIVE", "DONE", "COMPLETED"]
 
 
 class WorkflowStartEnvelope(BaseModel):
@@ -118,6 +120,8 @@ class LoanInquiryData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     loans: list[LoanSummary]
+    workItemStatus: Literal["DONE"] | None = None
+    workflowStatus: Literal["COMPLETED"] | None = None
 
 
 class LoanInquiryEnvelope(BaseModel):
@@ -132,6 +136,14 @@ class LoanInquiryEnvelope(BaseModel):
     error: None
 
 
+class ExecutionStatus(BaseModel):
+    workflowId: int = Field(gt=0)
+    workItemId: int = Field(gt=0)
+    taskCode: Literal["LOAN_INQUIRY"]
+    workItemStatus: Literal["DONE"]
+    workflowStatus: Literal["COMPLETED"]
+
+
 class CustomerNaturalStartResponse(BaseModel):
     requestId: str
     customerId: int
@@ -142,6 +154,9 @@ class CustomerNaturalStartResponse(BaseModel):
     classification: IntentClassification
     workflow: WorkflowStartData | None = None
     loanInquiry: LoanInquiryData | None = None
+    executionStatus: ExecutionStatus | None = None
+    answer: str | None = None
+    answerStatus: Literal["GENERATED", "FAILED", "NOT_APPLICABLE"] = "NOT_APPLICABLE"
 
 
 def build_registry(gateway: SpringToolGateway | None = None) -> TaskRegistry:
@@ -156,20 +171,32 @@ def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
 
 def create_router(registry: TaskRegistry | None = None, intent_classifier: IntentClassifier | None = None,
                   workflow_gateway: SpringToolGateway | None = None,
-                  natural_start_enabled: bool | None = None) -> APIRouter:
+                  natural_start_enabled: bool | None = None,
+                  internal_token: str | None = None) -> APIRouter:
     router = APIRouter(tags=["customer-agent"])
     selected_registry = registry or build_registry()
     selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
     selected_workflow_gateway = workflow_gateway or SpringHttpToolGateway()
     start_enabled = natural_start_enabled if natural_start_enabled is not None else (
         os.getenv("CUSTOMER_AGENT_WORKFLOW_START_ENABLED", "false").strip().lower() == "true")
+    expected_internal_token = (internal_token if internal_token is not None else
+                               os.getenv("CUSTOMER_AGENT_INTERNAL_TOKEN", "")).strip()
+
+    def require_internal_token(gateway_token: str | None) -> None:
+        if not expected_internal_token:
+            raise HTTPException(503, "CUSTOMER_AGENT_AUTH_NOT_CONFIGURED")
+        if gateway_token is None or not hmac.compare_digest(gateway_token, expected_internal_token):
+            raise HTTPException(401, "CUSTOMER_AGENT_AUTH_REQUIRED")
 
     @router.get("/customer-agent/tasks")
     def registered_tasks() -> list[dict[str, object]]:
         return selected_registry.definitions()
 
     @router.post("/customer-agent/execute")
-    def execute(request: CustomerTaskRequest) -> dict:
+    def execute(
+            request: CustomerTaskRequest,
+            gateway_token: str | None = Header(default=None, alias="X-Customer-Agent-Token")) -> dict:
+        require_internal_token(gateway_token)
         try:
             return selected_registry.get(request.taskCode).run(request.model_dump())
         except ValueError as exc:
@@ -188,7 +215,10 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
 
     if start_enabled:
         @router.post("/customer-agent/messages/start")
-        def classify_and_start(request: CustomerNaturalStartRequest) -> dict:
+        def classify_and_start(
+                request: CustomerNaturalStartRequest,
+                gateway_token: str | None = Header(default=None, alias="X-Customer-Agent-Token")) -> dict:
+            require_internal_token(gateway_token)
             try:
                 classification = selected_classifier.classify(request.message, request.recentMessages)
             except IntentOutputValidationError as exc:
@@ -200,12 +230,14 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
             if outcome is not None:
                 return CustomerNaturalStartResponse(
                     requestId=request.requestId, customerId=request.customerId, outcome=outcome,
-                    classification=classification).model_dump(mode="json")
+                    classification=classification, answer=_non_start_answer(outcome, classification),
+                    answerStatus="GENERATED").model_dump(mode="json")
 
             try:
                 raw = selected_workflow_gateway.workflow_start({
                     "requestId": request.requestId,
                     "customerId": request.customerId,
+                    "chatRoomId": request.chatRoomId,
                     "taskCode": TaskCode.LOAN_INQUIRY.value,
                 })
                 envelope = WorkflowStartEnvelope.model_validate(raw)
@@ -215,6 +247,10 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 raise HTTPException(502, "WORKFLOW_START_INVALID_RESPONSE") from exc
             except ValueError as exc:
                 raise HTTPException(502, "WORKFLOW_START_INVALID_RESPONSE") from exc
+            except SpringToolHttpError as exc:
+                if exc.status_code == 409 and exc.error_code == "DUPLICATE_REQUEST_CONFLICT":
+                    raise HTTPException(409, "DUPLICATE_REQUEST_CONFLICT") from exc
+                raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
             except RuntimeError as exc:
                 raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
 
@@ -229,15 +265,36 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 if (loan_envelope.requestId != request.requestId
                         or loan_envelope.workItemId != envelope.data.workItemId):
                     raise ValueError("loan inquiry response does not match the workflow start")
+                if (loan_envelope.data.workItemStatus != "DONE"
+                        or loan_envelope.data.workflowStatus != "COMPLETED"):
+                    raise ValueError("loan inquiry completion status is not authoritative")
             except (ValidationError, ValueError) as exc:
                 raise HTTPException(502, "LOAN_INQUIRY_INVALID_RESPONSE") from exc
             except RuntimeError as exc:
                 raise HTTPException(503, "LOAN_INQUIRY_UNAVAILABLE") from exc
 
+            try:
+                answer = LoanInquiryAnswerTask().run(loan_envelope.data.loans, _loan_answer)
+                answer_status = "GENERATED"
+            except Exception:
+                answer = None
+                answer_status = "FAILED"
+
             return CustomerNaturalStartResponse(
                 requestId=request.requestId, customerId=request.customerId, outcome="STARTED",
-                classification=classification, workflow=envelope.data,
-                loanInquiry=loan_envelope.data).model_dump(mode="json")
+                classification=classification, workflow=WorkflowStartData(
+                    workflowId=envelope.data.workflowId,
+                    workItemId=envelope.data.workItemId,
+                    taskCode=envelope.data.taskCode,
+                    status=loan_envelope.data.workflowStatus),
+                loanInquiry=loan_envelope.data,
+                executionStatus=ExecutionStatus(
+                    workflowId=envelope.data.workflowId,
+                    workItemId=envelope.data.workItemId,
+                    taskCode="LOAN_INQUIRY",
+                    workItemStatus=loan_envelope.data.workItemStatus,
+                    workflowStatus=loan_envelope.data.workflowStatus),
+                answer=answer, answerStatus=answer_status).model_dump(mode="json")
 
     return router
 
@@ -257,3 +314,30 @@ def _non_start_outcome(classification: IntentClassification) -> str | None:
     if classification.executionTargets != [TaskCode.LOAN_INQUIRY]:
         return "TASK_NOT_AUTOSTART_ENABLED" if classification.executionTargets else "NO_EXECUTABLE_TASK"
     return None
+
+
+def _non_start_answer(outcome: str, classification: IntentClassification) -> str:
+    if outcome == "CLARIFICATION_REQUIRED":
+        return classification.clarificationQuestion or "어떤 금융업무를 원하시는지 조금 더 알려주세요."
+    if outcome == "INFORMATION_ONLY":
+        return "업무 안내 질문으로 확인했습니다. 이번 요청에서는 금융업무를 실행하지 않았습니다."
+    if outcome == "UNSUPPORTED":
+        return classification.unsupportedReason or "현재 지원하지 않는 금융업무입니다."
+    if outcome == "COMPOSITE_NOT_SUPPORTED":
+        return "여러 업무가 함께 요청되었습니다. 한 번에 한 업무씩 요청해 주세요."
+    if outcome == "TASK_NOT_AUTOSTART_ENABLED":
+        return "요청한 업무는 현재 채팅에서 자동으로 시작할 수 없습니다."
+    return "실행할 수 있는 금융업무를 확인하지 못했습니다. 요청을 구체적으로 알려주세요."
+
+
+def _loan_answer(loans: list[LoanSummary]) -> str:
+    """Render only validated Tool fields; no model-generated financial values are accepted."""
+    if not loans:
+        return "조회된 대출계좌가 없습니다."
+    lines = [f"대출계좌 {len(loans)}건을 조회했습니다."]
+    for index, loan in enumerate(loans, 1):
+        overdue = f", 연체 {loan.overdueDays}일" if loan.overdueDays else ", 연체 없음"
+        lines.append(
+            f"{index}. {loan.loanName} ({loan.loanNoMasked}): "
+            f"잔액 {loan.balance:,.0f}원, 금리 {loan.interestRate}%{overdue}")
+    return "\n".join(lines)

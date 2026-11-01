@@ -1,13 +1,21 @@
 package com.bankingax.core.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.bankingax.core.api.DomainException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
@@ -57,8 +65,15 @@ class ChatControllerMySqlIT {
     @Autowired
     PasswordEncoder passwords;
 
+    @Autowired
+    ObjectMapper json;
+
+    @MockBean
+    CustomerAgentClient customerAgent;
+
     @BeforeEach
     void seedUsers() {
+        reset(customerAgent);
         jdbc.update("delete from chat_message");
         jdbc.update("delete from chat_room");
         jdbc.update("delete from refresh_token");
@@ -75,6 +90,75 @@ class ChatControllerMySqlIT {
         jdbc.update(
                 "insert into `user`(id,login_id,password_hash,`role`,name,is_active) values(?,?,?,?,?,true)",
                 999, "chat_admin", passwords.encode("test-password"), "ADMIN", "admin");
+    }
+
+    @Test
+    void runsA02AgentWithJwtPersistsBothMessagesAndReplaysIdempotently() {
+        String token = login("chat_customer_one");
+        long roomId = createRoom(token);
+        when(customerAgent.start(any())).thenReturn(completedAgentResponse(roomId));
+        String path = "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs";
+        Map<String, String> body = Map.of(
+                "messageRequestId", "agent-message-1",
+                "operationRequestId", "agent-operation-1",
+                "content", "내 대출정보 조회해 줘");
+
+        ResponseEntity<Map> first = exchange(HttpMethod.POST, path, body, token);
+        ResponseEntity<Map> replay = exchange(HttpMethod.POST, path, body, token);
+
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(data(first).get("financialOperationCompleted")).isEqualTo(true);
+        assertThat(data(first).get("agentMessageSaved")).isEqualTo(true);
+        Map<String, Object> firstCustomer = nested(data(first), "customerMessage");
+        Map<String, Object> firstAgent = nested(data(first), "agentMessage");
+        assertThat(firstCustomer.get("senderType")).isEqualTo("CUSTOMER");
+        assertThat(firstAgent.get("senderType")).isEqualTo("AGENT");
+        assertThat(nested(data(replay), "customerMessage").get("id"))
+                .isEqualTo(firstCustomer.get("id"));
+        assertThat(nested(data(replay), "agentMessage").get("id"))
+                .isEqualTo(firstAgent.get("id"));
+        assertThat(jdbc.queryForObject(
+                "select count(*) from chat_message where chat_room_id=?", Integer.class, roomId))
+                .isEqualTo(2);
+
+        ArgumentCaptor<CustomerAgentClient.AgentRequest> request =
+                ArgumentCaptor.forClass(CustomerAgentClient.AgentRequest.class);
+        verify(customerAgent, org.mockito.Mockito.times(2)).start(request.capture());
+        assertThat(request.getAllValues()).allSatisfy(sent -> {
+            assertThat(sent.requestId()).isEqualTo("agent-operation-1");
+            assertThat(sent.customerId()).isEqualTo(1);
+            assertThat(sent.chatRoomId()).isEqualTo(roomId);
+            assertThat(sent.message()).isEqualTo("내 대출정보 조회해 줘");
+            assertThat(sent.recentMessages()).doesNotContain("CUSTOMER: 내 대출정보 조회해 줘");
+        });
+    }
+
+    @Test
+    void keepsCustomerMessageWhenAgentCallFailsAndRejectsForeignRoom() {
+        String owner = login("chat_customer_one");
+        String other = login("chat_customer_two");
+        long roomId = createRoom(owner);
+        when(customerAgent.start(any())).thenThrow(new DomainException(
+                "CUSTOMER_AGENT_UNAVAILABLE", "Customer Agent is unavailable.", true));
+        Map<String, String> body = Map.of(
+                "messageRequestId", "failed-message",
+                "operationRequestId", "failed-operation",
+                "content", "내 대출정보 조회해 줘");
+
+        ResponseEntity<Map> failed = exchange(
+                HttpMethod.POST, "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs", body, owner);
+        ResponseEntity<Map> foreign = exchange(
+                HttpMethod.POST, "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs", body, other);
+
+        assertThat(failed.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(errorCode(failed)).isEqualTo("CUSTOMER_AGENT_UNAVAILABLE");
+        assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(jdbc.queryForObject(
+                "select count(*) from chat_message where chat_room_id=? and sender_type='CUSTOMER'",
+                Integer.class, roomId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "select count(*) from chat_message where chat_room_id=? and sender_type='AGENT'",
+                Integer.class, roomId)).isZero();
     }
 
     @Test
@@ -176,6 +260,20 @@ class ChatControllerMySqlIT {
         return number(data(exchange(HttpMethod.POST, "/api/v1/customer/chat/rooms", null, token)).get("id"));
     }
 
+    private CustomerAgentClient.AgentResponse completedAgentResponse(long roomId) {
+        return new CustomerAgentClient.AgentResponse(
+                "agent-operation-1",
+                1,
+                "STARTED",
+                json.createObjectNode(),
+                new CustomerAgentClient.WorkflowView(501, 1001, "LOAN_INQUIRY", "ACTIVE"),
+                json.createObjectNode().put("chatRoomId", roomId),
+                new CustomerAgentClient.ExecutionStatus(
+                        501, 1001, "LOAN_INQUIRY", "DONE", "COMPLETED"),
+                "대출계좌 3건을 조회했습니다.",
+                "GENERATED");
+    }
+
     private String login(String loginId) {
         ResponseEntity<Map> response = exchange(
                 HttpMethod.POST,
@@ -210,6 +308,11 @@ class ChatControllerMySqlIT {
     @SuppressWarnings("unchecked")
     private static String errorCode(ResponseEntity<Map> response) {
         return (String) ((Map<String, Object>) response.getBody().get("error")).get("code");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> nested(Map<String, Object> source, String key) {
+        return (Map<String, Object>) source.get(key);
     }
 
     private static long number(Object value) {

@@ -78,9 +78,13 @@ class A01SpringToolHttpTests(unittest.TestCase):
     @patch.dict(os.environ, {"SPRING_TOOL_GATEWAY_TOKEN": "test-tool-token"})
     def test_fastapi_langgraph_and_http_gateway_forward_only_the_a01_contract(self) -> None:
         app = FastAPI()
-        app.include_router(create_router(TaskRegistry([TransactionSearchTask(self.gateway())])), prefix="/api/v1")
+        app.include_router(create_router(
+            TaskRegistry([TransactionSearchTask(self.gateway())]),
+            internal_token="agent-test-token"), prefix="/api/v1")
 
-        response = TestClient(app).post("/api/v1/customer-agent/execute", json=self.request())
+        response = TestClient(app).post(
+            "/api/v1/customer-agent/execute",
+            headers={"X-Customer-Agent-Token": "agent-test-token"}, json=self.request())
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("TRANSACTION_SEARCH", response.json()["taskCode"])

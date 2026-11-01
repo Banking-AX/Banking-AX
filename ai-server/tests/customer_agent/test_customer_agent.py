@@ -36,9 +36,29 @@ class CustomerAgentContractTests(unittest.TestCase):
 
     def test_router_exposes_a02_without_editing_shared_main(self) -> None:
         app = FastAPI()
-        app.include_router(create_router(TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())])), prefix="/api/v1")
-        response = TestClient(app).post("/api/v1/customer-agent/execute", json={
+        app.include_router(create_router(
+            TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())]),
+            internal_token="agent-test-token"), prefix="/api/v1")
+        response = TestClient(app).post(
+            "/api/v1/customer-agent/execute",
+            headers={"X-Customer-Agent-Token": "agent-test-token"}, json={
             "taskCode": "LOAN_INQUIRY", "requestId": "req-router", "workItemId": 1001, "customerId": 1,
         })
         self.assertEqual(200, response.status_code)
         self.assertEqual("LOAN_INQUIRY", response.json()["taskCode"])
+
+    def test_execute_requires_the_dedicated_internal_token(self) -> None:
+        app = FastAPI()
+        app.include_router(create_router(
+            TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())]),
+            internal_token="agent-test-token"), prefix="/api/v1")
+        payload = {"taskCode": "LOAN_INQUIRY", "requestId": "req-auth",
+                   "workItemId": 1001, "customerId": 1}
+        client = TestClient(app)
+
+        missing = client.post("/api/v1/customer-agent/execute", json=payload)
+        invalid = client.post("/api/v1/customer-agent/execute",
+                              headers={"X-Customer-Agent-Token": "wrong"}, json=payload)
+
+        self.assertEqual(401, missing.status_code)
+        self.assertEqual(401, invalid.status_code)
