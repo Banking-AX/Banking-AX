@@ -71,7 +71,7 @@ class JpaLoanInquiryExecutor implements LoanInquiryExecutor {
         results.saveAndFlush(result);
 
         tasks.complete(request.customerId(), item.id, item.version);
-        return new LoanInquiryToolResponse(found);
+        return completedResponse(found, workflow);
     }
 
     private LoanInquiryToolResponse replay(LoanInquiryToolRequest request, WorkItemEntity item) {
@@ -84,7 +84,13 @@ class JpaLoanInquiryExecutor implements LoanInquiryExecutor {
             throw new DomainException(
                     "DUPLICATE_REQUEST_CONFLICT", "requestId was reused with different loan inquiry conditions.");
         }
-        return new LoanInquiryToolResponse(stored.loans());
+        return completedResponse(stored.loans(), workflows.findById(item.workflowId)
+                .orElseThrow(JpaLoanInquiryExecutor::unavailable));
+    }
+
+    private static LoanInquiryToolResponse completedResponse(
+            List<LoanSummary> loans, WorkflowEntity workflow) {
+        return new LoanInquiryToolResponse(loans, WorkItemStatus.DONE.name(), workflow.status);
     }
 
     private static void validate(LoanInquiryToolRequest request, WorkflowEntity workflow, WorkItemEntity item) {

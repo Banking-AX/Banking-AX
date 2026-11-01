@@ -7,6 +7,13 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
+class SpringToolHttpError(RuntimeError):
+    def __init__(self, status_code: int, error_code: str | None = None) -> None:
+        super().__init__(f"SPRING_TOOL_HTTP_{status_code}")
+        self.status_code = status_code
+        self.error_code = error_code
+
+
 class SpringHttpToolGateway:
     def workflow_start(self, request: dict[str, Any]) -> dict[str, Any]:
         customer_id = request["customerId"]
@@ -15,7 +22,8 @@ class SpringHttpToolGateway:
             raise RuntimeError("SPRING_TOOL_GATEWAY_TOKEN_MISSING")
         headers = {"Content-Type": "application/json", "X-Actor-Id": str(customer_id),
                    "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": token}
-        payload = {key: request[key] for key in ("requestId", "customerId", "taskCode")}
+        payload = {key: request[key]
+                   for key in ("requestId", "customerId", "chatRoomId", "taskCode")}
         return self._post("/api/v1/tools/workflows/start", payload, headers)
 
     def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -75,6 +83,15 @@ class SpringHttpToolGateway:
                 return json.loads(response.read().decode())
         except HTTPError as exc:
             body = exc.read().decode(errors="replace")
-            raise RuntimeError(f"SPRING_TOOL_HTTP_{exc.code}: {body}") from exc
+            error_code = None
+            try:
+                parsed = json.loads(body)
+                if isinstance(parsed, dict):
+                    error = parsed.get("error")
+                    if isinstance(error, dict) and isinstance(error.get("code"), str):
+                        error_code = error["code"]
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                pass
+            raise SpringToolHttpError(exc.code, error_code) from exc
         except URLError as exc:
             raise RuntimeError("SPRING_TOOL_UNAVAILABLE") from exc

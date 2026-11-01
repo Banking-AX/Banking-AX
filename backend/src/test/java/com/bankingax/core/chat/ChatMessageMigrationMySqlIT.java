@@ -50,8 +50,8 @@ class ChatMessageMigrationMySqlIT {
 
     @Test
     void flywayV1ThroughV6CreatesTheExpectedTableShape() {
-        Integer version = jdbc.queryForObject(
-                "select max(cast(version as unsigned)) from flyway_schema_history where success=1", Integer.class);
+        Integer migrationApplied = jdbc.queryForObject(
+                "select count(*) from flyway_schema_history where version='6' and success=1", Integer.class);
         List<Map<String, Object>> columns = jdbc.queryForList(
                 "select column_name,data_type,column_type,is_nullable,column_default "
                         + "from information_schema.columns where table_schema=database() "
@@ -63,7 +63,7 @@ class ChatMessageMigrationMySqlIT {
                 "select constraint_name from information_schema.table_constraints "
                         + "where constraint_schema=database() and table_name='chat_message'", String.class);
 
-        assertThat(version).isEqualTo(6);
+        assertThat(migrationApplied).isEqualTo(1);
         assertThat(columns).extracting(row -> row.get("COLUMN_NAME")).containsExactly(
                 "id", "chat_room_id", "request_id", "seq", "sender_type", "content", "status", "citations", "sent_at");
         assertThat(columns).extracting(row -> row.get("COLUMN_TYPE")).containsExactly(

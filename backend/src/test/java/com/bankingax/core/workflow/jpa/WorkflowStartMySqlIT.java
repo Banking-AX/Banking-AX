@@ -73,9 +73,12 @@ class WorkflowStartMySqlIT {
         jdbc.update("delete from loan");
         jdbc.update("delete from work_item");
         jdbc.update("delete from workflow");
+        jdbc.update("delete from chat_message");
+        jdbc.update("delete from chat_room");
         jdbc.update("delete from `user`");
         jdbc.update("insert into `user`(id,login_id,password_hash,`role`,name) "
                 + "values(1,'workflow-customer','x','CUSTOMER','customer')");
+        jdbc.update("insert into chat_room(id,customer_id) values(77,1)");
         jdbc.update("insert into loan(id,customer_id,loan_no,loan_name,principal_amount,balance,interest_rate,"
                 + "overdue_days,acceleration_declared,repayment_order) values"
                 + "(1,1,'210-111-000001','normal',1000000,900000,3.5,0,false,'INTEREST_FIRST'),"
@@ -91,7 +94,8 @@ class WorkflowStartMySqlIT {
 
     @Test
     void startsA02WorkflowAndReplaysTheSameRequest() throws Exception {
-        String body = "{\"requestId\":\"a02-start\",\"customerId\":1,\"taskCode\":\"LOAN_INQUIRY\"}";
+        String body = "{\"requestId\":\"a02-start\",\"customerId\":1,\"chatRoomId\":77,"
+                + "\"taskCode\":\"LOAN_INQUIRY\"}";
 
         String startResponse = http.perform(post("/api/v1/tools/workflows/start").headers(headers())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -108,10 +112,13 @@ class WorkflowStartMySqlIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workItemId").value(workItemId))
                 .andExpect(jsonPath("$.data.loans.length()").value(3))
-                .andExpect(jsonPath("$.data.loans[0].loanNoMasked").value("210-***-000001"));
+                .andExpect(jsonPath("$.data.loans[0].loanNoMasked").value("210-***-000001"))
+                .andExpect(jsonPath("$.data.workItemStatus").value("DONE"))
+                .andExpect(jsonPath("$.data.workflowStatus").value("COMPLETED"));
         assertEquals(1, count("select count(*) from task_result where work_item_id=" + workItemId));
         assertEquals(1, count("select count(*) from work_item where id=" + workItemId + " and status='DONE'"));
         assertEquals(1, count("select count(*) from workflow where status='COMPLETED'"));
+        assertEquals(1, count("select count(*) from workflow where chat_room_id=77"));
         clearInvocations(loans);
         http.perform(post("/api/v1/tools/workflows/start").headers(headers()).contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -243,6 +250,24 @@ class WorkflowStartMySqlIT {
                 .andExpect(jsonPath("$.error.code").value("INVALID_TASK_CODE"));
         assertEquals(0, count("select count(*) from workflow"));
         assertEquals(0, count("select count(*) from work_item"));
+    }
+
+    @Test
+    void rejectsReusingAnOperationRequestInAnotherChatRoom() throws Exception {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        starts.start(new WorkflowStartService.StartCommand(
+                "room-bound-request", 1, 77L, TaskCode.LOAN_INQUIRY));
+
+        http.perform(post("/api/v1/tools/workflows/start").headers(headers())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"room-bound-request\",\"customerId\":1,"
+                                + "\"chatRoomId\":78,\"taskCode\":\"LOAN_INQUIRY\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("DUPLICATE_REQUEST_CONFLICT"));
+
+        assertEquals(1, count("select count(*) from workflow where chat_room_id=77"));
+        assertEquals(0, count("select count(*) from workflow where chat_room_id=78"));
+        assertEquals(1, count("select count(*) from work_item where request_id='room-bound-request'"));
     }
 
     @Test

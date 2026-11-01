@@ -24,13 +24,13 @@ const PRODUCTS = [
 ]
 
 export function MainPage() {
-  const { status } = useAuth()
+  const { status, user } = useAuth()
   const navigate = useNavigate()
   const [chatOpen, setChatOpen] = useState(false)
   const openerRef = useRef<HTMLButtonElement | null>(null)
 
   const startChat = (event: MouseEvent<HTMLButtonElement>) => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && user?.role === 'CUSTOMER') {
       openerRef.current = event.currentTarget
       setChatOpen(true)
     } else if (status === 'anonymous') navigate('/login?from=chat&returnTo=/')
@@ -40,6 +40,7 @@ export function MainPage() {
     openerRef.current?.focus()
   }
   const loading = status === 'loading'
+  const chatForbidden = status === 'authenticated' && user?.role !== 'CUSTOMER'
 
   return <div className="main-page">
     <SiteHeader />
@@ -54,7 +55,7 @@ export function MainPage() {
             <h1 className="main-hero__title">복잡한 금융업무,<br /><span className="main-hero__title-accent">이제 AI에게 말하세요.</span></h1>
             <p className="main-hero__lead">조회부터 금융업무 신청까지, AI 금융 도우미가 함께합니다.</p>
             <div className="main-hero__actions">
-              <button type="button" onClick={startChat} disabled={loading} className="main-hero__cta">AI 금융업무 시작하기
+              <button type="button" onClick={startChat} disabled={loading || chatForbidden} className="main-hero__cta">AI 금융업무 시작하기
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </button>
               <a className="main-hero__news" aria-disabled="true">새소식 보기
@@ -157,7 +158,7 @@ export function MainPage() {
 
     <SiteFooter />
 
-    <button type="button" onClick={startChat} disabled={loading} className="main-fab">
+    <button type="button" onClick={startChat} disabled={loading || chatForbidden} className="main-fab">
       <span className="main-fab__icon">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2E70C3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2z"></path><path d="M12 7.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="#2E70C3"></path></svg>
       </span>
@@ -165,6 +166,6 @@ export function MainPage() {
     </button>
 
     {/* Stays mounted while signed in so the conversation survives closing; unmounts on logout. */}
-    {status === 'authenticated' && <ChatModal open={chatOpen} onClose={closeChat} />}
+    {status === 'authenticated' && user?.role === 'CUSTOMER' && <ChatModal open={chatOpen} onClose={closeChat} />}
   </div>
 }

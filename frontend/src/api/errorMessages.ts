@@ -25,6 +25,9 @@ const MESSAGES: Record<string, string> = {
   DUPLICATE_REQUEST_CONFLICT: '같은 요청이 이미 처리 중이에요. 잠시 후 다시 확인해 주세요.',
   CUSTOMER_NOT_FOUND: '고객 정보를 확인할 수 없어요.',
   CHAT_ROOM_NOT_FOUND: '대화방을 찾을 수 없어요. 새 대화를 시작해 주세요.',
+  CHAT_ROOM_NOT_AVAILABLE: '대화방을 찾을 수 없거나 접근할 수 없어요. 새 대화를 시작해 주세요.',
+  CHAT_PERSISTENCE_UNAVAILABLE: '대화를 저장할 수 없어요. 잠시 후 다시 시도해 주세요.',
+  CHAT_MESSAGE_CONFLICT: '메시지 저장이 충돌했어요. 대화를 다시 불러온 뒤 확인해 주세요.',
 
   // Workflow
   INVALID_TASK: '지원하지 않는 업무예요.',
@@ -100,6 +103,11 @@ const MESSAGES: Record<string, string> = {
   LOAN_INQUIRY_INVALID_RESPONSE: '대출계좌 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
   SPRING_TOOL_UNAVAILABLE: '금융정보 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.',
   SPRING_TOOL_GATEWAY_TOKEN_MISSING: '지금은 금융정보를 조회할 수 없어요.',
+  CUSTOMER_AGENT_UNAVAILABLE: 'AI 금융 도우미를 지금 이용할 수 없어요. 같은 요청으로 다시 시도해 주세요.',
+  CUSTOMER_AGENT_INVALID_RESPONSE: 'AI 금융 도우미의 응답을 확인하지 못했어요. 같은 요청으로 다시 시도해 주세요.',
+  CUSTOMER_AGENT_AUTH_FAILED: 'AI 금융 도우미 연결을 인증하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  AGENT_MESSAGE_NOT_SAVED: '업무 처리 후 답변을 저장하지 못했어요. 같은 요청으로 다시 확인해 주세요.',
+  FINANCIAL_OPERATION_NOT_COMPLETED: '금융업무 완료 여부를 확인하지 못했어요. 같은 요청으로 다시 확인해 주세요.',
 
   // FastAPI RAG
   RETRIEVAL_TIMEOUT: '안내 문서를 찾는 데 시간이 오래 걸리고 있어요. 다시 시도해 주세요.',

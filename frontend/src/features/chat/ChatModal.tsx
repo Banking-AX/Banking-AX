@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { chatApi, type ChatReply, type ChatSendRequest } from '../../api/chat'
+import { ApiError } from '../../api/client'
+import { toUserMessage } from '../../api/errorMessages'
+import { chatApi, replyFromAgentRun, type AgentRunRequest, type ChatMessage, type ChatReply } from '../../api/chat'
 import { BotAvatar, BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
 
 type Entry =
-  | { id: number; kind: 'user'; text: string; time: string }
-  | { id: number; kind: 'bot'; reply: ChatReply; time: string }
-  | { id: number; kind: 'error'; request: ChatSendRequest }
-type NewEntry = Entry extends infer E ? (E extends Entry ? Omit<E, 'id'> : never) : never
+  | { key: string; kind: 'message'; message: ChatMessage; reply?: ChatReply }
+  | { key: string; kind: 'pendingUser'; request: AgentRunRequest; sentAt: string }
+  | { key: string; kind: 'error'; request: AgentRunRequest; text: string; retryable: boolean }
 
 const QUICK_TASKS = [
   { badge: 'A · 조회', tone: 'a', title: '최근 거래내역 조회하기', desc: '채팅에서 바로 조회' },
@@ -19,10 +20,12 @@ const QUICK_TASKS = [
 
 const MIN_LENGTH = 2
 const MAX_LENGTH = 2000
-const RECENT_LIMIT = 5
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
 
 const formatTime = (date: Date) => date.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
+const formatServerTime = (value: string) => new Date(value).toLocaleTimeString('ko-KR', {
+  hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Seoul',
+})
 const formatDate = (date: Date) => date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
 export function ChatModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -31,20 +34,49 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [draft, setDraft] = useState('')
   const [hint, setHint] = useState('')
   const [pending, setPending] = useState(false)
+  const [roomId, setRoomId] = useState<number | null>(null)
+  const [roomLoading, setRoomLoading] = useState(false)
+  const [roomError, setRoomError] = useState('')
+  const [roomLoadAttempt, setRoomLoadAttempt] = useState(0)
   const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
 
   const dialogRef = useRef<HTMLElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const nextId = useRef(1)
+  const nextAnnouncementId = useRef(1)
   const controllerRef = useRef<AbortController | null>(null)
+  const pendingRef = useRef(false)
+  const roomInitializationRef = useRef<Promise<void> | null>(null)
+  const mountedRef = useRef(true)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
   useEffect(() => { if (open && !openedAt) setOpenedAt(new Date()) }, [open, openedAt])
 
   // Closing keeps the in-flight request; only unmount (e.g. logout) aborts it.
-  useEffect(() => () => controllerRef.current?.abort(), [])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false; controllerRef.current?.abort() }
+  }, [])
+
+  useEffect(() => {
+    if (!open || roomId !== null || roomInitializationRef.current) return
+    setRoomLoading(true)
+    setRoomError('')
+    const initialization = (async () => {
+      const room = await chatApi.getOrCreateLatestRoom()
+      const messages = await chatApi.listMessages(room.id)
+      if (!mountedRef.current) return
+      setRoomId(room.id)
+      setEntries(messages.map(message => ({ key: `message-${message.id}`, kind: 'message', message })))
+    })().catch(error => {
+      if (mountedRef.current) setRoomError(toUserMessage(error))
+    }).finally(() => {
+      roomInitializationRef.current = null
+      if (mountedRef.current) setRoomLoading(false)
+    })
+    roomInitializationRef.current = initialization
+  }, [open, roomId, roomLoadAttempt])
 
   useEffect(() => { if (open && openedAt && !pending) inputRef.current?.focus() }, [open, openedAt, pending])
 
@@ -73,48 +105,85 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
-  const append = (entry: NewEntry) => {
-    const id = nextId.current++
-    setEntries(list => [...list, { ...entry, id } as Entry])
-    return id
+  const mergeMessages = (messages: ChatMessage[], replies = new Map<number, ChatReply>()) => {
+    setEntries(current => {
+      const transient = current.filter(entry => entry.kind !== 'message')
+      const existing = new Map(current.flatMap(entry => entry.kind === 'message' ? [[entry.message.id, entry] as const] : []))
+      for (const message of messages) {
+        const previous = existing.get(message.id)
+        existing.set(message.id, {
+          key: `message-${message.id}`, kind: 'message', message, reply: replies.get(message.id) ?? previous?.reply,
+        })
+      }
+      return [
+        ...[...existing.values()].sort((left, right) => left.message.seq - right.message.seq),
+        ...transient,
+      ] as Entry[]
+    })
   }
 
-  const dispatch = (request: ChatSendRequest) => {
+  const refreshMessages = async (currentRoomId: number) => {
+    const messages = await chatApi.listMessages(currentRoomId)
+    mergeMessages(messages)
+  }
+
+  const dispatch = (request: AgentRunRequest) => {
+    if (roomId === null || pendingRef.current) return
+    const currentRoomId = roomId
     const controller = new AbortController()
     controllerRef.current = controller
+    pendingRef.current = true
     setPending(true)
     // The input becomes disabled; keep focus inside the dialog meanwhile.
     dialogRef.current?.focus()
-    chatApi.send(request, { signal: controller.signal })
-      .then(reply => {
-        const id = append({ kind: 'bot', reply, time: formatTime(new Date()) })
-        setAnnouncement({ id, text: `${replyLabel(reply)}: ${replyText(reply)}` })
+    chatApi.runAgent(currentRoomId, request, { signal: controller.signal })
+      .then(run => {
+        if (!run.agentMessage || !run.agentMessageSaved) {
+          mergeMessages([run.customerMessage])
+          throw new ApiError('AGENT_MESSAGE_NOT_SAVED', 502, 'Agent answer was not saved.')
+        }
+        if (run.agentResult.outcome === 'STARTED' && !run.financialOperationCompleted) {
+          mergeMessages([run.customerMessage, run.agentMessage])
+          throw new ApiError('FINANCIAL_OPERATION_NOT_COMPLETED', 502, 'Financial operation completion was not confirmed.')
+        }
+        const reply = replyFromAgentRun(run)
+        mergeMessages([run.customerMessage, run.agentMessage], new Map([[run.agentMessage.id, reply]]))
+        setEntries(list => list.filter(entry => entry.kind === 'message' || entry.request.operationRequestId !== request.operationRequestId))
+        setAnnouncement({ id: nextAnnouncementId.current++, text: `${replyLabel(reply)}: ${replyText(reply)}` })
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        append({ kind: 'error', request })
+        await refreshMessages(currentRoomId).catch(() => undefined)
+        const status = error instanceof ApiError ? error.status : 0
+        setEntries(list => [
+          ...list.filter(entry => entry.kind === 'message' || entry.request.operationRequestId !== request.operationRequestId),
+          { key: `error-${request.operationRequestId}`, kind: 'error', request,
+            text: toUserMessage(error), retryable: status === 0 || status === 502 || status === 503 },
+        ])
       })
       .finally(() => {
         if (controllerRef.current !== controller) return
         controllerRef.current = null
+        pendingRef.current = false
         setPending(false)
       })
   }
 
   const send = (raw: string) => {
-    if (pending) return
+    if (pendingRef.current) return
     const message = raw.trim()
     if (message.length < MIN_LENGTH) { setHint('두 글자 이상 입력해 주세요.'); return }
-    const recentMessages = entries.flatMap(entry => entry.kind === 'user' ? [entry.text] : []).slice(-RECENT_LIMIT)
+    if (roomId === null) { setHint('채팅방을 준비하는 중이에요. 잠시 후 다시 시도해 주세요.'); return }
     setHint('')
     setDraft('')
-    append({ kind: 'user', text: message, time: formatTime(new Date()) })
-    dispatch({ requestId: crypto.randomUUID(), message, recentMessages })
+    const request = { messageRequestId: crypto.randomUUID(), operationRequestId: crypto.randomUUID(), content: message }
+    setEntries(list => [...list, { key: `pending-${request.messageRequestId}`, kind: 'pendingUser', request, sentAt: new Date().toISOString() }])
+    dispatch(request)
   }
 
   const retry = (entry: Extract<Entry, { kind: 'error' }>) => {
-    if (pending) return
-    setEntries(list => list.filter(item => item.id !== entry.id))
+    if (pendingRef.current) return
+    setEntries(list => list.filter(item => item.key !== entry.key))
     dispatch(entry.request)
   }
 
@@ -159,29 +228,41 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
         </div>
 
+        {roomError && <div role="alert" className="chat-error__box">
+          <span className="chat-error__text">{roomError}</span>
+          <button type="button" onClick={() => setRoomLoadAttempt(value => value + 1)} className="chat-error__retry">다시 시도</button>
+        </div>}
+
         {entries.map(entry => {
-          if (entry.kind === 'user') return <div key={entry.id} className="chat-user">
-            <div className="chat-bubble chat-bubble--user">{entry.text}</div>
-            <span className="chat-time">{entry.time}</span>
+          if (entry.kind === 'pendingUser') return <div key={entry.key} className="chat-user">
+            <div className="chat-bubble chat-bubble--user">{entry.request.content}</div>
+            <span className="chat-time">{formatServerTime(entry.sentAt)}</span>
           </div>
-          if (entry.kind === 'bot') return <ChatReplyView key={entry.id} reply={entry.reply} time={entry.time} />
-          return <div key={entry.id} className="chat-error">
+          if (entry.kind === 'message') {
+            if (entry.message.senderType === 'CUSTOMER') return <div key={entry.key} className="chat-user">
+              <div className="chat-bubble chat-bubble--user">{entry.message.content}</div>
+              <span className="chat-time">{formatServerTime(entry.message.sentAt)}</span>
+            </div>
+            const reply = entry.reply ?? { kind: 'message', answer: entry.message.content } as const
+            return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)} />
+          }
+          return <div key={entry.key} className="chat-error">
             <span className="chat-spacer" aria-hidden="true"></span>
             <div role="alert" className="chat-error__box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B42318" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5h.01"></path></svg>
-              <span className="chat-error__text">답변을 만드는 중에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.</span>
-              <button type="button" disabled={pending} onClick={() => retry(entry)} className="chat-error__retry">다시 시도</button>
+              <span className="chat-error__text">{entry.text}</span>
+              {entry.retryable && <button type="button" disabled={pending} onClick={() => retry(entry)} className="chat-error__retry">다시 시도</button>}
             </div>
           </div>
         })}
 
-        {pending && <div className="chat-typing">
+        {(pending || roomLoading) && <div className="chat-typing">
           <BotAvatar />
           <div role="status" className="chat-typing__bubble">
             <span className="chat-typing__dot"></span>
             <span className="chat-typing__dot"></span>
             <span className="chat-typing__dot"></span>
-            <span className="chat-typing__text">요청 내용을 확인하고 있어요 · 답변 중에는 입력이 잠겨요</span>
+            <span className="chat-typing__text">{roomLoading ? '이전 대화를 불러오고 있어요' : '요청 내용을 확인하고 있어요 · 답변 중에는 입력이 잠겨요'}</span>
           </div>
         </div>}
 
@@ -192,12 +273,12 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
       <footer className="chat-footer">
         <div className="chat-composer">
           <label htmlFor="chat-input" className="chat-sr-only">메시지 입력</label>
-          <input id="chat-input" ref={inputRef} type="text" value={draft} maxLength={MAX_LENGTH} disabled={pending}
+          <input id="chat-input" ref={inputRef} type="text" value={draft} maxLength={MAX_LENGTH} disabled={pending || roomLoading || roomId === null}
             onChange={e => { setDraft(e.target.value); if (hint) setHint('') }} onKeyDown={onInputKeyDown}
             aria-describedby="chat-input-hint"
-            placeholder={pending ? 'AI가 답변을 준비하는 동안에는 입력할 수 없어요' : '예) 내 대출 정보 알려줘'}
+            placeholder={pending ? 'AI가 답변을 준비하는 동안에는 입력할 수 없어요' : roomLoading ? '이전 대화를 불러오고 있어요' : '예) 내 대출 정보 알려줘'}
             className="chat-input" />
-          <button type="button" aria-label="메시지 보내기" onClick={() => send(draft)} disabled={pending} className="chat-send">
+          <button type="button" aria-label="메시지 보내기" onClick={() => send(draft)} disabled={pending || roomLoading || roomId === null} className="chat-send">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7z"></path><path d="M11 13l9-9"></path></svg>
           </button>
         </div>

@@ -15,7 +15,8 @@ class FakeSpringToolGateway:
     def loan_inquiry(self, request: dict[str, Any]) -> dict[str, Any]:
         return {"requestId": request["requestId"], "taskCode": "LOAN_INQUIRY", "workItemId": request["workItemId"],
                 "caseId": None, "revision": None,
-                "data": {"loans": [{"loanId": 101, "loanNoMasked": "210-***-557731", "overdueDays": 45}]}, "error": None}
+                "data": {"loans": [{"loanId": 101, "loanNoMasked": "210-***-557731", "overdueDays": 45}],
+                         "workItemStatus": "DONE", "workflowStatus": "COMPLETED"}, "error": None}
 
     def transaction_search(self, request: dict[str, Any]) -> dict[str, Any]:
         return {"requestId": request["requestId"], "taskCode": "TRANSACTION_SEARCH", "workItemId": request["workItemId"],

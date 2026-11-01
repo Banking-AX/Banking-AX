@@ -53,7 +53,7 @@ public class WorkflowStartService {
 
     private StartResult createAndStart(StartCommand command) {
         WorkflowService.WorkflowView workflow = workflows.create(
-                new WorkflowService.CreateWorkflowCommand(command.customerId(), null));
+                new WorkflowService.CreateWorkflowCommand(command.customerId(), command.chatRoomId()));
         WorkItemView workItem = tasks.start(new StartTaskCommand(
                 command.customerId(), workflow.workflowId(), command.taskCode(), workflow.version(),
                 command.requestId()));
@@ -65,7 +65,9 @@ public class WorkflowStartService {
             WorkflowEntity workflow = workflowRepository.findById(item.workflowId)
                     .orElseThrow(() -> new DomainException(
                             "DUPLICATE_REQUEST_CONFLICT", "requestId points to an unavailable workflow."));
-            if (workflow.customerId != command.customerId() || item.taskCode != command.taskCode()) {
+            if (workflow.customerId != command.customerId()
+                    || !Objects.equals(workflow.chatRoomId, command.chatRoomId())
+                    || item.taskCode != command.taskCode()) {
                 throw new DomainException(
                         "DUPLICATE_REQUEST_CONFLICT", "requestId was reused for another workflow start.");
             }
@@ -85,7 +87,11 @@ public class WorkflowStartService {
         }
     }
 
-    public record StartCommand(String requestId, long customerId, TaskCode taskCode) { }
+    public record StartCommand(String requestId, long customerId, Long chatRoomId, TaskCode taskCode) {
+        public StartCommand(String requestId, long customerId, TaskCode taskCode) {
+            this(requestId, customerId, null, taskCode);
+        }
+    }
 
     public record StartResult(long workflowId, long workItemId, TaskCode taskCode, WorkItemStatus status) { }
 }

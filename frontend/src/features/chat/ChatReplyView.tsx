@@ -31,19 +31,19 @@ export function replyLabel(reply: ChatReply): string {
 
 export function replyText(reply: ChatReply): string {
   switch (reply.kind) {
+    case 'message': return reply.answer
     case 'clarify': return reply.question
     case 'unsupported': return reply.reason
-    case 'composite': return '한 번에 한 가지 업무만 도와드릴 수 있어요. 하나씩 말씀해 주세요.'
-    case 'notStartable': return '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
-    // Count sentence only, so the live region does not read the whole table.
-    case 'loans': return reply.loans.length > 0 ? `대출 ${reply.loans.length}건을 찾았어요.` : '조회되는 대출이 없어요. AX뱅크 대출만 조회할 수 있어요.'
+    case 'composite': return reply.answer ?? '한 번에 한 가지 업무만 도와드릴 수 있어요. 하나씩 말씀해 주세요.'
+    case 'notStartable': return reply.answer ?? '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
+    case 'loans': return reply.answer
   }
 }
 
 export function ChatReplyView({ reply, time }: { reply: ChatReply; time: string }) {
   if (reply.kind === 'loans' && reply.loans.length > 0) {
     return <BotMessage label={replyLabel(reply)} time={time} wide note="조회만 했어요.">
-      <div className="chat-loan-summary">{replyText(reply)}</div>
+      <div className="chat-loan-summary">{reply.answer}</div>
       <LoanTable loans={reply.loans} />
     </BotMessage>
   }
