@@ -13,7 +13,8 @@ public class TaskBffPrincipal {
     }
 
     public long staff(JwtAuthenticationToken authentication) {
-        require(authentication, "STAFF", "ADMIN");
+        // AuthRole maps database STAFF to the JWT/authority value EMPLOYEE.
+        require(authentication, "EMPLOYEE", "ADMIN");
         return subject(authentication);
     }
 

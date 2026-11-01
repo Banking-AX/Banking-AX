@@ -65,7 +65,7 @@ public class AuthSecurityConfiguration {
                         .requestMatchers("/api/v1/b02/**", "/api/v1/c01/**", "/api/v1/c02/**")
                         .hasRole("TOOL")
                         .requestMatchers("/api/v1/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers("/api/v1/staff/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers("/api/v1/staff/**").hasAnyRole("EMPLOYEE", "ADMIN")
                         // Existing B/C controllers retain their own internal-token and ownership checks.
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(resource -> resource

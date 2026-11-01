@@ -34,7 +34,7 @@ class C02StaffBffControllerTest {
                 .thenReturn(ApiEnvelope.success("staff-1", "INHERITANCE_DEPOSIT", null, 55L, null, null));
 
         http.perform(get("/api/v1/staff/c02/55/staff-case").param("requestId", "staff-1")
-                        .with(jwt().jwt(token -> token.subject("101").claim("role", "STAFF"))
+                        .with(jwt().jwt(token -> token.subject("101").claim("role", "EMPLOYEE"))
                                 .authorities(new SimpleGrantedAuthority("ROLE_EMPLOYEE"))))
                 .andExpect(status().isOk());
         verify(internal).staffCase(55L, ActorRole.STAFF, "server-only-token", "staff-1");
