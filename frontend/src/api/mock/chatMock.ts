@@ -1,5 +1,7 @@
 import { ApiError } from '../client'
-import type { ChatApi, ChatReply, LoanSummary, TaskCode } from '../chat'
+import type { ChatReply, LoanSummary, TaskCode } from '../chat'
+
+type LegacyMockRequest = { message: string }
 
 // Mock only: keyword rules stand in for the intent classifier until messages/start is connected.
 const DELAY_MS = 800
@@ -30,16 +32,16 @@ function delay(signal?: AbortSignal) {
 function reply(message: string): ChatReply {
   if (message.includes('오류')) throw new ApiError('LOAN_INQUIRY_UNAVAILABLE', 503, 'Mock failure.')
   if (message.includes('주택담보')) return { kind: 'unsupported', reason: '주택담보대출 심사는 AI 금융 도우미에서 도와드릴 수 없는 업무예요.' }
-  if (message.includes('대출 없음')) return { kind: 'loans', loans: [] }
-  if (message.includes('대출')) return { kind: 'loans', loans: MOCK_LOANS }
+  if (message.includes('대출 없음')) return { kind: 'loans', loans: [], answer: '조회되는 대출이 없어요.' }
+  if (message.includes('대출')) return { kind: 'loans', loans: MOCK_LOANS, answer: `대출 ${MOCK_LOANS.length}건을 찾았어요.` }
   if (message.includes('동시에')) return { kind: 'composite' }
   const match = NOT_STARTABLE.find(([keyword]) => message.includes(keyword))
   if (match) return { kind: 'notStartable', taskCode: match[1] }
   return { kind: 'clarify', question: '어떤 업무를 도와드릴까요? 업무 이름을 알려 주세요.' }
 }
 
-export const chatMock: ChatApi = {
-  async send(req, opts = {}) {
+export const chatMock = {
+  async send(req: LegacyMockRequest, opts: { signal?: AbortSignal } = {}) {
     await delay(opts.signal)
     return reply(req.message)
   },
