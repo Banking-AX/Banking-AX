@@ -23,7 +23,8 @@ reject conflicting client identity fields, and add the three internal headers
 only on its trusted hop to Spring/FastAPI.
 
 For a CUSTOMER session, `customerId` supplied to the internal request must be
-the session customer. For STAFF routes, the BFF must require STAFF and supply
+the session customer. For STAFF routes, the BFF must require the shared JWT
+claim/authority `EMPLOYEE` (the database/API label remains `STAFF`) and supply
 the session staff ID. The BFF must not accept a browser request that chooses a
 different customer or staff member.
 
@@ -40,6 +41,10 @@ different customer or staff member.
 | C-02 consent/OTP/submit/upload/document/read/review customer routes | corresponding Spring C-02 route | Add customer ID in the body/query/form field expected by the existing controller. Verify path Case/document ownership through Spring. |
 | `GET /api/v1/c02/{caseId}/staff-case`, `POST /staff-decision` | Spring C-02 staff routes | Require STAFF session; inject staff actor headers. Customer session must be rejected. |
 | notification and reservation routes | Spring notification/reservation routes | Derive CUSTOMER actor from session. Spring remains the owner/case/status authority. |
+
+The React API user role remains `STAFF`; it is returned by `/api/v1/auth/me`
+from the database role. The server-side JWT claim for the same employee is
+`EMPLOYEE`, which is the role required by `/api/v1/staff/**`.
 
 ## Identifier rules
 

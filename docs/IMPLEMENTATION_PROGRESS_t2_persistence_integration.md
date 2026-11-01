@@ -59,12 +59,13 @@
 ## JWT task BFF integration update (2026-11-01)
 
 - **IMPLEMENTED:** Spring JWT task BFF controllers expose customer A-01, B-02, C-02, notification, and reservation routes plus STAFF C-02 review/decision routes. They derive the actor from `JwtAuthenticationToken`, use the server-only Tool Gateway token, and delegate to existing controllers/services.
-- **IMPLEMENTED:** `/api/v1/staff/**` now requires canonical `ROLE_STAFF` (rather than the non-existent `ROLE_EMPLOYEE`).
+- **IMPLEMENTED:** `/api/v1/staff/**` and `TaskBffPrincipal` require canonical JWT authority/claim `EMPLOYEE`; the database and React API label for that user remains `STAFF`.
 - **VERIFIED:** selected JWT/BFF/B-02/C-02 Maven suite: 28 tests, 0 failures/errors. BFF tests cover identity derivation, cross-role denial, spoofed customer identity, and separate B-02 account/WorkItem forwarding.
 - **VERIFIED:** on a fresh disposable MySQL 8.0.36 database, Spring applied V1--V10, JWT login succeeded, and customer A-01 BFF returned one transaction. DB state: WorkItem `DONE`, Workflow `COMPLETED`, one `task_result`.
 - **VERIFIED:** React `npm run build` succeeds with BFF routes. `VITE_BFF_TASKS_ENABLED` remains false by default.
 - **PARTIAL:** no browser GUI host was available. B-02/C-02 production-like DB fixtures (OTP and full Case/staff setup) remain live-DB E2E work; their BFF contracts are controller/fixture tested.
 - **COMMON CONTRACT:** Chat must create and return the customer-confirmed WorkItem on a trusted server hop before navigating a task page. Browsers never call internal workflow-start or send actor IDs/gateway credentials.
+- **VERIFIED:** a disposable MySQL-backed `STAFF` user logged in through `/api/v1/auth/login` with JWT claim `EMPLOYEE`; `/api/v1/auth/me` returned API role `STAFF`. The employee JWT passed the C-02 staff BFF security boundary (404 for a deliberately absent Case), while a customer JWT received 403 and an anonymous request received 401.
 
 ## BFF contract and regression update (2026-11-01)
 
