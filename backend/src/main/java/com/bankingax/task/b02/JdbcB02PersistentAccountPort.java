@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +75,7 @@ class JdbcB02PersistentAccountPort implements B02PersistentAccountPort {
                    SET status='CLOSED', closed_at=:closedAt, applied_rate_type=:rate, version=version+1
                  WHERE id=:accountId AND status='ACTIVE' AND version=:version
                 """, new MapSqlParameterSource()
-                .addValue("closedAt", Timestamp.valueOf(LocalDateTime.now()))
+                .addValue("closedAt", Timestamp.from(Instant.now()))
                 .addValue("rate", decision.rate()).addValue("accountId", account.id()).addValue("version", account.version()));
         if (changed != 1) throw new DomainException("STATE_CHANGED", "Account state changed.");
 
@@ -122,7 +122,7 @@ class JdbcB02PersistentAccountPort implements B02PersistentAccountPort {
             B02Service.C stored = new B02Service.C(value.path("requestId").asText(), value.path("customer").asLong(),
                     value.path("account").asLong(), value.path("version").asInt(), value.path("waive").asBoolean(),
                     value.has("taxed") && !value.get("taxed").isNull() ? value.get("taxed").asBoolean() : null,
-                    value.path("bindingReference").asText());
+                    value.path("bindingReference").asText(), supplied.workItemId());
             B02Service.R receipt = new B02Service.R(stored.requestId(), stored.customer(), stored.account(),
                     value.path("status").asText(), value.path("rate").asText(), value.path("rule").asText(), stored);
             if (!receipt.same(supplied)) throw new DomainException("DUPLICATE_REQUEST_CONFLICT", "requestId was reused.");

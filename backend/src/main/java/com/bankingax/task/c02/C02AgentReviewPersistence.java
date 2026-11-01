@@ -7,12 +7,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Persists a validated C-02 staff precheck.  The Agent never writes these tables directly. */
 @Service
+@ConditionalOnBean(JdbcTemplate.class)
 @ConditionalOnProperty(prefix = "app.c02", name = "review-persistence-enabled", havingValue = "true")
 public class C02AgentReviewPersistence {
     private static final String CHECK_TYPE = "STAFF_PRECHECK";
@@ -55,8 +57,11 @@ public class C02AgentReviewPersistence {
     }
 
     private void validateItem(long caseId, int revision, Map<String,Object> item) {
-        String category = required(item, "category");
-        if (!List.of("DOCUMENT_MISSING", "DOCUMENT_NEEDS_SUPPLEMENT", "DOCUMENT_METADATA_MISSING").contains(category)) throw new DomainException("STAFF_AGENT_INVALID_RESPONSE", "Unsupported C-02 review category.", true);
+        // Categories are intentionally open-ended: the declared Staff graph can
+        // emit deterministic intake, scope, document and semantic hand-off
+        // items.  Spring validates their source and every referenced Case/file/
+        // heir instead of silently dropping a newer declared category.
+        required(item, "category");
         String source = text(item, "source", "SPRING_RULE");
         if (!List.of("SPRING_RULE", "AGENT_SEMANTIC", "PRE_SUBMISSION").contains(source)) throw new DomainException("STAFF_AGENT_INVALID_RESPONSE", "Unsupported review source.", true);
         Long fileId = nullableLong(item, "documentFileId"); Long heirId = nullableLong(item, "heirId");

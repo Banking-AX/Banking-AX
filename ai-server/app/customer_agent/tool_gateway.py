@@ -21,11 +21,11 @@ class SpringHttpToolGateway:
     def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._b02("/api/v1/b02/prepare", request, ("requestId","customerId","accountId","waivePreferredRate","taxed"))
     def b02_execute(self, request: dict[str, Any]) -> dict[str, Any]:
-        return self._b02(f"/api/v1/b02/{request['accountId']}/execute", request, ("requestId","customerId","version","waivePreferredRate","taxed","bindingId"))
+        return self._b02(f"/api/v1/b02/{request['accountId']}/execute", request, ("requestId","customerId","workItemId","version","waivePreferredRate","taxed","bindingId"))
     def _b02(self, path: str, request: dict[str, Any], fields: tuple[str, ...]) -> dict[str, Any]:
         token=os.getenv("SPRING_TOOL_GATEWAY_TOKEN")
         if not token: raise RuntimeError("SPRING_TOOL_GATEWAY_TOKEN_MISSING")
-        payload={"requestId":request["requestId"],"customer": request["customerId"], "account": request["accountId"], "waive": request.get("waivePreferredRate",False), "taxed":request.get("taxed")} if path.endswith("prepare") else {"customer":request["customerId"],"version":request.get("version",0),"waive":request.get("waivePreferredRate",False),"taxed":request.get("taxed"),"binding":request.get("bindingId"),"requestId":request["requestId"]}
+        payload={"requestId":request["requestId"],"customer": request["customerId"], "account": request["accountId"], "waive": request.get("waivePreferredRate",False), "taxed":request.get("taxed")} if path.endswith("prepare") else {"customer":request["customerId"],"workItemId":request.get("workItemId"),"version":request.get("version",0),"waive":request.get("waivePreferredRate",False),"taxed":request.get("taxed"),"binding":request.get("bindingId"),"requestId":request["requestId"]}
         headers={"Content-Type":"application/json","X-Actor-Id":str(request["customerId"]),"X-Actor-Role":"CUSTOMER","X-Tool-Gateway-Token":token}
         return self._post(path,payload,headers)
     """T1 HTTP client. It forwards no OTP or customer-document contents."""

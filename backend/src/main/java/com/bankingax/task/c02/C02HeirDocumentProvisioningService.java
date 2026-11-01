@@ -18,11 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.c02.document-provisioning-enabled", havingValue = "true")
 public class C02HeirDocumentProvisioningService {
     private final JdbcTemplate jdbc;
-    private final C02IntakeService c02Intake;
 
-    public C02HeirDocumentProvisioningService(JdbcTemplate jdbc, C02IntakeService intake) {
+    public C02HeirDocumentProvisioningService(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
-        this.c02Intake = intake;
     }
 
     @Transactional
@@ -93,7 +91,7 @@ public class C02HeirDocumentProvisioningService {
     }
 
     private void ensureSlots(long workItemId, long caseId, Long heirId, C02IntakeService.Intake intake, String personRef) {
-        for (C02IntakeService.DocumentSlot slot : c02Intake.requiredDocuments(intake)) {
+        for (C02IntakeService.DocumentSlot slot : C02IntakeService.requiredDocuments(intake)) {
             if (!java.util.Objects.equals(slot.personRef(), personRef)) continue;
             DocumentTypeRow type = documentType(slot.documentTypeCode());
             if (type.perPerson() != (heirId != null))
