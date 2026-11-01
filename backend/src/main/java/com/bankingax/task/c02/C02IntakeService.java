@@ -26,6 +26,9 @@ public final class C02IntakeService {
     private final DocumentPort documents;
     private final C02FileStorage files;
     private final C02AgentReviewPersistence reviewPersistence;
+    private final C02StaffDecisionPersistence decisionPersistence;
+    private final C02HeirDocumentProvisioningService documentProvisioning;
+    private final OcrPersistence ocrPersistence;
     private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
     private final Map<Long, Draft> drafts = new HashMap<>();
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
@@ -37,11 +40,21 @@ public final class C02IntakeService {
     private final Map<Long, StaffDecisionResult> staffDecisionsByCase = new HashMap<>();
     private final Map<Long, List<CustomerNotification>> notificationsByCustomer = new HashMap<>();
 
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null, (C02AgentReviewPersistence) null); }
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null, (C02AgentReviewPersistence) null); }
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this(casePort, verification, staffAgent, documents, files, (C02AgentReviewPersistence) null); }
-    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files, org.springframework.beans.factory.ObjectProvider<C02AgentReviewPersistence> reviewPersistence) { this(casePort,verification,staffAgent,documents,files,reviewPersistence.getIfAvailable()); }
-    private C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files, C02AgentReviewPersistence reviewPersistence) { this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files; this.reviewPersistence=reviewPersistence; }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null, (C02AgentReviewPersistence)null, null, null, null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null, (C02AgentReviewPersistence)null, null, null, null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this(casePort, verification, staffAgent, documents, files, (C02AgentReviewPersistence)null, null, null, null); }
+    @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files,
+            org.springframework.beans.factory.ObjectProvider<C02AgentReviewPersistence> reviewPersistence,
+            org.springframework.beans.factory.ObjectProvider<C02StaffDecisionPersistence> decisionPersistence,
+            org.springframework.beans.factory.ObjectProvider<C02HeirDocumentProvisioningService> documentProvisioning,
+            org.springframework.beans.factory.ObjectProvider<OcrPersistence> ocrPersistence) {
+        this(casePort,verification,staffAgent,documents,files,reviewPersistence.getIfAvailable(),decisionPersistence.getIfAvailable(),documentProvisioning.getIfAvailable(),ocrPersistence.getIfAvailable());
+    }
+    private C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files,
+            C02AgentReviewPersistence reviewPersistence, C02StaffDecisionPersistence decisionPersistence, C02HeirDocumentProvisioningService documentProvisioning, OcrPersistence ocrPersistence) {
+        this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files;
+        this.reviewPersistence=reviewPersistence; this.decisionPersistence=decisionPersistence; this.documentProvisioning=documentProvisioning; this.ocrPersistence=ocrPersistence;
+    }
 
     public Validation validate(Intake intake) {
         List<String> errors = new ArrayList<>();
@@ -59,7 +72,7 @@ public final class C02IntakeService {
         return new Validation(errors, outOfScope);
     }
 
-    public List<DocumentSlot> requiredDocuments(Intake intake) {
+    public static List<DocumentSlot> requiredDocuments(Intake intake) {
         List<DocumentSlot> slots = new ArrayList<>(List.of(
             slot("DECEDENT_DETAILED_FAMILY_RELATION", Requirement.REQUIRED, null, "피상속인 공통"),
             slot("DECEDENT_BASIC_CERTIFICATE", Requirement.REQUIRED, null, "사망사실 확인"),
@@ -107,7 +120,11 @@ public final class C02IntakeService {
         }
         Submission submission = assessSubmission(intake, statuses);
         ServiceCaseView view = submission.outOfScope().isEmpty() ? createDraft(customerId, workItemId, intake) : null;
-        if(view != null) drafts.put(view.caseId(),new Draft(customerId,view,intake,Map.copyOf(statuses),registeredPhone));
+        if(view != null) {
+            Draft draft = new Draft(customerId,view,intake,Map.copyOf(statuses),registeredPhone);
+            drafts.put(view.caseId(),draft);
+            if (documentProvisioning != null) documentProvisioning.provision(new C02HeirDocumentProvisioningService.ProvisionCommand(view.caseId(),view.workItemId(),intake));
+        }
         Prepared result = new Prepared(view, requiredDocuments(intake), submission);
         preparedRequests.put(requestId, new PreparedRequest(fingerprint, result));
         return result;
@@ -179,22 +196,28 @@ public final class C02IntakeService {
         catch(RuntimeException error) { files.deleteQuietly(stored.storageKey()); throw error; }
     }
     public synchronized FileDownload customerDocument(long customerId,long caseId,long documentId) { return download(owned(customerId,caseId),documentId); }
-    public synchronized FileDownload staffDocument(long caseId,long documentId) { Draft draft=drafts.get(caseId); if(draft==null)throw new DomainException("NOT_FOUND","C-02 case was not found."); return download(draft,documentId); }
+    public synchronized FileDownload staffDocument(long caseId,long documentId) { return download(staffDraft(caseId),documentId); }
     private FileDownload download(Draft draft,long documentId) { DocumentPort.DocumentMetadata meta=documents.findById(documentId).orElseThrow(()->new DomainException("DOCUMENT_NOT_FOUND","Document metadata was not found.")); if(meta.caseId()!=draft.view.caseId())throw new DomainException("FORBIDDEN","Document does not belong to this C-02 case."); if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true); return new FileDownload(meta,files.open(meta.storageReference())); }
     public synchronized List<DocumentPort.DocumentMetadata> documents(long customerId,long caseId) { owned(customerId,caseId); return documents.findByCase(caseId); }
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
     /** The controller enforces STAFF role; this never records a final staff decision. */
-    public synchronized StaffPrecheckResult staffReview(long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); return reviewFor(draft); }
+    public synchronized StaffPrecheckResult staffReview(long caseId) { return reviewFor(staffDraft(caseId)); }
     /** Staff-only caller obtains the same current revision snapshot used for a final manual decision. */
     public synchronized StaffCaseOverview staffCaseOverview(long caseId) {
-        Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found.");
+        Draft draft=staffDraft(caseId);
         ServiceCaseView latest=casePort.get(draft.customerId,caseId); requireRevision(draft,latest.revision()); draft.view=latest;
-        return new StaffCaseOverview(latest, requiredDocuments(draft.intake), documents.findByCase(caseId), reviewFor(draft), staffDecisionsByCase.get(caseId));
+        StaffDecisionResult decision=staffDecisionsByCase.get(caseId);
+        if (decision == null && decisionPersistence != null) {
+            C02StaffDecisionPersistence.StoredDecision stored=decisionPersistence.finalDecision(caseId);
+            if (stored != null) decision=fromStoredDecision(stored);
+        }
+        return new StaffCaseOverview(latest, requiredDocuments(draft.intake), documents.findByCase(caseId), reviewFor(draft), decision);
     }
     /**
      * Records a staff outcome only after checking the CasePort's current revision and the
      * precheck generated for that exact revision.  It does not approve a payout and does
-     * not mutate CasePort's caseStatus because that transition is owned by the common port.
+     * records the C-02 Case outcome through the dedicated persistence transaction when
+     * persistence is enabled; the lightweight fallback remains in-memory for existing fixtures.
      */
     public synchronized StaffDecisionResult recordStaffDecision(StaffDecisionCommand command) {
         StaffDecisionResult replay=staffDecisionsByRequest.get(command.requestId());
@@ -203,12 +226,25 @@ public final class C02IntakeService {
                 throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 staff decision.");
             return replay;
         }
-        Draft draft=drafts.get(command.caseId()); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found.");
+        if (decisionPersistence != null) {
+            C02StaffDecisionPersistence.StoredDecision persisted=decisionPersistence.replay(command.requestId());
+            if (persisted != null) {
+                if (persisted.caseId()!=command.caseId() || persisted.staffId()!=command.staffId() || persisted.revision()!=command.expectedRevision()
+                        || !persisted.outcome().equals(command.outcome().name()) || !persisted.message().equals(notificationMessage(command.outcome(),command.customerMessage())))
+                    throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 staff decision.");
+                StaffDecisionResult result=fromStoredDecision(persisted);
+                staffDecisionsByRequest.put(command.requestId(),result);
+                staffDecisionsByCase.put(command.caseId(),result);
+                return result;
+            }
+        }
+        Draft draft=staffDraft(command.caseId());
         ServiceCaseView latest=casePort.get(draft.customerId,command.caseId()); requireRevision(draft,command.expectedRevision());
         if(latest.revision()!=command.expectedRevision()) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true);
         if(latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only a submitted C-02 case can receive a staff decision.");
         StaffPrecheckResult precheck=reviewResults.get(new ReviewKey(command.caseId(),command.expectedRevision()));
-        if(precheck==null || precheck.finalStaffDecision()) throw new DomainException("STAFF_PRECHECK_REQUIRED","A current C-02 staff precheck is required before final review.");
+        if((precheck==null || precheck.finalStaffDecision()) && (decisionPersistence==null || !decisionPersistence.hasCurrentPrecheck(command.caseId(),command.expectedRevision())))
+            throw new DomainException("STAFF_PRECHECK_REQUIRED","A current C-02 staff precheck is required before final review.");
         StaffDecisionResult existing=staffDecisionsByCase.get(command.caseId());
         if(existing!=null) throw new DomainException("STAFF_DECISION_ALREADY_RECORDED","A final staff decision is already recorded for this C-02 case.");
         String proposedCaseStatus=switch(command.outcome()) {
@@ -216,15 +252,25 @@ public final class C02IntakeService {
             case REQUIREMENT_FAILED -> "REVIEW_REJECTED_REQUIREMENT";
             case DOCUMENT_INSUFFICIENT -> "REVIEW_REJECTED_DOCUMENT";
         };
-        CustomerNotification notification=new CustomerNotification("c02-web-"+command.caseId()+"-"+command.expectedRevision(),command.caseId(),command.expectedRevision(),command.outcome().name(),notificationMessage(command.outcome(),command.customerMessage()),false);
+        String message=notificationMessage(command.outcome(),command.customerMessage());
+        CustomerNotification notification;
+        if (decisionPersistence != null) {
+            C02StaffDecisionPersistence.StoredDecision stored=decisionPersistence.persist(command.staffId(), command.caseId(), command.expectedRevision(), command.requestId(), command.outcome().name(), message, proposedCaseStatus);
+            draft.view=casePort.get(draft.customerId,command.caseId());
+            notification=new CustomerNotification(stored.notificationId(),stored.caseId(),stored.revision(),stored.outcome(),stored.message(),false);
+        } else notification=new CustomerNotification("c02-web-"+command.caseId()+"-"+command.expectedRevision(),command.caseId(),command.expectedRevision(),command.outcome().name(),message,false);
         StaffDecisionResult result=new StaffDecisionResult(command.caseId(),latest.workItemId(),draft.customerId,command.staffId(),command.expectedRevision(),command.outcome(),latest.caseStatus().name(),proposedCaseStatus,command.customerMessage(),notification);
         staffDecisionsByRequest.put(command.requestId(),result); staffDecisionsByCase.put(command.caseId(),result);
         notificationsByCustomer.computeIfAbsent(draft.customerId,ignored->new ArrayList<>()).add(notification);
         return result;
     }
-    public synchronized List<CustomerNotification> customerNotifications(long customerId) { return List.copyOf(notificationsByCustomer.getOrDefault(customerId,List.of())); }
+    public synchronized List<CustomerNotification> customerNotifications(long customerId) {
+        if (decisionPersistence != null) return decisionPersistence.notifications(customerId).stream().map(row ->
+            new CustomerNotification(row.dedupKey(),row.caseId(),revisionFromDedup(row.dedupKey()),outcomeFromType(row.type()),row.content(),false)).toList();
+        return List.copyOf(notificationsByCustomer.getOrDefault(customerId,List.of()));
+    }
     public synchronized StaffPrecheckResult runStaffPrecheck(long caseId,int expectedRevision,String requestId) {
-        Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found."); requireRevision(draft,expectedRevision);
+        Draft draft=staffDraft(caseId); requireRevision(draft,expectedRevision);
         if(draft.view.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only submitted cases can be prechecked.");
         return runStaffPrecheckInternal(draft,requestId);
     }
@@ -261,7 +307,7 @@ public final class C02IntakeService {
     private Map<String,Object> snapshot(ServiceCaseView view,Draft draft) {
         List<Map<String,Object>> heirs=draft.intake.heirs().stream().map(h -> Map.<String,Object>of("personRef",h.personRef(),"visitStatus",h.visitStatus().name(),"delegationMethod",h.delegationMethod().name())).toList();
         Submission assessment=assessSubmission(draft.intake,documentStatuses(draft));
-        return Map.of("caseStatus",view.caseStatus().name(),"reviewStatus",String.valueOf(view.reviewStatus()),"decedent",Map.of("deathDate",draft.intake.decedent().deathDate().toString()),"heirs",heirs,"outOfScope",assessment.outOfScope(),"missingDocuments",assessment.missingDocuments(),"requiredDocuments",documentManifest(draft));
+        return Map.of("caseStatus",view.caseStatus().name(),"reviewStatus",String.valueOf(view.reviewStatus()),"decedent",Map.of("deathDate",draft.intake.decedent().deathDate().toString()),"heirs",heirs,"outOfScope",assessment.outOfScope(),"missingDocuments",assessment.missingDocuments(),"requiredDocuments",documentManifest(draft),"ocrExtractions",ocrPersistence==null?List.of():ocrPersistence.snapshot(view.caseId(),view.revision()));
     }
     /** Sends only Spring-derived document metadata to the internal Staff Agent. */
     private List<Map<String,Object>> documentManifest(Draft draft) {
@@ -284,7 +330,58 @@ public final class C02IntakeService {
         }
         return List.copyOf(manifest);
     }
-    private Draft owned(long customerId,long caseId) { Draft draft=drafts.get(caseId); if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found."); if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return draft; }
+    private Draft owned(long customerId,long caseId) {
+        Draft draft=drafts.get(caseId);
+        if (draft == null && decisionPersistence != null) draft=restore(customerId,caseId);
+        if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found.");
+        if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match.");
+        return draft;
+    }
+    private Draft staffDraft(long caseId) {
+        Draft draft=drafts.get(caseId);
+        if (draft == null && decisionPersistence != null) {
+            Long customerId=decisionPersistence.customerId(caseId);
+            if (customerId != null) draft=restore(customerId,caseId);
+        }
+        if(draft==null) throw new DomainException("NOT_FOUND","C-02 case was not found.");
+        return draft;
+    }
+    @SuppressWarnings("unchecked")
+    private Draft restore(long customerId,long caseId) {
+        ServiceCaseView view=casePort.get(customerId,caseId);
+        Object value=view.application().get("c02");
+        if (!(value instanceof Map<?,?> raw)) throw new DomainException("CASE_SNAPSHOT_INVALID","C-02 application snapshot is unavailable.");
+        Map<String,Object> c02=(Map<String,Object>)raw;
+        Object decedentValue=c02.get("decedent"); Object heirsValue=c02.get("heirs");
+        if (!(decedentValue instanceof Map<?,?> decedentRaw) || !(heirsValue instanceof List<?> heirsRaw))
+            throw new DomainException("CASE_SNAPSHOT_INVALID","C-02 application snapshot is invalid.");
+        Map<String,Object> decedent=(Map<String,Object>)decedentRaw;
+        DecedentInput input=new DecedentInput(text(decedent,"name"), date(decedent,"birthDate"), date(decedent,"deathDate"), number(decedent,"depositTotal"));
+        List<HeirInput> heirs=new ArrayList<>();
+        for (Object item : heirsRaw) {
+            if (!(item instanceof Map<?,?> heirRaw)) throw new DomainException("CASE_SNAPSHOT_INVALID","C-02 heir snapshot is invalid.");
+            Map<String,Object> heir=(Map<String,Object>)heirRaw;
+            heirs.add(new HeirInput(text(heir,"personRef"),text(heir,"name"),date(heir,"birthDate"),text(heir,"relationship"),
+                bool(heir,"applicant"),bool(heir,"higherOrderOrSubrogation"),VisitStatus.valueOf(text(heir,"visitStatus")),
+                DelegationMethod.valueOf(text(heir,"delegationMethod")),nullableText(heir,"delegationReceiptNo")));
+        }
+        Draft restored=new Draft(customerId,view,new Intake(input,List.copyOf(heirs)),Map.of(),null);
+        drafts.put(caseId,restored);
+        return restored;
+    }
+    private static String text(Map<String,Object> value,String key) { Object item=value.get(key); if(item==null) throw new DomainException("CASE_SNAPSHOT_INVALID","C-02 application snapshot is invalid."); return String.valueOf(item); }
+    private static String nullableText(Map<String,Object> value,String key) { Object item=value.get(key); return item==null?null:String.valueOf(item); }
+    private static long number(Map<String,Object> value,String key) { Object item=value.get(key); return item instanceof Number n?n.longValue():Long.parseLong(String.valueOf(item)); }
+    private static boolean bool(Map<String,Object> value,String key) { Object item=value.get(key); return item instanceof Boolean b?b:Boolean.parseBoolean(String.valueOf(item)); }
+    private static LocalDate date(Map<String,Object> value,String key) { Object item=value.get(key); return item==null?null:LocalDate.parse(String.valueOf(item)); }
+    private static int revisionFromDedup(String key) { int dash=key.lastIndexOf('-'); return dash<0?0:Integer.parseInt(key.substring(dash+1)); }
+    private static String outcomeFromType(String type) { String prefix="C02_STAFF_REVIEW_"; return type!=null&&type.startsWith(prefix)?type.substring(prefix.length()):type; }
+    private static StaffDecisionResult fromStoredDecision(C02StaffDecisionPersistence.StoredDecision stored) {
+        StaffOutcome outcome=StaffOutcome.valueOf(stored.outcome());
+        CustomerNotification notification=new CustomerNotification(stored.notificationId(),stored.caseId(),stored.revision(),stored.outcome(),stored.message(),false);
+        return new StaffDecisionResult(stored.caseId(),stored.workItemId(),stored.customerId(),stored.staffId(),stored.revision(),outcome,
+            "SUBMITTED",stored.targetStatus(),stored.message(),notification);
+    }
     private static void requireRevision(Draft draft,int revision) { if(draft.view.revision()!=revision) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true); }
     private static DocumentSlot slot(String code, Requirement requirement, String personRef, String note) { return new DocumentSlot(code, requirement, personRef, note); }
     private static String documentType(String slotKey) { int delimiter=slotKey.indexOf(':'); return delimiter < 0 ? slotKey : slotKey.substring(0,delimiter); }
@@ -303,7 +400,7 @@ public final class C02IntakeService {
     public record StaffPrecheckResult(long caseId,long workItemId,int revision,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error,boolean finalStaffDecision) {}
     public record StaffCaseOverview(ServiceCaseView caseView,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,StaffPrecheckResult precheck,StaffDecisionResult finalDecision) {}
     public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) {}
-    /** proposedCaseStatus is informational until the common CasePort provides an owned final-transition API. */
+    /** The final status is persisted when C-02 review persistence is enabled; otherwise this is the in-memory fallback proposal. */
     public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}
     public record CustomerNotification(String notificationId,long caseId,int revision,String outcome,String message,boolean externalDeliveryAttempted) {}
     public record DocumentUpdate(DocumentPort.DocumentMetadata document,int revision,String reviewStatus,StaffPrecheckResult precheck) {}

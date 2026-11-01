@@ -1,16 +1,63 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { b02Api, taskBffEnabled } from '../../api/taskApi'
 
-type Decision = 'BASE_RATE'|'MANUAL_REVIEW'|'DOCUMENT_REQUIRED'|null
-/** No browser-to-Spring call: the internal Gateway token must remain server-side. */
+type Phase = 'INPUT' | 'OTP' | 'EXECUTED'
+
+/** B-02 interaction state. Server-side BFF derives the customer and owns gateway authentication. */
 export function HousingSavingsClosePage() {
- const { workItemId }=useParams(); const [waive,setWaive]=useState(false); const [taxed,setTaxed]=useState<'unknown'|'none'|'exists'>('unknown'); const [decision,setDecision]=useState<Decision>(null); const [consent,setConsent]=useState(false); const [signed,setSigned]=useState(false); const [otp,setOtp]=useState(''); const [confirmed,setConfirmed]=useState(false)
- const invalidate=()=>{setDecision(null);setConfirmed(false)}
- const preview=()=>{ if(waive)setDecision('BASE_RATE'); else if(taxed==='exists')setDecision('MANUAL_REVIEW'); else if(taxed==='unknown')setDecision('DOCUMENT_REQUIRED'); else setDecision(null) }
- const blocked=decision==='MANUAL_REVIEW'||decision==='DOCUMENT_REQUIRED'
- return <section><h1>청년 주택드림 청약통장 Mock 해지</h1><p>업무 ID: {workItemId ?? '미확인'}. 실제 은행 계좌 해지·지급이 아닌 개발용 화면입니다.</p>
- <h2>대상 통장</h2><p>계좌·상품·상태는 인증된 서버 조회 경계가 준비된 후 표시됩니다. 잔액·이자·세금·지급금은 임의로 표시하지 않습니다.</p>
- <h2>사전검증 조건</h2><label><input type="checkbox" checked={waive} onChange={e=>{setWaive(e.target.checked);invalidate()}}/> 우대이율 포기</label><label>과세증명서 상태 <select value={taxed} onChange={e=>{setTaxed(e.target.value as typeof taxed);invalidate()}}><option value="unknown">미확인</option><option value="none">과세사실 없음</option><option value="exists">과세사실 있음</option></select></label><button type="button" onClick={preview}>사전검증 결과 표시</button>
- {decision==='BASE_RATE'&&<p role="status">B2-R3: 우대 포기 선택으로 기본금리 적용 안내입니다. 실제 실행은 서버 재검증 후에만 가능합니다.</p>}{decision==='MANUAL_REVIEW'&&<p role="alert">B2-R5: 과세사실이 있어 자동 해지할 수 없습니다. 영업점 상담이 필요합니다.</p>}{decision==='DOCUMENT_REQUIRED'&&<p role="alert">B2-R6: 과세증명서 확인 또는 우대 포기 선택이 필요합니다. 화면 확인만으로 우회할 수 없습니다.</p>}
- <h2>동의·인증·최종 확인</h2><label><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> 유의사항 확인 및 동의</label><button type="button" onClick={()=>setSigned(!signed)}>{signed?'모의서명 취소':'모의서명 완료 표시'}</button><label>OTP <input value={otp} onChange={e=>setOtp(e.target.value)} placeholder="서버 인증 경계 준비 후 사용" disabled/></label><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> Mock 해지 최종 확인</label><button type="button" disabled={!consent||!signed||!confirmed||blocked||!decision}>서버 인증 경계 준비 전 실행 불가</button><p>브라우저는 Gateway Token을 보유하지 않으므로 OTP 발급·검증 및 Mock Command 실행은 비활성화되어 있습니다.</p></section>
+  const { workItemId } = useParams()
+  const [accountId, setAccountId] = useState('')
+  const [version, setVersion] = useState('0')
+  const [phone, setPhone] = useState('')
+  const [waive, setWaive] = useState(false)
+  const [taxed, setTaxed] = useState<'unknown' | 'none' | 'exists'>('unknown')
+  const [consent, setConsent] = useState(false)
+  const [signed, setSigned] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [challengeId, setChallengeId] = useState<string | null>(null)
+  const [bindingId, setBindingId] = useState<string | null>(null)
+  const [phase, setPhase] = useState<Phase>('INPUT')
+  const [message, setMessage] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const item = Number(workItemId); const account = Number(accountId); const revision = Number(version)
+  const requestId = (suffix: string) => `b02-ui-${workItemId}-${suffix}`
+  const taxValue = taxed === 'unknown' ? null : taxed === 'exists'
+  const validIds = Number.isSafeInteger(item) && item > 0 && Number.isSafeInteger(account) && account > 0 && Number.isSafeInteger(revision) && revision >= 0
+
+  const issue = async () => {
+    if (!validIds || !consent || !signed) return
+    setBusy(true); setMessage(null)
+    try {
+      await b02Api.prepare({ requestId: requestId('prepare'), account, waive, taxed: taxValue })
+      const response = await b02Api.issueOtp(account, { requestId: requestId('issue'), version: revision, consent, signed, phone: phone || null, workItemId: item })
+      if (!response.data?.challengeId) throw new Error('OTP challenge가 반환되지 않았습니다.')
+      setChallengeId(response.data.challengeId); setPhase('OTP'); setMessage('서버가 OTP를 발급했습니다. 개발 환경에서는 등록된 Mock SMS 정책을 사용합니다.')
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'OTP 발급에 실패했습니다.') } finally { setBusy(false) }
+  }
+  const verify = async () => {
+    if (!challengeId || !otp) return
+    setBusy(true); setMessage(null)
+    try { const response = await b02Api.verifyOtp(challengeId, otp, requestId('verify')); if (!response.data?.bindingId) throw new Error('OTP binding이 반환되지 않았습니다.'); setBindingId(response.data.bindingId); setMessage('OTP가 검증되었습니다. 최종 실행을 확인해 주세요.') } catch (e) { setMessage(e instanceof Error ? e.message : 'OTP 검증에 실패했습니다.') } finally { setBusy(false) }
+  }
+  const execute = async () => {
+    if (!bindingId || !validIds) return
+    setBusy(true); setMessage(null)
+    try { await b02Api.execute(account, { requestId: requestId('execute'), version: revision, waive, taxed: taxValue, binding: bindingId, workItemId: item }); setPhase('EXECUTED'); setMessage('모의 해지가 완료되었습니다. 계좌 상태와 task_result는 서버에서 다시 조회해 확인합니다.') } catch (e) { setMessage(e instanceof Error ? e.message : '해지 실행에 실패했습니다.') } finally { setBusy(false) }
+  }
+
+  return <section>
+    <h1>청년 주택드림 청약통장 모의 해지</h1><p>WorkItem ID: {workItemId ?? '미지정'}. 계좌 ID와 WorkItem ID는 별도로 전송됩니다.</p>
+    {!taskBffEnabled && <p role="status">로그인 BFF 연결 대기 중입니다. 내부 Gateway Token은 브라우저에 제공되지 않습니다.</p>}
+    <label>계좌 ID <input inputMode="numeric" value={accountId} onChange={e => setAccountId(e.target.value)} /></label>
+    <label>계좌 version <input inputMode="numeric" value={version} onChange={e => setVersion(e.target.value)} /></label>
+    <label>등록 전화번호 <input value={phone} onChange={e => setPhone(e.target.value)} /></label>
+    <label><input type="checkbox" checked={waive} onChange={e => setWaive(e.target.checked)} /> 우대금리 포기</label>
+    <label>과세 사실 <select value={taxed} onChange={e => setTaxed(e.target.value as typeof taxed)}><option value="unknown">확인 필요</option><option value="none">없음</option><option value="exists">있음</option></select></label>
+    <label><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} /> 필수 동의</label>
+    <label><input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)} /> 모의 서명 완료</label>
+    <button type="button" disabled={!taskBffEnabled || busy || !validIds || !consent || !signed || taxed === 'exists'} onClick={issue}>OTP 발급</button>
+    {phase === 'OTP' && <><label>OTP <input value={otp} onChange={e => setOtp(e.target.value)} /></label><button type="button" disabled={!taskBffEnabled || busy || !otp} onClick={verify}>OTP 검증</button><button type="button" disabled={!taskBffEnabled || busy || !bindingId} onClick={execute}>모의 해지 실행</button></>}
+    {message && <p role={phase === 'EXECUTED' ? 'status' : 'alert'}>{message}</p>}
+  </section>
 }

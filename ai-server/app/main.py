@@ -19,6 +19,15 @@ app = FastAPI(title='Shinhan SW Agent RAG PoC', version='1.0.0')
 app.include_router(create_router(), prefix='/api/v1')
 app.include_router(create_staff_router(), prefix='/api/v1')
 
+class StaffRankingRequest(BaseModel):
+    candidateIds: list[int] = Field(min_length=1, max_length=100)
+    taskCode: str = Field(min_length=1, max_length=40)
+
+@app.post('/api/v1/staff-ranking')
+def staff_ranking(req: StaffRankingRequest):
+    # Ranking only: candidates are pre-filtered by Spring; no LLM or final decision.
+    return {'staffIds': sorted(set(req.candidateIds))}
+
 
 class SearchRequest(BaseModel):
     query: str = Field(min_length=2, max_length=2000)

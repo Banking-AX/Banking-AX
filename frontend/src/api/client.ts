@@ -17,21 +17,50 @@ export class ApiError extends Error {
   }
 }
 
-type UnauthorizedHandler = (error: ApiError) => void
-let unauthorizedHandler: UnauthorizedHandler | null = null
+type AuthenticationLostHandler = (error: ApiError) => void
+type RefreshAccessTokenHandler = () => Promise<string | null>
+let accessToken: string | null = null
+let authenticationLostHandler: AuthenticationLostHandler | null = null
+let refreshAccessTokenHandler: RefreshAccessTokenHandler | null = null
+let refreshInFlight: Promise<string | null> | null = null
 
-/** Called on HTTP 401 with code AUTH_EXPIRED. Routing is the caller's responsibility. */
-export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
-  unauthorizedHandler = handler
+export function setAccessToken(token: string | null) {
+  accessToken = token
+}
+
+export function setAuthenticationLostHandler(handler: AuthenticationLostHandler | null) {
+  authenticationLostHandler = handler
+}
+
+export function setRefreshAccessTokenHandler(handler: RefreshAccessTokenHandler | null) {
+  refreshAccessTokenHandler = handler
 }
 
 // Same origin by default; the Vite dev proxy forwards /api to Spring or FastAPI.
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
+  const bearerEndpoint = path === '/api/v1/auth/me'
+    || path.startsWith('/api/v1/customer/')
+    || path.startsWith('/api/v1/staff/')
+  return request<T>(path, init, bearerEndpoint, bearerEndpoint)
+}
+
+/** Auth bootstrap endpoints use cookies and must never recursively trigger refresh. */
+export async function apiFetchWithoutAuthRetry<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
+  return request<T>(path, init, false, false)
+}
+
+async function request<T>(path: string, init: RequestInit, attachAccessToken: boolean,
+  allowRefresh: boolean): Promise<ApiEnvelope<T>> {
+  const headers = new Headers(init.headers)
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (attachAccessToken && accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
   let response: Response
   try {
-    response = await fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers: { 'Content-Type': 'application/json', ...init.headers } })
+    response = await fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers })
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
     throw new ApiError('NETWORK_ERROR', 0, 'Network request failed.')
@@ -40,10 +69,31 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const body = await readJson(response)
   const error = toApiError(response, body)
   if (error) {
-    if (error.status === 401 && error.code === 'AUTH_EXPIRED') unauthorizedHandler?.(error)
+    if (allowRefresh && error.status === 401 && accessToken && refreshAccessTokenHandler) {
+      try {
+        const replacement = await refreshOnce()
+        if (replacement) {
+          setAccessToken(replacement)
+          return request<T>(path, init, true, false)
+        }
+      } catch {
+        // The shared handler below clears authentication once for every waiting request.
+      }
+      const sessionWasActive = accessToken !== null
+      setAccessToken(null)
+      if (sessionWasActive) authenticationLostHandler?.(error)
+    }
     throw error
   }
   return body as ApiEnvelope<T>
+}
+
+function refreshOnce(): Promise<string | null> {
+  if (!refreshAccessTokenHandler) return Promise.resolve(null)
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessTokenHandler().finally(() => { refreshInFlight = null })
+  }
+  return refreshInFlight
 }
 
 async function readJson(response: Response): Promise<unknown> {

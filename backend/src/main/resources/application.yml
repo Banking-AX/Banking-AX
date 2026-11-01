@@ -25,6 +25,14 @@ server:
   error:
     include-message: never
 app:
+  auth:
+    # Disabled by default so a missing JWT secret cannot accidentally expose a half-configured login.
+    enabled: ${APP_AUTH_ENABLED:false}
+    jwt-secret: ${APP_JWT_SECRET:}
+    issuer: ${APP_JWT_ISSUER:banking-ax}
+    access-token-minutes: ${APP_JWT_ACCESS_TOKEN_MINUTES:30}
+    refresh-token-hours: ${APP_REFRESH_TOKEN_HOURS:24}
+    cookie-secure: ${APP_AUTH_COOKIE_SECURE:false}
   a01:
     # jdbc requires the DDL's Mock-financial tables to be provisioned; default remains the G1 fixture.
     transaction-query-port: ${APP_A01_TRANSACTION_QUERY_PORT:fake}
@@ -36,13 +44,15 @@ app:
     account-port: ${APP_B02_ACCOUNT_PORT:fake}
     rule-version: ${APP_B02_RULE_VERSION:1.7.1}
   c02:
-    # jpa requires the document metadata migration assigned by T1; local remains the default PoC adapter.
+    # JPA document metadata is enabled only when the Flyway-managed adapter is explicitly selected.
     document-port: ${APP_C02_DOCUMENT_PORT:local}
     document-provisioning-enabled: ${APP_C02_DOCUMENT_PROVISIONING_ENABLED:false}
-    # Disabled until the common Flyway owner adds agent_review_run/review_item from the canonical ERD.
+    # Review persistence uses the C-02 migration when explicitly enabled.
     review-persistence-enabled: ${APP_C02_REVIEW_PERSISTENCE_ENABLED:false}
     file-storage-root: ${APP_C02_FILE_STORAGE_ROOT:./var/c02-documents}
     max-file-bytes: ${APP_C02_MAX_FILE_BYTES:10485760}
+    # Mock is the safe default. CLOVA must be explicitly enabled with an approved server-side credential contract.
+    ocr-provider: ${APP_C02_OCR_PROVIDER:mock}
   case-port: ${APP_CASE_PORT:inmemory}
   # Internal Tool endpoint only. Keep disabled until a trusted gateway and customer login are connected.
   workflow-start-enabled: ${APP_WORKFLOW_START_ENABLED:false}

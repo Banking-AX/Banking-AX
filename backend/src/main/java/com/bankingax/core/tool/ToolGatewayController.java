@@ -5,6 +5,8 @@ import com.bankingax.core.workflow.TaskCode;
 import com.bankingax.task.a01.TransactionSearchRequest;
 import com.bankingax.task.a01.TransactionSearchResponse;
 import com.bankingax.task.a01.TransactionSearchService;
+import com.bankingax.task.a01.A01WorkflowService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -17,9 +19,10 @@ public class ToolGatewayController {
     private final ToolGatewayService gateway;
     private final InternalGatewayAuthenticator authenticator;
     private final TransactionSearchService transactionSearch;
+    private final A01WorkflowService a01Workflow;
     public ToolGatewayController(ToolGatewayService gateway, InternalGatewayAuthenticator authenticator,
-                                 TransactionSearchService transactionSearch) {
-        this.gateway = gateway; this.authenticator = authenticator; this.transactionSearch = transactionSearch;
+                                 TransactionSearchService transactionSearch, ObjectProvider<A01WorkflowService> a01Workflow) {
+        this.gateway = gateway; this.authenticator = authenticator; this.transactionSearch = transactionSearch; this.a01Workflow=a01Workflow.getIfAvailable();
     }
     @PostMapping("/loan-inquiry")
     public ApiEnvelope<LoanInquiryToolResponse> loanInquiry(
@@ -38,7 +41,7 @@ public class ToolGatewayController {
             @RequestHeader("X-Tool-Gateway-Token") String gatewayToken,
             @RequestBody TransactionSearchRequest request) {
         authenticator.verify(gatewayToken);
-        TransactionSearchResponse response = transactionSearch.search(new ToolActor(actorId, role), request);
+        TransactionSearchResponse response = a01Workflow == null ? transactionSearch.search(new ToolActor(actorId, role), request) : a01Workflow.execute(new ToolActor(actorId, role), request);
         return ApiEnvelope.success(request.requestId(), TaskCode.TRANSACTION_SEARCH.name(), request.workItemId(), null, null, response);
     }
 }

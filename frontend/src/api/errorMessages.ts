@@ -10,6 +10,10 @@ const MESSAGES: Record<string, string> = {
   // Auth (contract agreed ahead of the backend implementation)
   AUTH_INVALID_CREDENTIALS: '아이디 또는 비밀번호를 다시 확인해 주세요.',
   AUTH_EXPIRED: '로그인 시간이 만료되어 자동으로 로그아웃되었어요.',
+  AUTH_REQUIRED: '로그인이 필요해요.',
+  AUTH_REFRESH_INVALID: '로그인 시간이 만료되어 다시 로그인해야 해요.',
+  AUTH_CSRF_MISSING: '인증 보호 정보를 확인할 수 없어요. 다시 로그인해 주세요.',
+  AUTH_FORBIDDEN: '이 화면에 접근할 권한이 없어요.',
 
   // Spring common
   FORBIDDEN: '이 정보에 접근할 권한이 없어요. 다시 로그인해 주세요.',
