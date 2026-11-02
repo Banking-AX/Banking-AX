@@ -13,9 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Profile;
 
 /** Minimal internal HTTP adapter. No customer credentials or OTP values cross this boundary. */
 @Service
+@Profile("!e2e")
 public class StaffAgentHttpClient implements StaffAgentPort {
     private final String baseUrl, token; private final ObjectMapper mapper; private final RestTemplate client;
     public StaffAgentHttpClient(@Value("${app.staff-agent-base-url:}") String baseUrl, @Value("${app.staff-agent-token:}") String token, ObjectMapper mapper) {

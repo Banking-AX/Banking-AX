@@ -5,5 +5,5 @@ import org.springframework.stereotype.Component;
 
 /** Deliberately does not log or send an OTP. CI must use this sender. */
 @Component
-@Profile("!production")
+@Profile("!production & !e2e")
 public class FakeOtpSender implements OtpSender { @Override public void send(String phone, String code) { } }

@@ -26,6 +26,15 @@ public final class LocalFileDocumentPort implements DocumentPort {
     }
     @Override public synchronized List<DocumentMetadata> findByCase(long caseId){return List.copyOf(values.getOrDefault(caseId,List.of()));}
     @Override public synchronized Optional<DocumentMetadata> findById(long id){return values.values().stream().flatMap(List::stream).filter(d->d.documentFileId()==id).findFirst();}
+    @Override public synchronized DocumentMetadata bindToCaseRevision(long id,int revision){
+        for(List<DocumentMetadata> docs:values.values()) for(int index=0;index<docs.size();index++){
+            DocumentMetadata current=docs.get(index); if(current.documentFileId()!=id)continue;
+            DocumentMetadata bound=new DocumentMetadata(current.documentFileId(),current.caseId(),revision,current.documentSlotKey(),current.version(),current.fileName(),current.mimeType(),current.sizeBytes(),current.storageReference(),current.status(),current.documentType(),current.checksum(),current.uploadedAt(),current.uploadedBy());
+            docs.set(index,bound);
+            try { persist(); return bound; }
+            catch (RuntimeException error) { docs.set(index,current); throw error; }
+        } throw new DomainException("DOCUMENT_NOT_FOUND","Document metadata was not found.");
+    }
     @Override public synchronized void delete(long id){
         Long caseId=null; DocumentMetadata removed=null;
         for(var entry:values.entrySet()) { for(var item:entry.getValue()) if(item.documentFileId()==id) { caseId=entry.getKey(); removed=item; break; } if(removed!=null) break; }

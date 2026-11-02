@@ -54,7 +54,9 @@ export async function apiFetchWithoutAuthRetry<T>(path: string, init: RequestIni
 async function request<T>(path: string, init: RequestInit, attachAccessToken: boolean,
   allowRefresh: boolean): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers)
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData
+  // Let the browser attach the multipart boundary for file uploads.
+  if (!headers.has('Content-Type') && !isFormData) headers.set('Content-Type', 'application/json')
   if (attachAccessToken && accessToken && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${accessToken}`)
   }

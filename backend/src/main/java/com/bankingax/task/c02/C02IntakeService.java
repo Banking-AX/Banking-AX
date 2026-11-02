@@ -181,6 +181,7 @@ public final class C02IntakeService {
         DocumentPort.DocumentMetadata metadata=documents.register(new DocumentPort.DocumentRegistration(caseId,expectedRevision,registration.documentSlotKey(),registration.fileName(),registration.mimeType(),registration.sizeBytes(),registration.storageReference(),registration.status(),documentType(registration.documentSlotKey()),registration.checksum(),java.time.Instant.now(),customerId));
         try { draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED"); }
         catch(RuntimeException error) { documents.delete(metadata.documentFileId()); throw error; }
+        metadata=documents.bindToCaseRevision(metadata.documentFileId(),draft.view.revision());
         StaffPrecheckResult precheck=draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
         staffDecisionsByCase.remove(caseId);
         DocumentUpdate update=new DocumentUpdate(metadata,draft.view.revision(),draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),precheck);
@@ -199,6 +200,26 @@ public final class C02IntakeService {
     public synchronized FileDownload staffDocument(long caseId,long documentId) { return download(staffDraft(caseId),documentId); }
     private FileDownload download(Draft draft,long documentId) { DocumentPort.DocumentMetadata meta=documents.findById(documentId).orElseThrow(()->new DomainException("DOCUMENT_NOT_FOUND","Document metadata was not found.")); if(meta.caseId()!=draft.view.caseId())throw new DomainException("FORBIDDEN","Document does not belong to this C-02 case."); if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true); return new FileDownload(meta,files.open(meta.storageReference())); }
     public synchronized List<DocumentPort.DocumentMetadata> documents(long customerId,long caseId) { owned(customerId,caseId); return documents.findByCase(caseId); }
+    /** Resolves the live revision after enforcing the authenticated customer's Case ownership. */
+    public synchronized int currentRevisionForCustomer(long customerId,long caseId) {
+        Draft draft=owned(customerId,caseId);
+        ServiceCaseView latest=casePort.get(customerId,caseId);
+        requireC02(latest);
+        draft.view=latest;
+        return latest.revision();
+    }
+    /** Resolves the live revision for the same staff Case boundary used by staff-case/precheck. */
+    public synchronized int currentRevisionForStaff(long caseId) {
+        Draft draft=staffDraft(caseId);
+        ServiceCaseView latest=casePort.get(draft.customerId,caseId);
+        requireC02(latest);
+        draft.view=latest;
+        return latest.revision();
+    }
+    private static void requireC02(ServiceCaseView view) {
+        if(view.taskCode()!=com.bankingax.core.workflow.TaskCode.INHERITANCE_DEPOSIT)
+            throw new DomainException("NOT_FOUND","C-02 case was not found.");
+    }
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
     /** The controller enforces STAFF role; this never records a final staff decision. */
     public synchronized StaffPrecheckResult staffReview(long caseId) { return reviewFor(staffDraft(caseId)); }

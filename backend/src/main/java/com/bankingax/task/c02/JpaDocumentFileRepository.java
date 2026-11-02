@@ -14,6 +14,8 @@ interface JpaDocumentFileRepository extends JpaRepository<JpaDocumentFileEntity,
         and ((:personRef is null and rd.heir_id is null) or h.person_ref=:personRef)
         """,nativeQuery=true) List<Long> requiredIds(@Param("caseId") long caseId,@Param("type") String type,@Param("personRef") String personRef);
     @Modifying @Query(value="update required_document set status=:status where id=:requiredId",nativeQuery=true) int updateStatus(@Param("requiredId") long requiredId,@Param("status") String status);
+    @Modifying @Query(value="update document_file set case_revision=:caseRevision where id=:documentFileId", nativeQuery=true)
+    int bindToCaseRevision(@Param("documentFileId") long documentFileId, @Param("caseRevision") int caseRevision);
     @Query(value="""
         select df.id as documentId, sc.id as caseId, df.case_revision as caseRevision, rd.document_type_code as documentType,
           h.person_ref as personRef, df.version as version, df.original_name as originalName, df.content_type as contentType,
