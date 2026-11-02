@@ -14,6 +14,55 @@ type CaseData = {
 }
 const requestId = (action: string, caseId: number) => `c02-staff-${action}-${caseId}-${crypto.randomUUID()}`
 
+function OcrFieldSummary({ extracted }: { extracted: Record<string, unknown> }) {
+  const rawFields = extracted.fields
+  const fields = Array.isArray(rawFields)
+    ? rawFields.filter((field): field is Record<string, unknown> => typeof field === 'object' && field !== null && !Array.isArray(field))
+    : []
+  const read = (name: string) => {
+    const field = fields.find(candidate => candidate.name === name)
+    const value = field?.value
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+    const record = value as Record<string, unknown>
+    return {
+      text: typeof record.text === 'string' && record.text.trim() ? record.text : null,
+      confidence: typeof record.confidence === 'number' ? record.confidence : null,
+    }
+  }
+  const candidates = [
+    { key: 'grantor_names', label: '위임인 성명' },
+    { key: 'agent_name', label: '대리인 성명' },
+  ]
+  return <>
+    <p>위임장 OCR은 참고 자료입니다. 성명 대조·서명 진위·대리권을 자동 확인하지 않으며 원본 확인이 필요합니다.</p>
+    <dl>{candidates.map(candidate => {
+      const value = read(candidate.key)
+      return <div key={candidate.key}>
+        <dt>{candidate.label} ({candidate.key})</dt>
+        <dd>{value?.text ?? '추출되지 않음 — 원본에서 직접 확인'}{value?.confidence !== null && value?.confidence !== undefined ? ` · 인식 신뢰도 ${(value.confidence * 100).toFixed(1)}%` : ''}</dd>
+      </div>
+    })}</dl>
+    {fields.length === 0 && <p>필드 계약이 확인되지 않은 OCR 결과입니다. 추출값을 업무 판정에 사용하지 마세요.</p>}
+    {fields.length > 0 && <>
+      <h4>수신된 OCR 필드</h4>
+      <ul>{fields.map((field, index) => {
+        const name = typeof field.name === 'string' && field.name.trim() ? field.name : `이름 없는 필드 ${index + 1}`
+        const value = typeof field.value === 'object' && field.value !== null && !Array.isArray(field.value)
+          ? field.value as Record<string, unknown>
+          : {}
+        return <li key={`${name}-${index}`}>
+          {name}: {typeof value.text === 'string' && value.text.trim() ? value.text : '읽을 수 있는 텍스트 없음'}
+          {typeof value.confidence === 'number' ? ` · 신뢰도 ${(value.confidence * 100).toFixed(1)}%` : ''}
+        </li>
+      })}</ul>
+    </>}
+    <details>
+      <summary>원본 OCR JSON 참고</summary>
+      <pre>{JSON.stringify(extracted, null, 2)}</pre>
+    </details>
+  </>
+}
+
 /** Agent findings are reference material; only the authenticated employee can submit a final decision. */
 export function C02StaffReviewPage() {
   const { caseId } = useParams()
@@ -100,7 +149,7 @@ export function C02StaffReviewPage() {
         <ul>{(data.ocr?.documents ?? []).map(item => <li key={item.documentFileId}>
           <strong>{item.documentTypeCode}{item.personRef ? ` · ${item.personRef}` : ''}</strong> — {item.method} / {item.status}; 문서 revision {item.caseRevision}
           <p>원본 확인 필요: {item.manualVerificationRequired ? '예' : '아니요'}{item.failureReason ? ` · 처리 사유: ${item.failureReason}` : ''}</p>
-          {item.extracted && <pre>{JSON.stringify(item.extracted, null, 2)}</pre>}
+          {item.extracted && <OcrFieldSummary extracted={item.extracted} />}
         </li>)}</ul>
       </section>
       <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || Boolean(data.finalDecision) || currentRevisionPrecheck} onClick={() => void precheck()}>현재 revision 사전검토 실행</button>

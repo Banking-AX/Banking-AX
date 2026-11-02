@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
@@ -36,7 +37,9 @@ class C02DocumentUploadHttpTest {
 
     @Test void customer_uploads_downloads_and_retries_a_synthetic_pdf_without_exposing_storage_path() throws Exception {
         C02FileStorage storage=new C02FileStorage(temp.toString(),1024);
-        C02IntakeService service=new C02IntakeService(new InMemoryCasePort(),verification(),staff(),new LocalFileDocumentPort(temp.toString(),new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()),storage);
+        AtomicInteger staffCalls=new AtomicInteger();
+        StaffAgentPort agent=(requestId,id,revision,snapshot)->{staffCalls.incrementAndGet(); return new StaffAgentPort.StaffAgentResponse("SUCCEEDED","READY_FOR_STAFF",List.of(),null);};
+        C02IntakeService service=new C02IntakeService(new InMemoryCasePort(),verification(),agent,new LocalFileDocumentPort(temp.toString(),new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()),storage);
         long caseId=prepare(service);
         MockMvc http=MockMvcBuilders.standaloneSetup(new C02Controller(service,new InternalGatewayAuthenticator("upload-token"))).setControllerAdvice(new ApiExceptionHandler()).build();
         byte[] bytes="%PDF-1.4\nsynthetic inheritance fixture".getBytes();
@@ -44,6 +47,7 @@ class C02DocumentUploadHttpTest {
         var first=http.perform(multipart("/api/v1/c02/{caseId}/documents/upload",caseId).file(upload).param("customerId","1").param("revision","0").param("requestId","upload-1").param("documentSlotKey","HEIR_IDENTITY_CARD:h1").header("X-Actor-Id",1).header("X-Actor-Role","CUSTOMER").header("X-Tool-Gateway-Token","upload-token"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1)).andExpect(jsonPath("$.data.document.checksum").isString()).andReturn();
         long documentId=new com.fasterxml.jackson.databind.ObjectMapper().readTree(first.getResponse().getContentAsString()).at("/data/document/documentFileId").asLong();
+        assertEquals(0,staffCalls.get(),"DRAFT upload must not start a staff precheck.");
         http.perform(get("/api/v1/c02/{caseId}/documents/{documentId}/content",caseId,documentId).param("customerId","1").header("X-Actor-Id",1).header("X-Actor-Role","CUSTOMER").header("X-Tool-Gateway-Token","upload-token"))
             .andExpect(status().isOk()).andExpect(content().bytes(bytes));
         http.perform(multipart("/api/v1/c02/{caseId}/documents/upload",caseId).file(upload).param("customerId","1").param("revision","0").param("requestId","upload-1").param("documentSlotKey","HEIR_IDENTITY_CARD:h1").header("X-Actor-Id",1).header("X-Actor-Role","CUSTOMER").header("X-Tool-Gateway-Token","upload-token"))

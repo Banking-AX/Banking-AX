@@ -13,10 +13,12 @@ import org.springframework.stereotype.Component;
 @Profile("e2e")
 public class E2eStaffAgentMockAdapter implements StaffAgentPort {
     private final AtomicInteger calls = new AtomicInteger();
+    private volatile Map<String, Object> lastSnapshot = Map.of();
 
     @Override
     public StaffAgentResponse check(String requestId, long caseId, int revision, Map<String, Object> snapshot) {
         calls.incrementAndGet();
+        lastSnapshot = Map.copyOf(snapshot);
         boolean missing = snapshot.get("missingDocuments") instanceof List<?> items && !items.isEmpty();
         String status = missing ? "WAITING_CUSTOMER" : "READY_FOR_STAFF";
         Map<String, Object> item = Map.of(
@@ -29,5 +31,6 @@ public class E2eStaffAgentMockAdapter implements StaffAgentPort {
     }
 
     public int callCount() { return calls.get(); }
-    void reset() { calls.set(0); }
+    public Map<String, Object> lastSnapshot() { return lastSnapshot; }
+    void reset() { calls.set(0); lastSnapshot = Map.of(); }
 }
