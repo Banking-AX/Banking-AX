@@ -14,6 +14,7 @@ import { VisitReservationPage } from './pages/VisitReservationPage'
 import { SignPage } from './pages/SignPage'
 import { B01Page } from './pages/B01Page'
 import { ChatBPreviewPage } from './pages/ChatBPreviewPage'
+import { ChatRoomsPreviewPage } from './pages/ChatRoomsPreviewPage'
 import { WorkRecordsPage } from './pages/WorkRecordsPage'
 import { WorkRecordDetailPage } from './pages/WorkRecordDetailPage'
 
@@ -26,6 +27,7 @@ export function App() {
     <Route path="/work" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordsPage /></RequireAuth>} />
     <Route path="/work/:recordId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordDetailPage /></RequireAuth>} />
     {import.meta.env.DEV && <Route path="/preview/chat-b" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatBPreviewPage /></RequireAuth>} />}
+    {import.meta.env.DEV && <Route path="/preview/chat-rooms" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatRoomsPreviewPage /></RequireAuth>} />}
     <Route element={<AppShell />}>
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
       <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />
