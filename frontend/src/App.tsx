@@ -12,12 +12,14 @@ import { TransactionSearchPage } from './features/a01/TransactionSearchPage'
 import { HousingSavingsClosePage } from './features/b02/HousingSavingsClosePage'
 import { VisitReservationPage } from './pages/VisitReservationPage'
 import { SignPage } from './pages/SignPage'
+import { B01Page } from './pages/B01Page'
 
 export function App() {
   return <Routes>
     <Route path="/" element={<MainPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/sign/:docKey" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><SignPage /></RequireAuth>} />
+    <Route path="/tasks/b01/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><B01Page /></RequireAuth>} />
     <Route element={<AppShell />}>
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
       <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />

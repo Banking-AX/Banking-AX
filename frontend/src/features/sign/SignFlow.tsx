@@ -17,7 +17,9 @@ export type SignFlowProps = {
   note?: string
   signer: string
   backHref: string
-  doneHref: string
+  doneHref?: string
+  /** When set, the final button calls this instead of linking to doneHref. */
+  onDone?: () => void
   doneLabel: string
   storesSignature: boolean
   demoPath: string
@@ -43,7 +45,7 @@ function formatDuration(sec: number): string {
   return minutes ? `${minutes}분` : `${seconds}초`
 }
 
-export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, doneLabel, storesSignature, demoPath }: SignFlowProps) {
+export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, onDone, doneLabel, storesSignature, demoPath }: SignFlowProps) {
   const [step, setStep] = useState<Step>('doc')
 
   const [read, setRead] = useState<boolean[]>(() => docs.map(() => false))
@@ -361,7 +363,9 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
           </div>
         </div>
         <p className="sign-done__note">{storesSignature ? '서명 이미지는 모의 서명 기록으로 서버에 저장돼요.' : '서명 이미지는 서버에 저장하지 않아요.'} 서버는 동의 기록과 SMS 인증 결과를 다시 확인한 뒤에만 {doneLabel} 단계로 넘겨요.</p>
-        <div className="sign-done__actions"><Link to={doneHref} className="sign-button sign-button--primary sign-button--link">{doneLabel}</Link></div>
+        <div className="sign-done__actions">{onDone
+          ? <button type="button" onClick={onDone} className="sign-button sign-button--primary">{doneLabel}</button>
+          : <Link to={doneHref ?? '/'} className="sign-button sign-button--primary sign-button--link">{doneLabel}</Link>}</div>
       </section>}
 
       {showBar && <div className="sign-bar">
