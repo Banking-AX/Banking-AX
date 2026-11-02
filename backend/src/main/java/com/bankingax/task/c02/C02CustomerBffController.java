@@ -105,6 +105,13 @@ public class C02CustomerBffController {
         return internal.customerReview(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
 
+    @GetMapping("/{caseId}/snapshot")
+    public ApiEnvelope<C02IntakeService.CustomerCaseSnapshot> snapshot(JwtAuthenticationToken authentication,
+            @PathVariable long caseId, @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.customerSnapshot(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
+    }
+
     public record Prepare(long workItemId, String requestId, String registeredPhone,
                           C02Controller.DecedentBody decedent, List<C02Controller.HeirBody> heirs,
                           Map<String, C02IntakeService.DocumentStatus> documentStatuses) { }

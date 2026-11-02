@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +36,7 @@ public final class C02IntakeService {
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
     private final Map<String, PrecheckRequest> prechecks = new HashMap<>();
     private final Map<String, DocumentUpdate> documentUpdates = new HashMap<>();
+    private final Set<String> completedDocumentUploads = new HashSet<>();
     private final Map<ReviewKey, StaffPrecheckResult> reviewResults = new HashMap<>();
     /** G3 development-only staff outcome and web-notification store. It is intentionally not a CasePort substitute. */
     private final Map<String, StaffDecisionResult> staffDecisionsByRequest = new HashMap<>();
@@ -173,6 +176,11 @@ public final class C02IntakeService {
     }
     /** Registers metadata only. File bytes/storage remain outside this development adapter. */
     public synchronized DocumentUpdate registerDocument(long customerId, long caseId, int expectedRevision, String requestId, DocumentPort.DocumentRegistration registration) {
+        return registerDocument(customerId, caseId, requestId, registration, true);
+    }
+    private synchronized DocumentUpdate registerDocument(long customerId, long caseId, String requestId,
+            DocumentPort.DocumentRegistration registration, boolean runPrecheck) {
+        int expectedRevision=registration.caseRevision();
         DocumentUpdate previous=documentUpdates.get(requestId);
         if(previous!=null) return previous;
         Draft draft=owned(customerId,caseId); requireRevision(draft,expectedRevision);
@@ -182,19 +190,50 @@ public final class C02IntakeService {
         try { draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED"); }
         catch(RuntimeException error) { documents.delete(metadata.documentFileId()); throw error; }
         metadata=documents.bindToCaseRevision(metadata.documentFileId(),draft.view.revision());
-        StaffPrecheckResult precheck=draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
+        StaffPrecheckResult precheck=runPrecheck && draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
         staffDecisionsByCase.remove(caseId);
         DocumentUpdate update=new DocumentUpdate(metadata,draft.view.revision(),draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),precheck);
         documentUpdates.put(requestId,update); return update;
     }
-    public synchronized DocumentUpdate uploadDocument(long customerId,long caseId,int expectedRevision,String requestId,String slot,org.springframework.web.multipart.MultipartFile upload) {
-        DocumentUpdate replay=documentUpdates.get(requestId); if(replay!=null)return replay;
-        Draft draft=owned(customerId,caseId); requireRevision(draft,expectedRevision);
-        if(requiredDocuments(draft.intake).stream().noneMatch(item->item.key().equals(slot)))throw new DomainException("DOCUMENT_SLOT_UNKNOWN","The document slot is not required for this C-02 case.");
-        if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true);
-        C02FileStorage.StoredFile stored=files.store(upload);
-        try { return registerDocument(customerId,caseId,expectedRevision,requestId,new DocumentPort.DocumentRegistration(caseId,expectedRevision,slot,stored.originalFilename(),stored.contentType(),stored.fileSize(),stored.storageKey(),DocumentStatus.UPLOADED,documentType(slot),stored.checksum(),java.time.Instant.now(),customerId)); }
-        catch(RuntimeException error) { files.deleteQuietly(stored.storageKey()); throw error; }
+    public DocumentUpdate uploadDocument(long customerId,long caseId,int expectedRevision,String requestId,String slot,org.springframework.web.multipart.MultipartFile upload) {
+        DocumentUpdate registered;
+        synchronized(this) {
+            Draft draft=owned(customerId,caseId);
+            DocumentUpdate replay=documentUpdates.get(requestId);
+            if(replay!=null) {
+                if(replay.document().caseId()!=caseId) throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 document.");
+                if(completedDocumentUploads.contains(requestId)) return replay;
+                registered=replay;
+            } else {
+                requireRevision(draft,expectedRevision);
+                if(requiredDocuments(draft.intake).stream().noneMatch(item->item.key().equals(slot)))throw new DomainException("DOCUMENT_SLOT_UNKNOWN","The document slot is not required for this C-02 case.");
+                if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true);
+                C02FileStorage.StoredFile stored=files.store(upload);
+                try {
+                    registered=registerDocument(customerId,caseId,requestId,new DocumentPort.DocumentRegistration(caseId,expectedRevision,slot,stored.originalFilename(),stored.contentType(),stored.fileSize(),stored.storageKey(),DocumentStatus.UPLOADED,documentType(slot),stored.checksum(),java.time.Instant.now(),customerId),false);
+                } catch(RuntimeException error) { files.deleteQuietly(stored.storageKey()); throw error; }
+            }
+        }
+
+        // OCR may call a remote provider. It runs after the document/revision commit and
+        // outside the intake monitor and any database transaction.
+        if(ocrPersistence!=null) ocrPersistence.extract(registered.document().documentFileId(),caseId,
+                registered.revision(),registered.document().documentType(),registered.document().storageReference());
+
+        synchronized(this) {
+            Draft draft=owned(customerId,caseId);
+            ServiceCaseView latest=casePort.get(customerId,caseId);
+            if(latest.revision()!=registered.revision())
+                throw new DomainException("VERSION_CONFLICT","Case revision changed while the document was being processed.",true);
+            draft.view=latest;
+            StaffPrecheckResult precheck=latest.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED
+                    ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
+            DocumentUpdate completed=new DocumentUpdate(registered.document(),latest.revision(),
+                    latest.reviewStatus()==null?null:latest.reviewStatus().name(),precheck);
+            documentUpdates.put(requestId,completed);
+            completedDocumentUploads.add(requestId);
+            return completed;
+        }
     }
     public synchronized FileDownload customerDocument(long customerId,long caseId,long documentId) { return download(owned(customerId,caseId),documentId); }
     public synchronized FileDownload staffDocument(long caseId,long documentId) { return download(staffDraft(caseId),documentId); }
@@ -221,6 +260,20 @@ public final class C02IntakeService {
             throw new DomainException("NOT_FOUND","C-02 case was not found.");
     }
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
+    /** Customer-owned snapshot used to resume a draft/submitted Case after browser state is lost. */
+    public synchronized CustomerCaseSnapshot customerCaseSnapshot(long customerId,long caseId) {
+        Draft draft=owned(customerId,caseId);
+        ServiceCaseView latest=casePort.get(customerId,caseId);
+        requireC02(latest);
+        if(draft.view.revision()!=latest.revision()) {
+            draft=restore(customerId,caseId);
+            latest=draft.view;
+        }
+        draft.view=latest;
+        return new CustomerCaseSnapshot(latest.caseId(),latest.workItemId(),latest.revision(),latest.caseStatus().name(),
+            latest.reviewStatus()==null?null:latest.reviewStatus().name(),latest.visitRequired(),requiredDocuments(draft.intake),
+            documents.findByCase(caseId),reviewFor(draft));
+    }
     /** The controller enforces STAFF role; this never records a final staff decision. */
     public synchronized StaffPrecheckResult staffReview(long caseId) { return reviewFor(staffDraft(caseId)); }
     /** Staff-only caller obtains the same current revision snapshot used for a final manual decision. */
@@ -443,6 +496,9 @@ public final class C02IntakeService {
     /** This is an Agent precheck result, never a staff_review final decision. */
     public record StaffPrecheckResult(long caseId,long workItemId,int revision,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error,boolean finalStaffDecision) {}
     public record StaffCaseOverview(ServiceCaseView caseView,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,StaffPrecheckResult precheck,StaffDecisionResult finalDecision) {}
+    public record CustomerCaseSnapshot(long caseId,long workItemId,int revision,String caseStatus,String reviewStatus,
+            boolean visitRequired,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,
+            StaffPrecheckResult precheck) {}
     public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) {}
     /** The final status is persisted when C-02 review persistence is enabled; otherwise this is the in-memory fallback proposal. */
     public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}

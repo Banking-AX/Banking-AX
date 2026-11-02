@@ -8,6 +8,7 @@ import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02StaffReviewPage } from './pages/C02StaffReviewPage'
 import { C02NotificationsPage } from './pages/C02NotificationsPage'
+import { C02CaseResumePage } from './pages/C02CaseResumePage'
 import { TransactionSearchPage } from './features/a01/TransactionSearchPage'
 import { HousingSavingsClosePage } from './features/b02/HousingSavingsClosePage'
 import { VisitReservationPage } from './pages/VisitReservationPage'
@@ -20,6 +21,7 @@ export function App() {
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
       <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />
       <Route path="/tasks/c02/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02IntakePage /></RequireAuth>} />
+      <Route path="/tasks/c02/cases/:caseId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02CaseResumePage /></RequireAuth>} />
       <Route path="/tasks/c02/notifications" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02NotificationsPage /></RequireAuth>} />
       <Route path="/tasks/c02/reservations" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><VisitReservationPage /></RequireAuth>} />
       <Route path="/staff/c02/:caseId" element={<RequireAuth roles={['STAFF', 'ADMIN']}><C02StaffReviewPage /></RequireAuth>} />

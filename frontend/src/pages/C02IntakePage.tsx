@@ -193,6 +193,7 @@ export function C02IntakePage() {
 
     {caseSession && <>
       <h2>Case {caseSession.caseId}</h2>
+      <p><Link to={`/tasks/c02/cases/${caseSession.caseId}`}>Open saved Case details</Link></p>
       <p>상태 {caseSession.caseStatus} · revision {caseSession.revision} · Agent 검토 {caseSession.reviewStatus ?? '미실행'}</p>
       <h3>필수·조건부 문서 슬롯</h3>
       {requiredSlots.length === 0 ? <p>문서 슬롯 manifest를 불러오지 못했습니다.</p> : <ul>{requiredSlots.map(slot => {
