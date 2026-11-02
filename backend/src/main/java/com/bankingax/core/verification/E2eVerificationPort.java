@@ -27,6 +27,8 @@ public class E2eVerificationPort implements VerificationPort, OtpSender {
         return new VerificationIssue(challengeId, "***", Instant.now().plusSeconds(180));
     }
     @Override public VerificationBinding verify(VerificationVerifyCommand command) {
+        if (command == null || command.challengeId() == null || command.challengeId().isBlank())
+            throw new DomainException("OTP_INVALID", "OTP challenge is invalid or expired.");
         VerificationIssueCommand issued = challenges.getIfPresent(command.challengeId());
         if (issued == null || issued.customerId() != command.customerId() || !TEST_OTP.equals(command.otp()))
             throw new DomainException("OTP_INVALID", "OTP is invalid.");
@@ -37,6 +39,8 @@ public class E2eVerificationPort implements VerificationPort, OtpSender {
         return binding;
     }
     @Override public void consume(VerificationConsumeCommand command) {
+        if (command == null || command.bindingId() == null || command.bindingId().isBlank())
+            throw new DomainException("VERIFICATION_BINDING_INVALID", "Verification binding cannot be used for this request.");
         VerificationBinding binding = bindings.getIfPresent(command.bindingId());
         if (binding == null || binding.customerId() != command.customerId() || binding.workItemId() != command.workItemId()
                 || binding.action() != command.action() || binding.requestVersion() != command.requestVersion())

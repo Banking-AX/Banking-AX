@@ -298,6 +298,11 @@ public final class C02IntakeService {
     private StaffPrecheckResult runStaffPrecheckInternal(Draft draft,String requestId) {
         PrecheckRequest previous=prechecks.get(requestId);
         if(previous!=null) { if(previous.caseId()!=draft.view.caseId() || previous.revision()!=draft.view.revision()) throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another staff precheck."); return previous.result(); }
+        StaffPrecheckResult current=reviewFor(draft);
+        if("SUCCEEDED".equals(current.agentRunStatus())) {
+            prechecks.put(requestId,new PrecheckRequest(draft.view.caseId(),draft.view.revision(),current));
+            return current;
+        }
         try { dispatchStaffCheck(draft,requestId); }
         catch(DomainException exception) {
             draft.view=casePort.recordCheckResult(draft.view.caseId(),draft.view.revision(),ReviewStatus.FAILED_NEEDS_STAFF);
@@ -306,7 +311,25 @@ public final class C02IntakeService {
         StaffPrecheckResult result=reviewFor(draft); prechecks.put(requestId,new PrecheckRequest(draft.view.caseId(),draft.view.revision(),result)); return result;
     }
     private StaffPrecheckResult reviewFor(Draft draft) {
-        StaffPrecheckResult result=reviewResults.get(new ReviewKey(draft.view.caseId(),draft.view.revision()));
+        ReviewKey key=new ReviewKey(draft.view.caseId(),draft.view.revision());
+        StaffPrecheckResult result=reviewResults.get(key);
+        if(result==null && reviewPersistence!=null) {
+            C02AgentReviewPersistence.StoredReview stored=reviewPersistence.find(draft.view.caseId(),draft.view.revision());
+            if(stored!=null) {
+                List<Map<String,Object>> items=stored.items().stream().map(item -> {
+                    Map<String,Object> value=new HashMap<>();
+                    if(item.source()!=null) value.put("source",item.source());
+                    if(item.category()!=null) value.put("category",item.category());
+                    if(item.result()!=null) value.put("result",item.result());
+                    if(item.message()!=null) value.put("message",item.message());
+                    if(item.documentFileId()!=null) value.put("documentFileId",item.documentFileId());
+                    return Map.copyOf(value);
+                }).toList();
+                String status=draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name();
+                result=new StaffPrecheckResult(draft.view.caseId(),draft.view.workItemId(),draft.view.revision(),stored.status(),status,items,null,false);
+                reviewResults.put(key,result);
+            }
+        }
         return result==null ? new StaffPrecheckResult(draft.view.caseId(),draft.view.workItemId(),draft.view.revision(),"NOT_RUN",draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),List.of(),null,false) : result;
     }
     private static String notificationMessage(StaffOutcome outcome,String customerMessage) {

@@ -103,7 +103,7 @@ export function C02StaffReviewPage() {
           {item.extracted && <pre>{JSON.stringify(item.extracted, null, 2)}</pre>}
         </li>)}</ul>
       </section>
-      <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || Boolean(data.finalDecision)} onClick={() => void precheck()}>현재 revision 사전검토 실행</button>
+      <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || Boolean(data.finalDecision) || currentRevisionPrecheck} onClick={() => void precheck()}>현재 revision 사전검토 실행</button>
       {data.precheck && <section>
         <h3>직원 Agent 사전검토 revision {data.precheck.revision}</h3>
         <p>실행 {data.precheck.agentRunStatus} · 검토 상태 {data.precheck.reviewStatus ?? '미지정'} · 최종 직원결정 아님</p>
