@@ -14,6 +14,8 @@ import { VisitReservationPage } from './pages/VisitReservationPage'
 import { SignPage } from './pages/SignPage'
 import { B01Page } from './pages/B01Page'
 import { ChatBPreviewPage } from './pages/ChatBPreviewPage'
+import { WorkRecordsPage } from './pages/WorkRecordsPage'
+import { WorkRecordDetailPage } from './pages/WorkRecordDetailPage'
 
 export function App() {
   return <Routes>
@@ -21,6 +23,8 @@ export function App() {
     <Route path="/login" element={<LoginPage />} />
     <Route path="/sign/:docKey" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><SignPage /></RequireAuth>} />
     <Route path="/tasks/b01/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><B01Page /></RequireAuth>} />
+    <Route path="/work" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordsPage /></RequireAuth>} />
+    <Route path="/work/:recordId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordDetailPage /></RequireAuth>} />
     {import.meta.env.DEV && <Route path="/preview/chat-b" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatBPreviewPage /></RequireAuth>} />}
     <Route element={<AppShell />}>
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />

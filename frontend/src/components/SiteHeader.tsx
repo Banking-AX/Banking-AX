@@ -39,9 +39,9 @@ export function SiteHeader() {
         {status === 'authenticated' && user
           ? <div className="site-header__account">
             <span className="site-header__user"><strong>{user.name}</strong>님</span>
-            <a className="site-header__pill" aria-disabled="true">
+            <Link to="/work" className="site-header__pill">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4h6v3H9zM9 12h6M9 16h4"></path></svg>
-              업무 요청 기록</a>
+              업무 요청 기록</Link>
             <a className="site-header__bell" aria-label="알림" aria-disabled="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg>
             </a>
