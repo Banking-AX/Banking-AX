@@ -59,14 +59,14 @@ class ChatPersistenceMySqlIT {
     }
 
     @Test
-    void flywayV1ThroughV10AndChatRoomOwnershipQueriesWork() {
+    void latestFlywayAndChatRoomOwnershipQueriesWork() {
         Integer version = jdbc.queryForObject(
                 "select max(cast(version as unsigned)) from flyway_schema_history where success=1", Integer.class);
         ChatRoomEntity older = room(1, Instant.parse("2026-01-01T00:00:00Z"));
         ChatRoomEntity newer = room(1, Instant.parse("2026-01-02T00:00:00Z"));
         ChatRoomEntity anotherCustomer = room(2, Instant.parse("2026-01-03T00:00:00Z"));
 
-        assertThat(version).isEqualTo(10);
+        assertThat(version).isEqualTo(12);
         assertThat(chatRooms.findByIdAndCustomerId(older.id, 1)).isPresent();
         assertThat(chatRooms.findByIdAndCustomerId(older.id, 2)).isEmpty();
         assertThat(chatRooms.findAllByCustomerIdOrderByLastActivityAtDescIdDesc(1))

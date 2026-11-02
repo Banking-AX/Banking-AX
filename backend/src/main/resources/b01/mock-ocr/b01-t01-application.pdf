@@ -1,0 +1,8 @@
+%PDF-1.4
+% Banking-AX synthetic B-01 Mock OCR fixture. Not a real bank document.
+1 0 obj
+<< /Type /Catalog >>
+endobj
+% account=MOCK-B01-T01 balance=26500000 accelerationDate=2026-08-31
+% requestedRepaymentOrder=PRINCIPAL_FIRST
+%%EOF
