@@ -51,8 +51,16 @@ app:
     review-persistence-enabled: ${APP_C02_REVIEW_PERSISTENCE_ENABLED:false}
     file-storage-root: ${APP_C02_FILE_STORAGE_ROOT:./var/c02-documents}
     max-file-bytes: ${APP_C02_MAX_FILE_BYTES:10485760}
-    # Mock is the safe default. CLOVA must be explicitly enabled with an approved server-side credential contract.
+    # Mock is the safe default. CLOVA is opt-in and its credentials remain server-side.
     ocr-provider: ${APP_C02_OCR_PROVIDER:mock}
+    ocr:
+      invoke-url: ${APP_C02_OCR_INVOKE_URL:}
+      secret: ${APP_C02_OCR_SECRET:}
+      timeout-seconds: ${APP_C02_OCR_TIMEOUT_SECONDS:15}
+      max-pdf-bytes: ${APP_C02_OCR_MAX_PDF_BYTES:10485760}
+      max-pdf-pages: ${APP_C02_OCR_MAX_PDF_PAGES:5}
+      template-ids:
+        ABSENT_HEIR_POWER_OF_ATTORNEY: ${APP_C02_OCR_TEMPLATE_ID_ABSENT_HEIR_POWER_OF_ATTORNEY:}
   case-port: ${APP_CASE_PORT:inmemory}
   # Internal Tool endpoint only. Keep disabled until a trusted gateway and customer login are connected.
   workflow-start-enabled: ${APP_WORKFLOW_START_ENABLED:false}

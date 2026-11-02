@@ -34,6 +34,20 @@ public final class C02FileStorage {
         finally { if(temporary!=null) try { Files.deleteIfExists(temporary); } catch(IOException ignored) { } }
     }
     public InputStream open(String key) { try { Path file=resolve(key); return Files.newInputStream(file,StandardOpenOption.READ); } catch(IOException e) { throw new DomainException("DOCUMENT_NOT_FOUND","Stored document file was not found."); } }
+    /** Reads a bounded file from the private store for an explicitly selected OCR provider. */
+    public byte[] readForOcr(String key,long limitBytes) {
+        if(limitBytes<1) throw new DomainException("OCR_FILE_LIMIT_INVALID","OCR file limit is invalid.");
+        try(InputStream in=open(key); ByteArrayOutputStream out=new ByteArrayOutputStream()) {
+            byte[] buffer=new byte[8192]; long total=0;
+            for(int read;(read=in.read(buffer))!=-1;) {
+                total+=read;
+                if(total>limitBytes) throw new DomainException("OCR_FILE_TOO_LARGE","Document exceeds the OCR size limit.");
+                out.write(buffer,0,read);
+            }
+            return out.toByteArray();
+        } catch(DomainException e) { throw e; }
+        catch(IOException e) { throw new DomainException("OCR_FILE_READ_FAILED","Stored document could not be read for OCR.",true); }
+    }
     public void deleteQuietly(String key) { try { Files.deleteIfExists(resolve(key)); } catch(Exception ignored) { } }
     private Path resolve(String key) { if(key==null || !key.matches("[0-9a-fA-F-]{36}\\.(pdf|png|jpg|jpeg)")) throw new DomainException("INVALID_STORAGE_KEY","Invalid file storage key."); Path file=root.resolve("files").resolve(key).normalize(); if(!file.startsWith(root.resolve("files"))) throw new DomainException("INVALID_STORAGE_KEY","Invalid file storage key."); return file; }
     private static String extension(String file) { int dot=file.lastIndexOf('.'); return dot<1?"":file.substring(dot+1).toLowerCase(Locale.ROOT); }
