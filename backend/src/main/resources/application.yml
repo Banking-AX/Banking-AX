@@ -39,6 +39,12 @@ app:
   a02:
     # Fake is a non-production fixture. Use jdbc for the Flyway-managed loan table.
     loan-query-port: ${APP_A02_LOAN_QUERY_PORT:fake}
+  b01:
+    # Private local PoC storage. Only opaque generated keys are persisted or returned internally.
+    file-storage-root: ${APP_B01_FILE_STORAGE_ROOT:./var/b01-documents}
+    max-file-bytes: ${APP_B01_MAX_FILE_BYTES:10485760}
+    signature-storage-root: ${APP_B01_SIGNATURE_STORAGE_ROOT:./var/b01-signatures}
+    signature-max-bytes: ${APP_B01_SIGNATURE_MAX_BYTES:1048576}
   b02:
     # jdbc requires the authoritative Mock-financial tables; default remains the G1 fixture.
     account-port: ${APP_B02_ACCOUNT_PORT:fake}
@@ -63,7 +69,14 @@ app:
   customer-agent-token: ${APP_CUSTOMER_AGENT_GATEWAY_TOKEN:}
   customer-agent-timeout-seconds: ${APP_CUSTOMER_AGENT_TIMEOUT_SECONDS:20}
   sms:
-    provider: ${APP_SMS_PROVIDER:fake}
+    provider: ${APP_SMS_PROVIDER:mock}
     otp-ttl-seconds: ${APP_OTP_TTL_SECONDS:180}
     max-attempts: ${APP_OTP_MAX_ATTEMPTS:5}
     resend-seconds: ${APP_OTP_RESEND_SECONDS:60}
+    max-requests: ${APP_OTP_MAX_REQUESTS:5}
+    # Separate secret used only to HMAC OTP values persisted in work_item.draft_data.
+    otp-hmac-secret: ${APP_OTP_HMAC_SECRET:}
+solapi:
+  api-key: ${SOLAPI_API_KEY:}
+  api-secret: ${SOLAPI_API_SECRET:}
+  sender-number: ${SOLAPI_SENDER_NUMBER:}
