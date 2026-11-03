@@ -12,10 +12,12 @@ export const c02MockSmsEnabled = import.meta.env.VITE_C02_SMS_MODE === 'mock'
 export type Transaction = { transactionId: number; occurredAt: string; direction: 'IN' | 'OUT'; amount: number; counterparty: string | null; memo: string | null }
 export type TransactionSearchResult = { accountId: number; accountNoMasked: string; accountName: string; timeZone: string; transactions: Transaction[]; page: number; size: number; totalElements: number; totalPages: number }
 export type A01Request = { requestId: string; workItemId: number; accountId: number; startDate: string; endDate: string; transactionType: 'IN' | 'OUT' | null; minimumAmount: string | null; maximumAmount: string | null; keyword: string | null; sortOrder: 'RECENT' | 'OLDEST'; page: number; size: number }
+export type CustomerTaskHistoryItem = { taskCode: 'TRANSACTION_SEARCH' | 'HOUSING_SAVINGS_CLOSE' | 'INHERITANCE_DEPOSIT'; workItemId: number; workItemStatus: string; workflowStatus: string; caseId: number | null; caseStatus: string | null; resultAvailable: boolean }
 
 export type B02Prepare = { requestId: string; account: number; waive: boolean; taxed: boolean | null }
 export type B02PrepareResult = { rate: string; rule: string; manual: boolean }
-export type B02ExecuteResult = { requestId: string; customer: number; account: number; status: string; rate: string; rule: string; command?: unknown }
+export type B02ExecuteResult = { requestId: string; customer?: number; account: number; status: string; rate: string; rule: string; command?: unknown }
+export type B02StoredResult = { workItemId: number; status: string; decisionCode: string; ruleVersion: string; beforeValue: Record<string, unknown> | null; afterValue: Record<string, unknown> | null; detail: Record<string, unknown> | null }
 export type B02Otp = { requestId: string; version: number; consent: boolean; signed: boolean; phone: string | null; workItemId: number }
 export type B02Execute = { requestId: string; version: number; waive: boolean; taxed: boolean | null; binding: string; workItemId: number }
 
@@ -23,7 +25,8 @@ export type C02Heir = { personRef: string; name: string; birthDate: string | nul
 export type C02Prepare = { requestId: string; workItemId: number; registeredPhone: string | null; decedent: { name: string; birthDate: string | null; deathDate: string; depositTotal: number }; heirs: C02Heir[]; documentStatuses: Record<string, string> }
 export type C02DocumentSlot = { documentTypeCode: string; personRef: string | null; requirement: 'REQUIRED' | 'CONDITIONAL' | 'VISIT_ONLY'; note: string }
 export type C02Document = { documentFileId: number; caseId: number; caseRevision: number; documentSlotKey: string; version: number; fileName: string; mimeType: string; sizeBytes: number; status: string; documentType: string; uploadedAt: string }
-export type C02OcrDocument = { documentFileId: number; caseRevision: number; documentTypeCode: string; personRef: string | null; method: 'NONE' | 'MOCK' | 'CLOVA_GENERAL' | 'CLOVA_TEMPLATE'; status: 'PENDING' | 'NOT_APPLICABLE' | 'SUCCEEDED' | 'FAILED_NEEDS_STAFF'; extracted: Record<string, unknown> | null; failureReason: string | null; manualVerificationRequired: true }
+export type C02OcrFieldComparison = { fieldName: 'grantor_names' | 'agent_name'; status: 'MATCH_CANDIDATE' | 'MISMATCH_CANDIDATE' | 'MANUAL_CHECK' | 'UNVERIFIABLE'; extractedValue: string | null; referenceValue: string | null; confidence: number | null; manualVerificationRequired: boolean; reasonCode: string }
+export type C02OcrDocument = { documentFileId: number; caseRevision: number; documentTypeCode: string; personRef: string | null; method: 'NONE' | 'MOCK' | 'CLOVA_GENERAL' | 'CLOVA_TEMPLATE'; status: 'PENDING' | 'NOT_APPLICABLE' | 'SUCCEEDED' | 'FAILED_NEEDS_STAFF'; extracted: Record<string, unknown> | null; failureReason: string | null; manualVerificationRequired: true; fieldComparisons?: C02OcrFieldComparison[] }
 export type C02OcrSnapshot = { caseId: number; revision: number; manualVerificationRequired: true; documents: C02OcrDocument[] }
 export type C02Review = { caseId: number; workItemId: number; revision: number; agentRunStatus: string; reviewStatus: string | null; reviewItems: { category?: string; message?: string; source?: string; documentFileId?: number }[]; error: Record<string, unknown> | null; finalStaffDecision: boolean }
 export type C02CustomerCaseSnapshot = { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null; visitRequired: boolean; requiredDocuments: C02DocumentSlot[]; documents: C02Document[]; precheck: C02Review }
@@ -33,8 +36,11 @@ export type C02OtpIssue = { challengeId: string; maskedPhone: string; expiresAt:
 export type C02OtpBinding = { bindingId: string; customerId: number; workItemId: number; action: string; requestVersion: number; expiresAt: string }
 export type C02StaffDecision = { caseId: number; workItemId: number; customerId: number; staffId: number; revision: number; outcome: 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'; currentCaseStatus: string; proposedCaseStatus: string; customerMessage: string; notification: { notificationId: string; caseId: number; revision: number; outcome: string; message: string; externalDeliveryAttempted: boolean } }
 export type NotificationItem = { id: number; caseId: number | null; type: string; title: string; content: string; readAt: string | null; createdAt: string }
-export type Reservation = { id: number; caseId: number; branchId: number; staffId: number; startsAt: string; status: string }
-export type ReservationCreate = { requestId: string; caseId: number; branchId: number; staffId: number | null; startsAt: string }
+export type ReservationStatus = 'SELECTED' | 'PENDING_ASSIGNMENT' | 'CONFIRMED' | 'NEEDS_MANUAL_ASSIGNMENT' | 'CANCELED' | 'EXPIRED' | 'COMPLETED'
+export type Reservation = { id: number; caseId: number; workItemId: number; taskCode: string; branchId: number; staffId: number | null; startsAt: string; status: ReservationStatus; version: number }
+export type ReservationCreate = { requestId: string; caseId: number; branchId: number; startsAt: string }
+export type ReservationEligibleCase = { caseId: number; taskCode: string; revision: number }
+export type ReservationBranch = { branchId: number; branchCode: string; name: string }
 
 function requireBff() {
   if (!taskBffEnabled) throw new Error('업무 API는 로그인 BFF 연결 후 사용할 수 있습니다.')
@@ -46,11 +52,22 @@ export async function searchTransactions(request: A01Request): Promise<ApiEnvelo
   return apiFetch<TransactionSearchResult>('/api/v1/customer/a01/transaction-search', { method: 'POST', body: JSON.stringify(request) })
 }
 
+export async function getA01Result(workItemId: number): Promise<ApiEnvelope<TransactionSearchResult>> {
+  requireBff()
+  return apiFetch<TransactionSearchResult>(`/api/v1/customer/a01/work-items/${workItemId}/result`)
+}
+
+export async function getCustomerTaskHistory(): Promise<ApiEnvelope<CustomerTaskHistoryItem[]>> {
+  requireBff()
+  return apiFetch<CustomerTaskHistoryItem[]>('/api/v1/customer/task-history')
+}
+
 export const b02Api = {
   async prepare(body: B02Prepare) { requireBff(); return apiFetch<B02PrepareResult>('/api/v1/customer/b02/prepare', { method: 'POST', body: JSON.stringify(body) }) },
   async issueOtp(accountId: number, body: B02Otp) { requireBff(); return apiFetch<{ challengeId: string }>('/api/v1/customer/b02/' + accountId + '/otp', { method: 'POST', body: JSON.stringify(body) }) },
   async verifyOtp(challenge: string, otp: string, requestId: string) { requireBff(); return apiFetch<{ bindingId: string }>('/api/v1/customer/b02/otp/verify', { method: 'POST', body: JSON.stringify({ requestId, challenge, otp }) }) },
   async execute(accountId: number, body: B02Execute) { requireBff(); return apiFetch<B02ExecuteResult>('/api/v1/customer/b02/' + accountId + '/execute', { method: 'POST', body: JSON.stringify(body) }) },
+  async result(workItemId: number) { requireBff(); return apiFetch<B02StoredResult>('/api/v1/customer/b02/work-items/' + workItemId + '/result') },
 }
 
 export const c02Api = {
@@ -78,6 +95,9 @@ export const c02Api = {
   async notifications(requestId: string) { requireBff(); return apiFetch<NotificationItem[]>('/api/v1/customer/notifications?requestId=' + encodeURIComponent(requestId)) },
   async readNotification(id: number, requestId: string) { requireBff(); return apiFetch<null>('/api/v1/customer/notifications/' + id + '/read?requestId=' + encodeURIComponent(requestId), { method: 'POST' }) },
   async reservations(requestId: string) { requireBff(); return apiFetch<Reservation[]>('/api/v1/customer/reservations?requestId=' + encodeURIComponent(requestId)) },
+  async reservationEligibleCases(requestId: string) { requireBff(); return apiFetch<ReservationEligibleCase[]>('/api/v1/customer/reservations/eligible-cases?requestId=' + encodeURIComponent(requestId)) },
+  async reservationBranches(requestId: string) { requireBff(); return apiFetch<ReservationBranch[]>('/api/v1/customer/reservations/branches?requestId=' + encodeURIComponent(requestId)) },
   async createReservation(body: ReservationCreate) { requireBff(); return apiFetch<Reservation>('/api/v1/customer/reservations', { method: 'POST', body: JSON.stringify(body) }) },
   async cancelReservation(id: number, requestId: string) { requireBff(); return apiFetch<null>('/api/v1/customer/reservations/' + id + '/cancel?requestId=' + encodeURIComponent(requestId), { method: 'POST' }) },
+  async rescheduleReservation(id: number, body: Omit<ReservationCreate, 'caseId'>) { requireBff(); return apiFetch<Reservation>(`/api/v1/customer/reservations/${id}`, { method: 'PUT', body: JSON.stringify(body) }) },
 }
