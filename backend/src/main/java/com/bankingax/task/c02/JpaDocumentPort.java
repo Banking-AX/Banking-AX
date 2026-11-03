@@ -24,6 +24,12 @@ class JpaDocumentPort implements DocumentPort {
     }
     @Override @Transactional(readOnly=true) public List<DocumentMetadata> findByCase(long caseId) { return repository.metadataByCase(caseId).stream().map(JpaDocumentPort::row).toList(); }
     @Override @Transactional(readOnly=true) public Optional<DocumentMetadata> findById(long documentFileId) { return repository.metadataById(documentFileId).map(JpaDocumentPort::row); }
+    @Override @Transactional public DocumentMetadata bindToCaseRevision(long documentFileId, int caseRevision) {
+        if (repository.bindToCaseRevision(documentFileId, caseRevision) != 1)
+            throw new DomainException("DOCUMENT_NOT_FOUND", "Document metadata was not found.");
+        return repository.metadataById(documentFileId).map(JpaDocumentPort::row)
+            .orElseThrow(() -> new DomainException("DOCUMENT_NOT_FOUND", "Document metadata was not found."));
+    }
     @Override @Transactional public void delete(long documentFileId) { repository.deleteById(documentFileId); }
     @Override @Transactional(readOnly=true) public C02IntakeService.DocumentStatus status(long caseId,String slot) {
         return repository.metadataByCase(caseId).stream().filter(row->slot(row).equals(slot)).max(java.util.Comparator.comparingInt(JpaDocumentFileRepository.DocumentRow::getVersion)).map(row->C02IntakeService.DocumentStatus.valueOf(row.getStatus())).orElse(C02IntakeService.DocumentStatus.NOT_SUBMITTED);

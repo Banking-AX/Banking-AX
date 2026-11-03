@@ -91,6 +91,13 @@ public class C02CustomerBffController {
         return internal.documents(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
 
+    @GetMapping("/{caseId}/ocr")
+    public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication,
+            @PathVariable long caseId, @RequestParam int revision, @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.customerOcr(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, revision, requestId);
+    }
+
     @GetMapping("/{caseId}/review")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> review(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {

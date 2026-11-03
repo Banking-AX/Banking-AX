@@ -42,6 +42,19 @@ public final class InMemoryDocumentPort implements DocumentPort {
     @Override public synchronized java.util.Optional<DocumentMetadata> findById(long documentFileId) {
         return documents.values().stream().flatMap(List::stream).filter(d -> d.documentFileId()==documentFileId).findFirst();
     }
+    @Override public synchronized DocumentMetadata bindToCaseRevision(long documentFileId, int caseRevision) {
+        for (List<DocumentMetadata> items : documents.values()) for (int index = 0; index < items.size(); index++) {
+            DocumentMetadata current = items.get(index);
+            if (current.documentFileId() == documentFileId) {
+                DocumentMetadata bound = new DocumentMetadata(current.documentFileId(), current.caseId(), caseRevision,
+                    current.documentSlotKey(), current.version(), current.fileName(), current.mimeType(), current.sizeBytes(),
+                    current.storageReference(), current.status(), current.documentType(), current.checksum(), current.uploadedAt(), current.uploadedBy());
+                items.set(index, bound);
+                return bound;
+            }
+        }
+        throw new DomainException("DOCUMENT_NOT_FOUND", "Document metadata was not found.");
+    }
     @Override public synchronized void delete(long documentFileId) {
         documents.values().forEach(items -> items.removeIf(item -> item.documentFileId() == documentFileId));
         documents.entrySet().removeIf(entry -> entry.getValue().isEmpty());

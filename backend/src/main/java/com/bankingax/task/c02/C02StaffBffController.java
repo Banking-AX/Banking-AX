@@ -35,6 +35,13 @@ public class C02StaffBffController {
         return internal.staffCase(caseId, ActorRole.STAFF, gatewayToken, requestId);
     }
 
+    @GetMapping("/{caseId}/ocr")
+    public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication,
+            @PathVariable long caseId, @RequestParam int revision, @RequestParam String requestId) {
+        principals.staff(authentication);
+        return internal.staffOcr(caseId, ActorRole.STAFF, gatewayToken, revision, requestId);
+    }
+
     @GetMapping("/{caseId}/staff-review")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> staffReview(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {

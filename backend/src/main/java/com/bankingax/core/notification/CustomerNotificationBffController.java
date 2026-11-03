@@ -5,7 +5,7 @@ import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** JWT customer boundary for the shared notification API. */
 @RestController
 @RequestMapping("/api/v1/customer/notifications")
-@ConditionalOnBean(JdbcTemplate.class)
+@ConditionalOnProperty(name = "app.case-port", havingValue = "jpa")
 public class CustomerNotificationBffController {
     private final NotificationController internal;
     private final TaskBffPrincipal principals;

@@ -5,12 +5,12 @@ import com.bankingax.core.api.DomainException;
 import com.bankingax.core.tool.ActorRole;
 import com.bankingax.core.tool.InternalGatewayAuthenticator;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.*;
 
 /** Customer-scoped notification API reusable by both C workflows. */
-@RestController @RequestMapping("/api/v1/notifications") @ConditionalOnBean(JdbcTemplate.class)
+@RestController @RequestMapping("/api/v1/notifications") @ConditionalOnProperty(name = "app.case-port", havingValue = "jpa")
 public class NotificationController {
  private final JdbcTemplate jdbc; private final InternalGatewayAuthenticator auth;
  public NotificationController(JdbcTemplate jdbc,InternalGatewayAuthenticator auth){this.jdbc=jdbc;this.auth=auth;}

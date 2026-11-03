@@ -1,19 +1,120 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { c02Api, taskBffEnabled } from '../api/taskApi'
+import { useParams } from 'react-router-dom'
+import { c02Api, taskBffEnabled, type C02Document, type C02DocumentSlot, type C02OcrSnapshot, type C02Review } from '../api/taskApi'
 
 type Outcome = 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'
-type CaseData = { caseView?: { revision?: number; caseStatus?: string; reviewStatus?: string }; precheck?: { reviewItems?: { category?: string; message?: string; source?: string }[] }; documents?: { fileName?: string; status?: string }[] }
+type CaseData = {
+  caseView?: { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null }
+  requiredDocuments?: C02DocumentSlot[]
+  documents?: C02Document[]
+  ocr?: C02OcrSnapshot | null
+  ocrError?: string | null
+  precheck?: C02Review
+  finalDecision?: { revision: number; outcome: string; customerMessage: string } | null
+}
+const requestId = (action: string, caseId: number) => `c02-staff-${action}-${caseId}-${crypto.randomUUID()}`
 
-/** Staff actions are possible only behind a staff-session BFF; Agent output remains reference material. */
+/** Agent findings are reference material; only the authenticated employee can submit a final decision. */
 export function C02StaffReviewPage() {
-  const { caseId } = useParams(); const parsedId = Number(caseId)
-  const [data, setData] = useState<CaseData | null>(null); const [outcome, setOutcome] = useState<Outcome>('PROCEED'); const [message, setMessage] = useState(''); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false)
-  const load = async () => { if (!Number.isSafeInteger(parsedId) || parsedId <= 0) return setError('Case ID가 올바르지 않습니다.'); setBusy(true); setError(null); try { const r = await c02Api.staffCase(parsedId, `c02-staff-case-${parsedId}`); setData((r.data ?? null) as CaseData | null) } catch (e) { setError(e instanceof Error ? e.message : 'Case를 불러올 수 없습니다.') } finally { setBusy(false) } }
-  const decide = async () => { const revision = data?.caseView?.revision; if (!Number.isInteger(revision) || !Number.isSafeInteger(parsedId)) return setError('최신 revision을 먼저 불러와야 합니다.'); const currentRevision = Number(revision); setBusy(true); setError(null); try { await c02Api.staffDecision(parsedId, { revision: currentRevision, requestId: `c02-staff-decision-${parsedId}-${currentRevision}`, outcome, customerMessage: message }); await load() } catch (e) { setError(e instanceof Error ? e.message : '최종결정을 저장할 수 없습니다.') } finally { setBusy(false) } }
-  return <section><h1>C-02 직원 검토</h1><p>Case: {caseId ?? '미지정'}. Agent 사전검토와 OCR은 참고자료이며, 직원만 최종결정을 기록할 수 있습니다.</p>
-    {!taskBffEnabled && <p role="status">직원 RBAC BFF 연결 대기 중입니다. 내부 gateway token은 이 화면에 없습니다.</p>}<button type="button" disabled={!taskBffEnabled || busy} onClick={load}>{busy ? '불러오는 중' : '최신 Case 불러오기'}</button>{error && <p role="alert">{error}</p>}
-    {data && <><p>상태: {data.caseView?.caseStatus ?? '-'} / Agent 검토: {data.caseView?.reviewStatus ?? '-'}</p><h2>사전검토 항목</h2><ul>{data.precheck?.reviewItems?.map((item, i) => <li key={i}>{item.category}: {item.message} ({item.source})</li>)}</ul><h2>직원 최종결정</h2><select value={outcome} onChange={e => setOutcome(e.target.value as Outcome)}><option value="PROCEED">진행 가능</option><option value="REQUIREMENT_FAILED">요건 미충족</option><option value="DOCUMENT_INSUFFICIENT">서류 보완 필요</option></select><textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="고객 안내 메시지"/><button type="button" disabled={!taskBffEnabled || busy} onClick={decide}>최종결정 및 고객 알림 저장</button></>}
-    <p><Link to="/tasks/c02/notifications">고객 알림 화면</Link></p>
+  const { caseId } = useParams()
+  const parsedId = Number(caseId)
+  const [data, setData] = useState<CaseData | null>(null)
+  const [outcome, setOutcome] = useState<Outcome>('DOCUMENT_INSUFFICIENT')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [decisionNotice, setDecisionNotice] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const load = async () => {
+    if (!Number.isSafeInteger(parsedId) || parsedId <= 0) { setError('Case ID가 올바르지 않습니다.'); return }
+    setBusy(true); setError(null)
+    try {
+      const response = await c02Api.staffCase(parsedId, requestId('case', parsedId))
+      const next = (response.data ?? null) as CaseData | null
+      if (next?.caseView) {
+        try {
+          const ocr = await c02Api.staffOcr(parsedId, next.caseView.revision, requestId('ocr', parsedId))
+          next.ocr = ocr.data ?? null
+          next.ocrError = null
+        } catch (cause) {
+          next.ocr = null
+          next.ocrError = cause instanceof Error ? cause.message : 'OCR 상태를 불러오지 못했습니다.'
+        }
+      }
+      setData(next)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '직원 Case 조회에 실패했습니다.') }
+    finally { setBusy(false) }
+  }
+
+  const precheck = async () => {
+    const current = data?.caseView
+    if (!current || !Number.isSafeInteger(parsedId)) { setError('최신 Case를 먼저 조회해 주세요.'); return }
+    setBusy(true); setError(null)
+    try {
+      await c02Api.staffPrecheck(parsedId, { revision: current.revision, requestId: requestId('precheck', parsedId) })
+      await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '직원 Agent 사전검토에 실패했습니다.') }
+    finally { setBusy(false) }
+  }
+
+  const decide = async () => {
+    const current = data?.caseView
+    const checked = data?.precheck
+    if (!current || !checked || checked.revision !== current.revision || !Number.isSafeInteger(parsedId)) {
+      setError('현재 Case revision의 사전검토 결과를 먼저 확인해 주세요.')
+      return
+    }
+    setBusy(true); setError(null)
+    try {
+      const response = await c02Api.staffDecision(parsedId, { revision: current.revision, requestId: requestId('decision', parsedId), outcome, customerMessage: message })
+      setDecisionNotice(response.data?.notification
+        ? `직원 결정과 고객 알림이 저장됐습니다. 알림 ID ${response.data.notification.notificationId}. 외부 문자 발송 여부: ${response.data.notification.externalDeliveryAttempted ? '시도됨' : '시도 안 함'}.`
+        : '직원 결정 응답에 알림 정보가 없습니다.')
+      await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '최종결정을 저장할 수 없습니다.') }
+    finally { setBusy(false) }
+  }
+
+  const currentRevisionPrecheck = Boolean(data?.caseView && data.precheck?.revision === data.caseView.revision)
+  const isSubmitted = data?.caseView?.caseStatus === 'SUBMITTED'
+
+  return <section>
+    <h1>C-02 직원 검토</h1>
+    <p>직원 세션의 JWT 권한으로 접근합니다. Agent 사전검토와 OCR은 참고 자료이며, 최종 접수 검토는 직원이 직접 결정합니다.</p>
+    {!taskBffEnabled && <p role="status">로그인 BFF 연결이 비활성화되어 있습니다. 내부 gateway token은 화면에서 사용하지 않습니다.</p>}
+    <button type="button" disabled={!taskBffEnabled || busy} onClick={() => void load()}>{busy ? '처리 중…' : '최신 Case 조회'}</button>
+    {error && <p role="alert">{error}</p>}{decisionNotice && <p role="status">{decisionNotice}</p>}
+    {data?.caseView && <>
+      <h2>Case {data.caseView.caseId}</h2>
+      <p>WorkItem {data.caseView.workItemId} · 상태 {data.caseView.caseStatus} · revision {data.caseView.revision} · AI 검토 상태 {data.caseView.reviewStatus ?? '미실행'}</p>
+      <h3>문서 manifest / 업로드 파일</h3>
+      <ul>{(data.requiredDocuments ?? []).map(slot => <li key={`${slot.documentTypeCode}:${slot.personRef ?? 'COMMON'}`}>
+        {slot.documentTypeCode} ({slot.requirement}){slot.personRef ? ` · 상속인 ${slot.personRef}` : ''} — {slot.note}
+        <ul>{(data.documents ?? []).filter(document => document.documentSlotKey === `${slot.documentTypeCode}:${slot.personRef ?? 'COMMON'}`).map(document => <li key={document.documentFileId}>{document.fileName} · revision {document.caseRevision} · {document.status}</li>)}</ul>
+      </li>)}</ul>
+      <section aria-label="OCR reference">
+        <h3>OCR 참고 결과</h3>
+        <p>Case revision {data.ocr?.revision ?? data.caseView.revision}; OCR은 참고 자료이며 모든 문서는 직원이 원본과 대조해야 합니다. 자동 승인이나 권리 판단에 사용하지 않습니다.</p>
+        {data.ocrError && <p role="alert">OCR 조회 실패: {data.ocrError}</p>}
+        {(data.ocr?.documents ?? []).length === 0 && !data.ocrError && <p>현재 revision에 연결된 OCR 결과가 없습니다. 원본을 직접 확인해 주세요.</p>}
+        <ul>{(data.ocr?.documents ?? []).map(item => <li key={item.documentFileId}>
+          <strong>{item.documentTypeCode}{item.personRef ? ` · ${item.personRef}` : ''}</strong> — {item.method} / {item.status}; 문서 revision {item.caseRevision}
+          <p>원본 확인 필요: {item.manualVerificationRequired ? '예' : '아니요'}{item.failureReason ? ` · 처리 사유: ${item.failureReason}` : ''}</p>
+          {item.extracted && <pre>{JSON.stringify(item.extracted, null, 2)}</pre>}
+        </li>)}</ul>
+      </section>
+      <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || Boolean(data.finalDecision)} onClick={() => void precheck()}>현재 revision 사전검토 실행</button>
+      {data.precheck && <section>
+        <h3>직원 Agent 사전검토 revision {data.precheck.revision}</h3>
+        <p>실행 {data.precheck.agentRunStatus} · 검토 상태 {data.precheck.reviewStatus ?? '미지정'} · 최종 직원결정 아님</p>
+        {data.precheck.error && <p role="alert">Agent 오류: {JSON.stringify(data.precheck.error)}</p>}
+        <ul>{data.precheck.reviewItems?.map((item, index) => <li key={`${item.category ?? 'item'}-${index}`}>{item.category}: {item.message} ({item.source})</li>)}</ul>
+      </section>}
+      {data.finalDecision && <p role="status">직원 최종결정 저장됨: {data.finalDecision.outcome} · revision {data.finalDecision.revision}</p>}
+      <h3>직원 최종결정</h3>
+      <label>결정 <select value={outcome} onChange={event => setOutcome(event.target.value as Outcome)}><option value="PROCEED">진행 가능</option><option value="REQUIREMENT_FAILED">요건 미충족</option><option value="DOCUMENT_INSUFFICIENT">서류 보완 필요</option></select></label>
+      <label>고객 안내 <textarea value={message} onChange={event => setMessage(event.target.value)} /></label>
+      <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || !currentRevisionPrecheck || Boolean(data.finalDecision)} onClick={() => void decide()}>직원 최종결정 및 고객 알림 저장</button>
+    </>}
   </section>
 }

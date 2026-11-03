@@ -13,6 +13,14 @@ public interface DocumentPort {
     DocumentMetadata register(DocumentRegistration command);
     List<DocumentMetadata> findByCase(long caseId);
     default Optional<DocumentMetadata> findById(long documentFileId) { return Optional.empty(); }
+    /**
+     * An upload creates the next Case revision.  Persist the file against that
+     * revision so a current staff-precheck snapshot cannot accidentally read a
+     * prior revision's extraction.
+     */
+    default DocumentMetadata bindToCaseRevision(long documentFileId, int caseRevision) {
+        return findById(documentFileId).orElseThrow();
+    }
     /** Compensation hook used when Case revision cannot be recorded after metadata registration. */
     void delete(long documentFileId);
     C02IntakeService.DocumentStatus status(long caseId, String documentSlotKey);

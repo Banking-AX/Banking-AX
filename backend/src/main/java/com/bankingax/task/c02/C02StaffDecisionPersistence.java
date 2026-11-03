@@ -3,7 +3,6 @@ package com.bankingax.task.c02;
 import com.bankingax.core.api.DomainException;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
  * outcome, advances the Case, and creates the in-service notification.
  */
 @Service
-@ConditionalOnBean(JdbcTemplate.class)
 @ConditionalOnProperty(prefix = "app.c02", name = "review-persistence-enabled", havingValue = "true")
 public class C02StaffDecisionPersistence {
     private final JdbcTemplate jdbc;
