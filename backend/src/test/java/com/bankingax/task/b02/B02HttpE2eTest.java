@@ -26,7 +26,8 @@ import org.springframework.http.*;
 /** Real HTTP test server; OTP plaintext stays only in this test bean. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
     "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
-    "app.tool-gateway-token=b02-e2e-tool-token"
+    "app.tool-gateway-token=b02-e2e-tool-token",
+    "app.reservation.enabled=false"
 })
 @Import(B02HttpE2eTest.Config.class)
 class B02HttpE2eTest {

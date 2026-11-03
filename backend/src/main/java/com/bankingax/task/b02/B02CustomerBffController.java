@@ -5,6 +5,8 @@ import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
 import com.bankingax.core.verification.VerificationBinding;
 import com.bankingax.core.verification.VerificationIssue;
+import com.bankingax.core.api.DomainException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,12 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/customer/b02")
 public class B02CustomerBffController {
     private final B02Controller internal;
+    private final B02WorkflowService workflow;
     private final TaskBffPrincipal principals;
     private final String gatewayToken;
 
-    public B02CustomerBffController(B02Controller internal, TaskBffPrincipal principals,
+    public B02CustomerBffController(B02Controller internal, ObjectProvider<B02WorkflowService> workflow, TaskBffPrincipal principals,
                                     @Value("${app.tool-gateway-token:}") String gatewayToken) {
         this.internal = internal;
+        this.workflow = workflow.getIfAvailable();
         this.principals = principals;
         this.gatewayToken = gatewayToken;
     }
@@ -58,6 +62,15 @@ public class B02CustomerBffController {
         return internal.e(accountId, customerId, ActorRole.CUSTOMER, gatewayToken,
                 new B02Controller.E(body.requestId(), customerId, body.version(), body.waive(), body.taxed(),
                         body.binding(), body.workItemId()));
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/work-items/{workItemId}/result")
+    public ApiEnvelope<B02WorkflowService.StoredResult> result(JwtAuthenticationToken authentication,
+                                                                @PathVariable long workItemId) {
+        long customerId = principals.customer(authentication);
+        if (workflow == null) throw new DomainException("B02_RESULT_UNAVAILABLE", "Persistent B-02 results are unavailable.");
+        return ApiEnvelope.success("b02-result-" + workItemId, "HOUSING_SAVINGS_CLOSE", workItemId,
+                null, null, workflow.result(customerId, workItemId));
     }
 
     public record Prepare(String requestId, long account, boolean waive, Boolean taxed) { }

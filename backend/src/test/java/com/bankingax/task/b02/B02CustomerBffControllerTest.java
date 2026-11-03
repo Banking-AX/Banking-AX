@@ -6,7 +6,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import com.bankingax.core.api.ApiEnvelope;
 import com.bankingax.core.auth.TaskBffPrincipal;
@@ -28,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class B02CustomerBffControllerTest {
     @Autowired MockMvc http;
     @MockBean B02Controller internal;
+    @MockBean B02WorkflowService workflow;
 
     @Test
     void keepsWorkItemSeparateFromAccountAndUsesJwtCustomer() throws Exception {
@@ -40,5 +43,18 @@ class B02CustomerBffControllerTest {
                         .content("{\"requestId\":\"b02-1\",\"account\":7,\"workItemId\":100,\"customer\":999,\"waive\":false}"))
                 .andExpect(status().isOk());
         verify(internal).p(eq(42L), eq(ActorRole.CUSTOMER), eq("server-only-token"), any(B02Controller.Q.class));
+    }
+
+    @Test
+    void resultReadUsesAuthenticatedCustomerAndWorkItem() throws Exception {
+        when(workflow.result(42L, 100L)).thenReturn(new B02WorkflowService.StoredResult(
+                100L, "DONE", "B2-R1", "1.7.1", null, null, null));
+        http.perform(get("/api/v1/customer/b02/work-items/100/result")
+                        .with(jwt().jwt(token -> token.subject("42").claim("role", "CUSTOMER"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.workItemId").value(100))
+                .andExpect(jsonPath("$.data.status").value("DONE"));
+        verify(workflow).result(42L, 100L);
     }
 }

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bankingax.core.api.ApiEnvelope;
@@ -29,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class A01CustomerBffControllerTest {
     @Autowired MockMvc http;
     @MockBean ToolGatewayController tools;
+    @MockBean A01WorkflowService workflow;
 
     @Test
     void derivesCustomerFromJwtAndDoesNotAcceptSpoofedIdentity() throws Exception {
@@ -52,6 +54,26 @@ class A01CustomerBffControllerTest {
                         .with(jwt().jwt(token -> token.subject("101").claim("role", "STAFF"))
                                 .authorities(new SimpleGrantedAuthority("ROLE_EMPLOYEE")))
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void resultReadUsesJwtCustomerAndOwnedWorkItem() throws Exception {
+        var result = new TransactionSearchResponse(7L, "****0007", "주거래통장", "Asia/Seoul", java.util.List.of(), 0, 20, 0, 0);
+        when(workflow.result(42L, 100L)).thenReturn(result);
+        http.perform(get("/api/v1/customer/a01/work-items/100/result")
+                        .with(jwt().jwt(token -> token.subject("42").claim("role", "CUSTOMER"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"))))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.taskCode").value("TRANSACTION_SEARCH"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.workItemId").value(100))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.accountId").value(7));
+        verify(workflow).result(42L, 100L);
+    }
+
+    @Test
+    void resultReadRequiresCustomerAuthentication() throws Exception {
+        http.perform(get("/api/v1/customer/a01/work-items/100/result"))
                 .andExpect(status().isForbidden());
     }
 }
