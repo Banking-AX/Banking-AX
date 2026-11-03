@@ -45,6 +45,14 @@ app:
     max-file-bytes: ${APP_B01_MAX_FILE_BYTES:10485760}
     signature-storage-root: ${APP_B01_SIGNATURE_STORAGE_ROOT:./var/b01-signatures}
     signature-max-bytes: ${APP_B01_SIGNATURE_MAX_BYTES:1048576}
+    # Mock is the safe default. CLOVA sends the stored synthetic application to the configured Template OCR endpoint.
+    ocr-provider: ${APP_B01_OCR_PROVIDER:mock}
+    clova:
+      invoke-url: ${CLOVA_OCR_INVOKE_URL:}
+      secret: ${CLOVA_OCR_SECRET:}
+      template-id: ${CLOVA_OCR_TEMPLATE_ID:}
+      connect-timeout-seconds: ${CLOVA_OCR_CONNECT_TIMEOUT_SECONDS:3}
+      read-timeout-seconds: ${CLOVA_OCR_READ_TIMEOUT_SECONDS:15}
   b02:
     # jdbc requires the authoritative Mock-financial tables; default remains the G1 fixture.
     account-port: ${APP_B02_ACCOUNT_PORT:fake}

@@ -42,7 +42,8 @@ public class B01DocumentService {
                     requiredDocumentId);
             long documentFileId = insertFile(requiredDocumentId, version, customerId, stored);
             jdbc.update("update required_document set status='UPLOADED' where id=?", requiredDocumentId);
-            B01OcrPort.OcrResult extracted = extractOnceLocked(documentFileId, stored.checksum());
+            B01OcrPort.OcrResult extracted = extractOnceLocked(documentFileId, stored.checksum(),
+                    stored.storageKey(), stored.originalFilename(), stored.contentType());
             return safeResult(documentFileId, version, extracted);
         } catch (RuntimeException exception) {
             files.deleteQuietly(stored.storageKey());
@@ -56,18 +57,21 @@ public class B01DocumentService {
         requireJdbc();
         requireOwnedActiveWorkItem(customerId, workItemId);
         FileRow file = jdbc.query("""
-                select df.id,df.version,df.checksum
+                select df.id,df.version,df.checksum,df.storage_path,df.original_name,df.content_type
                   from document_file df
                   join required_document rd on rd.id=df.required_document_id
                  where df.id=? and rd.work_item_id=? and rd.document_type_code=?
                  for update
-                """, rs -> rs.next() ? new FileRow(rs.getLong(1), rs.getInt(2), rs.getString(3)) : null,
+                """, rs -> rs.next() ? new FileRow(rs.getLong(1), rs.getInt(2), rs.getString(3),
+                        rs.getString(4), rs.getString(5), rs.getString(6)) : null,
                 documentFileId, workItemId, DOCUMENT_TYPE);
         if (file == null) throw unavailable();
-        return safeResult(file.id(), file.version(), extractOnceLocked(file.id(), file.checksum()));
+        return safeResult(file.id(), file.version(), extractOnceLocked(file.id(), file.checksum(),
+                file.storageKey(), file.originalName(), file.contentType()));
     }
 
-    private B01OcrPort.OcrResult extractOnceLocked(long documentFileId, String checksum) {
+    private B01OcrPort.OcrResult extractOnceLocked(long documentFileId, String checksum, String storageKey,
+                                                   String originalName, String contentType) {
         jdbc.queryForObject("select id from document_file where id=? for update", Long.class, documentFileId);
         List<String> saved = jdbc.query("select extracted from document_extraction where document_file_id=? order by id",
                 (rs, row) -> rs.getString(1), documentFileId);
@@ -75,9 +79,10 @@ public class B01DocumentService {
 
         B01OcrPort.OcrResult result;
         try {
-            result = ocr.extract(new B01OcrPort.ExtractRequest(documentFileId, DOCUMENT_TYPE, checksum));
+            result = ocr.extract(new B01OcrPort.ExtractRequest(documentFileId, DOCUMENT_TYPE, checksum,
+                    originalName, contentType, files.read(storageKey)));
         } catch (RuntimeException exception) {
-            result = new B01OcrPort.OcrResult(DOCUMENT_TYPE, null, "MOCK", "FAILED_NEEDS_STAFF",
+            result = new B01OcrPort.OcrResult(DOCUMENT_TYPE, null, ocr.method(), "FAILED_NEEDS_STAFF",
                     new B01OcrPort.Fields(List.of(), null),
                     new B01OcrPort.SignatureChecks("NOT_VERIFIED", "NOT_VERIFIED"),
                     false, true, "OCR_UNAVAILABLE");
@@ -196,7 +201,8 @@ public class B01DocumentService {
         return "****" + account.substring(account.length() - 4);
     }
 
-    private record FileRow(long id, int version, String checksum) { }
+    private record FileRow(long id, int version, String checksum, String storageKey,
+                           String originalName, String contentType) { }
 
     public record UploadResult(long documentFileId, int version, String documentTypeCode,
                                String detectedType, String method, String status, SafeFields fields,
