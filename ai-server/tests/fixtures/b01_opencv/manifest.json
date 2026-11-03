@@ -1,0 +1,64 @@
+{
+  "source": "backend/src/main/resources/b01/mock-ocr/b01_blank_201903.pdf",
+  "formCode": "5-202-0557",
+  "revision": "2019.03",
+  "renderDpi": 150,
+  "canvas": {
+    "width": 1241,
+    "height": 1754
+  },
+  "rois": {
+    "firstCheckbox": [
+      244,
+      510,
+      302,
+      552
+    ],
+    "secondCheckbox": [
+      244,
+      548,
+      302,
+      590
+    ],
+    "debtorSignature": [
+      444,
+      1427,
+      1018,
+      1478
+    ]
+  },
+  "cases": {
+    "unchecked": {
+      "selectedOrder": "NONE",
+      "debtorSignature": "TRACE_ABSENT"
+    },
+    "first_checked": {
+      "selectedOrder": "PRINCIPAL_FIRST",
+      "debtorSignature": "TRACE_ABSENT"
+    },
+    "second_checked": {
+      "selectedOrder": "INTEREST_FIRST",
+      "debtorSignature": "TRACE_ABSENT"
+    },
+    "both_checked": {
+      "selectedOrder": "MULTIPLE",
+      "debtorSignature": "TRACE_ABSENT"
+    },
+    "faint_checked": {
+      "selectedOrder": "UNCERTAIN",
+      "debtorSignature": "TRACE_ABSENT"
+    },
+    "signature_present": {
+      "selectedOrder": "NONE",
+      "debtorSignature": "TRACE_PRESENT"
+    },
+    "signature_absent": {
+      "selectedOrder": "NONE",
+      "debtorSignature": "TRACE_ABSENT"
+    }
+  },
+  "limitations": [
+    "Synthetic strokes only; not evidence of camera or real-handwriting accuracy.",
+    "Signature result means trace presence only, never identity or authenticity."
+  ]
+}
