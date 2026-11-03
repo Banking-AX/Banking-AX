@@ -5,7 +5,7 @@ import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,12 +14,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** JWT customer boundary for reservation create/list/cancel. Spring keeps all eligibility checks. */
 @RestController
+@ConditionalOnProperty(name = "app.reservation.enabled", havingValue = "true", matchIfMissing = true)
 @RequestMapping("/api/v1/customer/reservations")
-@ConditionalOnBean(JdbcTemplate.class)
 public class CustomerReservationBffController {
     private final VisitReservationController internal;
     private final TaskBffPrincipal principals;
@@ -46,10 +47,31 @@ public class CustomerReservationBffController {
         return internal.list(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
     }
 
+    @GetMapping("/eligible-cases")
+    public ApiEnvelope<List<VisitReservationController.EligibleCase>> eligibleCases(JwtAuthenticationToken authentication,
+                                                                                     @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.eligibleCases(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+    }
+
+    @GetMapping("/branches")
+    public ApiEnvelope<List<VisitReservationController.BranchOption>> branches(JwtAuthenticationToken authentication,
+                                                                                @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.branches(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+    }
+
     @PostMapping("/{id}/cancel")
     public ApiEnvelope<Void> cancel(JwtAuthenticationToken authentication, @PathVariable long id,
                                     @RequestParam String requestId) {
         long customerId = principals.customer(authentication);
         return internal.cancel(id, customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+    }
+
+    @PutMapping("/{id}")
+    public ApiEnvelope<VisitReservationController.Item> reschedule(JwtAuthenticationToken authentication,
+            @PathVariable long id, @RequestBody VisitReservationController.Reschedule body) {
+        long customerId = principals.customer(authentication);
+        return internal.reschedule(id, customerId, ActorRole.CUSTOMER, gatewayToken, body);
     }
 }
