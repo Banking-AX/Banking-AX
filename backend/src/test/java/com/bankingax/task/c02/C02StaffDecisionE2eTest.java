@@ -20,7 +20,8 @@ import org.springframework.http.*;
 /** Actual embedded-Tomcat HTTP E2E for the G3 Spring-only staff outcome boundary. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
     "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
-    "app.tool-gateway-token=c02-g3-e2e-token"
+    "app.tool-gateway-token=c02-g3-e2e-token",
+    "app.reservation.enabled=false"
 })
 @Import(C02StaffDecisionE2eTest.Config.class)
 class C02StaffDecisionE2eTest {

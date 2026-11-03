@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -17,11 +18,18 @@ public class OcrPersistence {
     private final JdbcTemplate jdbc;
     private final OcrPort ocr;
     private final ObjectMapper json;
+    private final C02OcrComparisonService comparison;
 
     public OcrPersistence(JdbcTemplate jdbc, OcrPort ocr, ObjectMapper json) {
+        this(jdbc, ocr, json, new C02OcrComparisonService(jdbc, 0.90));
+    }
+
+    @Autowired
+    public OcrPersistence(JdbcTemplate jdbc, OcrPort ocr, ObjectMapper json, C02OcrComparisonService comparison) {
         this.jdbc = jdbc;
         this.ocr = ocr;
         this.json = json;
+        this.comparison = comparison;
     }
 
     public synchronized void extract(long fileId, long caseId, int revision, String type, String storage) {
@@ -136,14 +144,25 @@ public class OcrPersistence {
                 """, (row, index) -> new OcrDocument(
                     row.getLong("id"), row.getInt("case_revision"), row.getString("document_type_code"),
                     row.getString("person_ref"), row.getString("method"), row.getString("status"),
-                    parseJson(row.getString("extracted")), row.getString("failure_reason"), true),
+                    parseJson(row.getString("extracted")), row.getString("failure_reason"), true, List.of()),
                 revision, caseId, revision, revision);
+        return new Snapshot(caseId, revision, true, documents);
+    }
+
+    /** Staff-only view enriches the current OCR snapshot with deterministic reference comparisons. */
+    @Transactional(readOnly = true)
+    public Snapshot currentStaffSnapshot(long caseId, int revision) {
+        Snapshot current = currentSnapshot(caseId, revision);
+        List<OcrDocument> documents = current.documents().stream().map(document -> new OcrDocument(
+                document.documentFileId(), document.caseRevision(), document.documentTypeCode(), document.personRef(),
+                document.method(), document.status(), document.extracted(), document.failureReason(), true,
+                comparison.compare(caseId, revision, document))).toList();
         return new Snapshot(caseId, revision, true, documents);
     }
 
     /** Backward-compatible payload consumed by the existing Staff Agent snapshot builder. */
     public List<java.util.Map<String, Object>> snapshot(long caseId, int revision) {
-        return currentSnapshot(caseId, revision).documents().stream().map(document -> {
+        return currentStaffSnapshot(caseId, revision).documents().stream().map(document -> {
             java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
             item.put("documentFileId", document.documentFileId());
             item.put("caseRevision", document.caseRevision());
@@ -151,9 +170,14 @@ public class OcrPersistence {
             item.put("personRef", document.personRef());
             item.put("method", document.method());
             item.put("status", document.status());
-            item.put("extracted", document.extracted());
             item.put("failureReason", document.failureReason());
             item.put("manualVerificationRequired", true);
+            item.put("fieldValidations", document.fieldComparisons().stream().map(field -> {
+                java.util.Map<String,Object> validation = new java.util.LinkedHashMap<>();
+                validation.put("fieldName", field.fieldName()); validation.put("status", field.status());
+                validation.put("confidence", field.confidence()); validation.put("manualVerificationRequired", field.manualVerificationRequired());
+                validation.put("reasonCode", field.reasonCode()); return validation;
+            }).toList());
             return item;
         }).toList();
     }
@@ -171,5 +195,13 @@ public class OcrPersistence {
     public record Snapshot(long caseId, int revision, boolean manualVerificationRequired, List<OcrDocument> documents) { }
     public record OcrDocument(long documentFileId, int caseRevision, String documentTypeCode, String personRef,
                               String method, String status, JsonNode extracted, String failureReason,
-                              boolean manualVerificationRequired) { }
+                              boolean manualVerificationRequired,
+                              List<C02OcrComparisonService.FieldComparison> fieldComparisons) {
+        public OcrDocument(long documentFileId, int caseRevision, String documentTypeCode, String personRef,
+                           String method, String status, JsonNode extracted, String failureReason,
+                           boolean manualVerificationRequired) {
+            this(documentFileId, caseRevision, documentTypeCode, personRef, method, status, extracted,
+                    failureReason, manualVerificationRequired, List.of());
+        }
+    }
 }

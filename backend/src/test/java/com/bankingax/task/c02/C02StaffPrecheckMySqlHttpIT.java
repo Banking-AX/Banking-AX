@@ -50,6 +50,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         "app.c02.document-provisioning-enabled=true",
         "app.c02.review-persistence-enabled=true",
         "app.c02.ocr-provider=mock",
+        "app.c02.ocr.mock.grantor-names=Synthetic Absent Heir",
+        "app.c02.ocr.mock.agent-name=Synthetic Agent Fixture",
+        "app.c02.ocr.mock.confidence=0.99",
         "app.case-port=jpa",
         "app.tool-gateway-token=test-internal-tool-token"
 })
@@ -254,6 +257,8 @@ class C02StaffPrecheckMySqlHttpIT {
                 .at("/data/document/documentFileId").asLong();
 
         assertThat(jdbc.queryForObject("select count(*) from document_extraction where document_file_id=? and case_id=1 and revision=1 and method='MOCK' and status='SUCCEEDED'", Integer.class, documentFileId)).isEqualTo(1);
+        String syntheticExtraction = jdbc.queryForObject("select cast(extracted as char) from document_extraction where document_file_id=? and case_id=1 and revision=1", String.class, documentFileId);
+        assertThat(syntheticExtraction).contains("SYNTHETIC_MOCK_FIXTURE", "grantor_names", "agent_name", "Synthetic Absent Heir", "0.99");
         assertThat(staffAgent.callCount()).isEqualTo(1);
         Object snapshotEntries = staffAgent.lastSnapshot().get("ocrExtractions");
         assertThat(snapshotEntries).isInstanceOf(java.util.List.class);
@@ -265,7 +270,26 @@ class C02StaffPrecheckMySqlHttpIT {
             assertThat(ocrEntry.get("method")).isEqualTo("MOCK");
             assertThat(ocrEntry.get("status")).isEqualTo("SUCCEEDED");
             assertThat(ocrEntry.get("manualVerificationRequired")).isEqualTo(true);
+            assertThat(ocrEntry.containsKey("fieldValidations")).isTrue();
+            assertThat(ocrEntry.containsKey("extracted")).isFalse();
+            assertThat(ocrEntry.get("fieldValidations").toString()).contains("MATCH_CANDIDATE", "UNVERIFIABLE");
         });
+        assertThat(staffAgent.lastSnapshot().toString()).doesNotContain("Synthetic Absent Heir", "Synthetic Agent Fixture");
+
+        String staffJwt = login("c02_staff_it", "staff-password", "STAFF");
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=staff-ocr-comparison")
+                        .header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + documentFileId + ")].fieldComparisons[0].fieldName").value("grantor_names"))
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + documentFileId + ")].fieldComparisons[0].status").value("MATCH_CANDIDATE"))
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + documentFileId + ")].fieldComparisons[0].referenceValue").value("Synthetic Absent Heir"))
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + documentFileId + ")].fieldComparisons[1].status").value("UNVERIFIABLE"));
+
+        // Case data is intentionally not present in the FastAPI payload; only these structured flags cross the boundary.
+        http.perform(get("/api/v1/customer/c02/1/ocr?revision=1&requestId=customer-ocr-no-comparison")
+                        .header("Authorization", bearer(customerJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[0].fieldComparisons").isEmpty());
 
         http.perform(multipart("/api/v1/customer/c02/1/documents/upload")
                         .file(new MockMultipartFile("file", "retry.pdf", "application/pdf", powerOfAttorney.getBytes()))
@@ -295,6 +319,56 @@ class C02StaffPrecheckMySqlHttpIT {
                         .param("documentSlotKey", "ABSENT_HEIR_POWER_OF_ATTORNEY:h2")
                         .header("Authorization", bearer(customerJwt)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("VERSION_CONFLICT"));
+    }
+
+    @Test
+    void staff_ocr_comparison_classifies_mismatch_missing_blank_low_confidence_unverifiable_failure_and_not_applicable() throws Exception {
+        String customerJwt = login("c02_customer_it", "customer-password", "CUSTOMER");
+        String staffJwt = login("c02_staff_it", "staff-password", "STAFF");
+        MockMultipartFile upload = new MockMultipartFile("file", "synthetic-power-of-attorney.pdf", "application/pdf",
+                "%PDF-1.4\nSynthetic test fixture only\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        MvcResult result = http.perform(multipart("/api/v1/customer/c02/1/documents/upload").file(upload)
+                        .param("revision", "0").param("requestId", "comparison-matrix-upload")
+                        .param("documentSlotKey", "ABSENT_HEIR_POWER_OF_ATTORNEY:h2")
+                        .header("Authorization", bearer(customerJwt)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.revision").value(1)).andReturn();
+        long fileId = json.readTree(result.getResponse().getContentAsString()).at("/data/document/documentFileId").asLong();
+
+        assertComparison(staffJwt, "mismatch", "{\"source\":\"SYNTHETIC_MOCK_FIXTURE\",\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\"Different Person\",\"confidence\":0.99}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Synthetic Agent\",\"confidence\":0.99}}]}", "MISMATCH_CANDIDATE");
+        assertComparison(staffJwt, "whitespace-match", "{\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\" Synthetic   Absent Heir \",\"confidence\":0.99}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Different Synthetic Agent\",\"confidence\":0.99}}]}", "MATCH_CANDIDATE");
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=agent-name-is-not-verified").header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[?(@.documentTypeCode == 'ABSENT_HEIR_POWER_OF_ATTORNEY')].fieldComparisons[1].status").value("UNVERIFIABLE"));
+        assertComparison(staffJwt, "missing", "{\"fields\":[{\"name\":\"agent_name\",\"value\":{\"text\":\"Synthetic Agent\",\"confidence\":0.99}}]}", "MANUAL_CHECK");
+        assertComparison(staffJwt, "blank", "{\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\"  \",\"confidence\":0.99}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Synthetic Agent\",\"confidence\":0.99}}]}", "MANUAL_CHECK");
+        assertComparison(staffJwt, "low-confidence", "{\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\"Synthetic Absent Heir\",\"confidence\":0.2}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Synthetic Agent\",\"confidence\":0.99}}]}", "MANUAL_CHECK");
+        assertComparison(staffJwt, "invalid-confidence", "{\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\"Synthetic Absent Heir\",\"confidence\":1.4}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Different Synthetic Agent\",\"confidence\":0.99}}]}", "MANUAL_CHECK");
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=agent-name-no-reference").header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[?(@.documentTypeCode == 'ABSENT_HEIR_POWER_OF_ATTORNEY')].fieldComparisons[1].status").value("UNVERIFIABLE"));
+
+        jdbc.update("update required_document set heir_id=null where work_item_id=301 and document_type_code='ABSENT_HEIR_POWER_OF_ATTORNEY'");
+        assertComparison(staffJwt, "no-reference", "{\"fields\":[{\"name\":\"grantor_names\",\"value\":{\"text\":\"Synthetic Absent Heir\",\"confidence\":0.99}},{\"name\":\"agent_name\",\"value\":{\"text\":\"Synthetic Agent\",\"confidence\":0.99}}]}", "UNVERIFIABLE");
+        jdbc.update("update required_document set heir_id=12 where work_item_id=301 and document_type_code='ABSENT_HEIR_POWER_OF_ATTORNEY'");
+
+        jdbc.update("update document_extraction set status='FAILED_NEEDS_STAFF',method='NONE',failure_reason='OCR_UNAVAILABLE',extracted=null where document_file_id=? and revision=1", fileId);
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=failed-ocr-review").header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + fileId + ")].fieldComparisons[0].status").value("MANUAL_CHECK"));
+        jdbc.update("update document_extraction set status='NOT_APPLICABLE',method='NONE',failure_reason=null where document_file_id=? and revision=1", fileId);
+        MvcResult notApplicable = http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=non-applicable-review").header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(json.readTree(notApplicable.getResponse().getContentAsString()).at("/data/documents/0/fieldComparisons").isEmpty()).isTrue();
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=0&requestId=stale-comparison").header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("VERSION_CONFLICT"));
+    }
+
+    private void assertComparison(String staffJwt, String requestId, String extracted, String expectedStatus) throws Exception {
+        Long fileId = jdbc.queryForObject("select df.id from document_file df join required_document rd on rd.id=df.required_document_id where rd.work_item_id=301 and rd.document_type_code='ABSENT_HEIR_POWER_OF_ATTORNEY' and df.case_revision=1 and df.is_latest=true", Long.class);
+        jdbc.update("update document_extraction set extracted=cast(? as json) where document_file_id=? and case_id=1 and revision=1", extracted, fileId);
+        http.perform(get("/api/v1/staff/c02/1/ocr?revision=1&requestId=" + requestId).header("Authorization", bearer(staffJwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.documents[?(@.documentFileId == " + fileId + ")].fieldComparisons[0].status").value(expectedStatus));
     }
 
     @Test

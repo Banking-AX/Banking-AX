@@ -54,6 +54,12 @@ app:
     # Mock is the safe default. CLOVA is opt-in and its credentials remain server-side.
     ocr-provider: ${APP_C02_OCR_PROVIDER:mock}
     ocr:
+      mock:
+        grantor-names: ${APP_C02_OCR_MOCK_GRANTOR_NAMES:}
+        agent-name: ${APP_C02_OCR_MOCK_AGENT_NAME:}
+        confidence: ${APP_C02_OCR_MOCK_CONFIDENCE:0.0}
+      comparison:
+        minimum-confidence: ${APP_C02_OCR_COMPARISON_MINIMUM_CONFIDENCE:0.90}
       invoke-url: ${APP_C02_OCR_INVOKE_URL:}
       secret: ${APP_C02_OCR_SECRET:}
       timeout-seconds: ${APP_C02_OCR_TIMEOUT_SECONDS:15}

@@ -26,6 +26,34 @@ def _document_manifest_items(manifest: list[dict]) -> list[ReviewItem]:
     return items
 
 
+def _ocr_validation_items(extractions: list[dict]) -> list[ReviewItem]:
+    """Surface Spring comparison flags without sending extracted names into Agent logic."""
+    items: list[ReviewItem] = []
+    actionable = {'MISMATCH_CANDIDATE', 'MANUAL_CHECK', 'UNVERIFIABLE'}
+    for document in extractions:
+        validations = document.get('fieldValidations', [])
+        if not isinstance(validations, list):
+            continue
+        for validation in validations:
+            if not isinstance(validation, dict) or validation.get('status') not in actionable:
+                continue
+            evidence = {
+                'fieldName': validation.get('fieldName'),
+                'comparisonStatus': validation.get('status'),
+                'reasonCode': validation.get('reasonCode'),
+                'confidence': validation.get('confidence'),
+                'method': document.get('method'),
+                'revision': document.get('caseRevision'),
+                'manualVerificationRequired': True,
+            }
+            items.append(ReviewItem(
+                source='SPRING_RULE', category='OCR_FIELD_REVIEW', result='NEEDS_STAFF_REVIEW',
+                message='OCR field comparison is inconclusive or differs; staff must inspect the original document.',
+                document_file_id=document.get('documentFileId'), evidence=evidence,
+            ))
+    return items
+
+
 def c02_staff_precheck(request: CheckRequest) -> list[ReviewItem]:
     snapshot = request.case_snapshot
     heirs = snapshot.get('heirs', [])
@@ -42,6 +70,9 @@ def c02_staff_precheck(request: CheckRequest) -> list[ReviewItem]:
         items.append(ReviewItem(source='SPRING_RULE', category='DOCUMENT_SLOT', result='NEEDS_STAFF_REVIEW', message='필수 서류 슬롯 미충족', evidence={'requiredDocument': code}))
     for code in snapshot.get('ruleResults', []):
         items.append(ReviewItem(source='SPRING_RULE', category='INTAKE_RULE', result='NEEDS_STAFF_REVIEW', message='Spring 규칙 결과를 직원이 확인해야 합니다.', evidence={'ruleCode': code}))
+    extractions = snapshot.get('ocrExtractions', [])
+    if isinstance(extractions, list):
+        items.extend(_ocr_validation_items(extractions))
     unconfirmed = any(heir.get('visitStatus') == 'UNCONFIRMED_ABSENT' for heir in heirs)
     if unconfirmed:
         items.append(ReviewItem(

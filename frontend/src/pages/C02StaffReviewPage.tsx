@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { c02Api, taskBffEnabled, type C02Document, type C02DocumentSlot, type C02OcrSnapshot, type C02Review } from '../api/taskApi'
+import { OcrComparisonSummary } from '../features/c02/OcrComparisonSummary'
 
 type Outcome = 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'
 type CaseData = {
@@ -150,6 +151,8 @@ export function C02StaffReviewPage() {
           <strong>{item.documentTypeCode}{item.personRef ? ` · ${item.personRef}` : ''}</strong> — {item.method} / {item.status}; 문서 revision {item.caseRevision}
           <p>원본 확인 필요: {item.manualVerificationRequired ? '예' : '아니요'}{item.failureReason ? ` · 처리 사유: ${item.failureReason}` : ''}</p>
           {item.extracted && <OcrFieldSummary extracted={item.extracted} />}
+          {item.method === 'MOCK' && <p role="note">MOCK synthetic fixture data; this is not OCR output from the uploaded PDF.</p>}
+          <OcrComparisonSummary comparisons={item.fieldComparisons ?? []} />
         </li>)}</ul>
       </section>
       <button type="button" disabled={!taskBffEnabled || busy || !isSubmitted || Boolean(data.finalDecision) || currentRevisionPrecheck} onClick={() => void precheck()}>현재 revision 사전검토 실행</button>

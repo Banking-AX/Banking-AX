@@ -101,7 +101,7 @@ public class C02Controller {
         if(ocr==null) throw new DomainException("OCR_QUERY_UNAVAILABLE","Persisted OCR results are unavailable in this document profile.",true);
         int current=service.currentRevisionForStaff(caseId);
         if(current!=revision) throw new DomainException("VERSION_CONFLICT","The requested OCR revision is stale.",true);
-        var data=ocr.currentSnapshot(caseId,current);
+        var data=ocr.currentStaffSnapshot(caseId,current);
         return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,caseId,current,data);
     }
     @PostMapping("/{caseId}/staff-decision") public ApiEnvelope<C02IntakeService.StaffDecisionResult> staffDecision(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,

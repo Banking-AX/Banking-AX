@@ -43,14 +43,34 @@ export function C02IntakePage() {
   }
 
   const reloadCaseData = async (current: CaseSession) => {
-    const [documentResponse, reviewResponse, ocrResponse] = await Promise.all([
-      c02Api.documents(current.caseId, requestId('documents')),
-      c02Api.review(current.caseId, requestId('review')).catch(() => null),
-      c02Api.customerOcr(current.caseId, current.revision, requestId('ocr')).then(value => { setOcrError(null); return value }).catch(cause => { setOcrSnapshot(null); setOcrError(cause instanceof Error ? cause.message : 'OCR 상태를 불러오지 못했습니다.'); return null }),
-    ])
-    setDocuments(documentResponse.data ?? [])
-    setReview(reviewResponse?.data ?? null)
-    setOcrSnapshot(ocrResponse?.data ?? null)
+    const first = await c02Api.snapshot(current.caseId, requestId('snapshot'))
+    const snapshot = first.data
+    if (!snapshot || snapshot.caseId !== current.caseId || snapshot.workItemId !== itemId) {
+      throw new Error('저장된 Case가 현재 서버 발급 WorkItem과 일치하지 않습니다.')
+    }
+    const ocrResponse = await c02Api.customerOcr(snapshot.caseId, snapshot.revision, requestId('ocr'))
+      .then(value => ({ value, error: null as string | null }))
+      .catch(cause => ({ value: null, error: cause instanceof Error ? cause.message : 'OCR 상태를 불러오지 못했습니다.' }))
+    const latest = await c02Api.snapshot(current.caseId, requestId('snapshot-check'))
+    if (!latest.data || latest.data.revision !== snapshot.revision || latest.data.workItemId !== snapshot.workItemId) {
+      throw new Error('Case가 조회 중 변경됐습니다. 새로고침해 최신 revision을 다시 불러와 주세요.')
+    }
+    const restored: CaseSession = {
+      caseId: snapshot.caseId, revision: snapshot.revision, caseStatus: snapshot.caseStatus,
+      reviewStatus: snapshot.reviewStatus, requiredDocuments: snapshot.requiredDocuments ?? [],
+    }
+    persistCase(restored)
+    setDocuments(snapshot.documents ?? [])
+    setReview(snapshot.precheck ?? null)
+    const ocr = ocrResponse.value
+    const ocrData = ocr?.data
+    const ocrIsCurrent = Boolean(ocrData && ocrData.revision === snapshot.revision && ocrData.documents.every(extraction =>
+      extraction.caseRevision <= snapshot.revision && snapshot.documents.some(document =>
+        document.documentFileId === extraction.documentFileId && document.caseRevision === extraction.caseRevision,
+      ),
+    ))
+    setOcrSnapshot(ocrIsCurrent && ocrData ? ocrData : null)
+    setOcrError(ocrResponse.error ?? (ocr && !ocrIsCurrent ? 'OCR 결과 revision이 현재 Case 문서와 일치하지 않습니다.' : null))
   }
 
   useEffect(() => {
