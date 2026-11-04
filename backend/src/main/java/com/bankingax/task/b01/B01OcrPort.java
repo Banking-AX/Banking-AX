@@ -14,7 +14,19 @@ interface B01OcrPort {
 
     record OcrResult(String documentTypeCode, String detectedType, String method, String status,
                      Fields fields, SignatureChecks signatureChecks, boolean authenticityVerified,
-                     boolean manualVerificationRequired, String failureReason) { }
+                     boolean manualVerificationRequired, String failureReason, VisualChecks visualChecks) {
+        OcrResult(String documentTypeCode, String detectedType, String method, String status,
+                  Fields fields, SignatureChecks signatureChecks, boolean authenticityVerified,
+                  boolean manualVerificationRequired, String failureReason) {
+            this(documentTypeCode, detectedType, method, status, fields, signatureChecks,
+                    authenticityVerified, manualVerificationRequired, failureReason, null);
+        }
+
+        OcrResult withVisualChecks(VisualChecks checks) {
+            return new OcrResult(documentTypeCode, detectedType, method, status, fields, signatureChecks,
+                    authenticityVerified, manualVerificationRequired, failureReason, checks);
+        }
+    }
 
     record Fields(List<LoanField> loans, String requestedRepaymentOrder, LocalDate applicationDate) {
         Fields(List<LoanField> loans, String requestedRepaymentOrder) {
@@ -25,4 +37,8 @@ interface B01OcrPort {
     record LoanField(String accountNumber, BigDecimal balance, LocalDate accelerationDate) { }
 
     record SignatureChecks(String debtorSignatureField, String thirdPartySignatureField) { }
+
+    record VisualChecks(String alignmentStatus, String firstBox, String secondBox, String selectedOrder,
+                        String debtorSignatureTrace, boolean uncertain,
+                        boolean manualVerificationRequired, String failureReason) { }
 }

@@ -53,6 +53,9 @@ app:
       template-id: ${CLOVA_OCR_TEMPLATE_ID:}
       connect-timeout-seconds: ${CLOVA_OCR_CONNECT_TIMEOUT_SECONDS:3}
       read-timeout-seconds: ${CLOVA_OCR_READ_TIMEOUT_SECONDS:15}
+    # OpenCV service is fail-closed and opt-in. It reuses the Customer Agent service URL/token.
+    image-analysis-enabled: ${APP_B01_IMAGE_ANALYSIS_ENABLED:false}
+    image-analysis-timeout-seconds: ${APP_B01_IMAGE_ANALYSIS_TIMEOUT_SECONDS:10}
   b02:
     # jdbc requires the authoritative Mock-financial tables; default remains the G1 fixture.
     account-port: ${APP_B02_ACCOUNT_PORT:fake}
@@ -85,6 +88,7 @@ app:
     # Separate secret used only to HMAC OTP values persisted in work_item.draft_data.
     otp-hmac-secret: ${APP_OTP_HMAC_SECRET:}
 solapi:
+  api-endpoint: ${SOLAPI_API_ENDPOINT:https://api.solapi.com/messages/v4/send-many/detail}
   api-key: ${SOLAPI_API_KEY:}
   api-secret: ${SOLAPI_API_SECRET:}
   sender-number: ${SOLAPI_SENDER_NUMBER:}

@@ -1,6 +1,7 @@
 package com.bankingax.task.b01;
 
 import java.util.Optional;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,22 @@ class JdbcB01ValidationQueryPort implements B01ValidationQueryPort {
                         rs.getObject("acceleration_date", java.time.LocalDate.class), rs.getBoolean("outsourced"),
                         rs.getBoolean("agreement_loan"), rs.getString("repayment_order"),
                         rs.getBoolean("has_third_party_provider"))) : Optional.empty(), loanId, customerId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LoanListRecord> ownedLoans(long customerId) {
+        return jdbc.query("""
+                select id,loan_no,loan_name,balance,overdue_days,acceleration_declared,
+                       acceleration_date,repayment_order
+                  from loan
+                 where customer_id=?
+                 order by id asc
+                """, (rs, row) -> new LoanListRecord(rs.getLong("id"), rs.getString("loan_no"),
+                rs.getString("loan_name"), rs.getBigDecimal("balance"), rs.getInt("overdue_days"),
+                rs.getBoolean("acceleration_declared"),
+                rs.getObject("acceleration_date", java.time.LocalDate.class),
+                rs.getString("repayment_order")), customerId);
     }
 
     @Override

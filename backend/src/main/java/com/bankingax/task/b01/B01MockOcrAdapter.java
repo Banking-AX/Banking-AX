@@ -33,8 +33,10 @@ final class B01MockOcrAdapter implements B01OcrPort {
                     new Fields(List.of(), null), signatures, false, true,
                     "MOCK_FIXTURE_NOT_REGISTERED");
         }
+        VisualChecks visual = new VisualChecks("ALIGNED", "CHECKED", "UNCHECKED",
+                "PRINCIPAL_FIRST", "TRACE_PRESENT", false, true, null);
         return new OcrResult(DOCUMENT_TYPE, DOCUMENT_TYPE, "MOCK", "SUCCEEDED", fields,
-                signatures, false, true, null);
+                signatures, false, true, null, visual);
     }
 
     @Override

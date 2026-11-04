@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ class B01VerificationMySqlIT {
     @Autowired JdbcTemplate jdbc;
     @Autowired B01DocumentService documents;
     @Autowired B01VerificationService service;
+    @Autowired B01ProgressService progress;
     @Autowired CapturingSender sender;
     long documentFileId;
 
@@ -67,6 +69,8 @@ class B01VerificationMySqlIT {
         jdbc.update("insert into loan(id,customer_id,loan_no,loan_name,principal_amount,balance,overdue_days,"
                 + "acceleration_declared,acceleration_date,repayment_order) values "
                 + "(501,1,'MOCK-B01-T01','synthetic',30000000,26500000,62,true,'2026-08-31','INTEREST_FIRST')");
+        progress.saveSelection(1,100,new B01ProgressService.SelectionCommand(
+                "seed-selection",501,"PRINCIPAL_FIRST"));
         byte[] fixture = new ClassPathResource("b01/mock-ocr/b01-t01-application.pdf").getInputStream().readAllBytes();
         documentFileId = documents.upload(1,100,new MockMultipartFile("file","fixture.pdf","application/pdf",fixture)).documentFileId();
         sender.clear();
@@ -80,10 +84,25 @@ class B01VerificationMySqlIT {
         assertThat(signature.mockSignatureCompleted()).isTrue();
         assertThat(Files.list(SIGNATURES).count()).isOne();
         var issue = service.requestSms(1,100,"sms-request-1");
+        var retried = service.requestSms(1,100,"sms-request-1");
+        assertThat(retried.challengeId()).isEqualTo(issue.challengeId());
+        assertThat(sender.sendCount.get()).isOne();
         assertThat(issue.maskedPhone()).isEqualTo("010-****-5678");
         assertThat(sender.phone.get()).isEqualTo("01012345678");
         assertThat(service.verifySms(1,100,"sms-verify-1",issue.challengeId(),sender.otp()).verified()).isTrue();
         assertThat(service.status(1,100).currentStep()).isEqualTo("READY_FOR_FINAL_VALIDATION");
+        var restored = progress.context(1,100);
+        assertThat(restored.selectedLoanId()).isEqualTo(501L);
+        assertThat(restored.requestedRepaymentOrder()).isEqualTo("PRINCIPAL_FIRST");
+        assertThat(restored.applicationDocument().documentFileId()).isEqualTo(documentFileId);
+        assertThat(restored.applicationDocument().displayName()).isEqualTo("fixture.pdf");
+        assertThat(restored.applicationDocument().ocr().status()).isEqualTo("SUCCEEDED");
+        assertThat(restored.applicationDocument().ocr().loans().get(0).maskedAccountNumber()).isEqualTo("****-T01");
+        assertThat(restored.consentAgreed()).isTrue();
+        assertThat(restored.mockSignatureCompleted()).isTrue();
+        assertThat(restored.smsVerified()).isTrue();
+        assertThat(restored.currentStep()).isEqualTo("READY_TO_EXECUTE");
+        assertThat(restored.readyToExecute()).isTrue();
         assertThat(jdbc.queryForObject("select repayment_order from loan where id=501",String.class)).isEqualTo("INTEREST_FIRST");
         assertThat(jdbc.queryForObject("select version from loan where id=501",Integer.class)).isZero();
         String draft=jdbc.queryForObject("select draft_data from work_item where id=100",String.class);
@@ -140,6 +159,76 @@ class B01VerificationMySqlIT {
         assertThrows(DomainException.class,()->service.requestSms(1,100,"sms-after-change"));
     }
 
+    @Test void persistsSelectionAndEligibilityForRefreshAndAllowsHeldContextRead() {
+        progress.saveSelection(1,100,new B01ProgressService.SelectionCommand(
+                "select-1",501,"PRINCIPAL_FIRST"));
+        var selected = progress.context(1,100);
+        assertThat(selected.selectedLoanId()).isEqualTo(501L);
+        assertThat(selected.requestedRepaymentOrder()).isEqualTo("PRINCIPAL_FIRST");
+        assertThat(selected.applicationDocument().documentFileId()).isEqualTo(documentFileId);
+        assertThat(selected.lastEligibility()).isNull();
+        assertThat(selected.currentStep()).isEqualTo("ELIGIBILITY_VALIDATION");
+
+        progress.validateAndSave(1,100,501,"PRINCIPAL_FIRST");
+        var validated = progress.context(1,100);
+        assertThat(validated.lastEligibility()).isNotNull();
+        assertThat(validated.lastEligibility().ruleCode()).isEqualTo(B01EligibilityService.RuleCode.ELIGIBLE);
+        assertThat(validated.lastEligibility().ocr().matched()).isTrue();
+        assertThat(validated.currentStep()).isEqualTo("CONSENT");
+
+        jdbc.update("update work_item set status='ON_HOLD',resume_step='CONSENT' where id=100");
+        var held = progress.context(1,100);
+        assertThat(held.workItemVersion()).isEqualTo(
+                jdbc.queryForObject("select version from work_item where id=100", Integer.class));
+        assertThat(held.workItemStatus()).isEqualTo("ON_HOLD");
+        assertThat(held.resumeStep()).isEqualTo("CONSENT");
+        assertThat(held.currentStep()).isEqualTo("CONSENT");
+    }
+
+    @Test void changingSelectionOrDocumentInvalidatesConsentSignatureAndSms() throws Exception {
+        consent("consent-change");
+        service.signature(1,100,"signature-change",png(true));
+        var issue=service.requestSms(1,100,"sms-change");
+        service.verifySms(1,100,"verify-change",issue.challengeId(),sender.otp());
+
+        progress.saveSelection(1,100,new B01ProgressService.SelectionCommand(
+                "change-order",501,"INTEREST_FIRST"));
+        var changed = progress.context(1,100);
+        assertThat(changed.consentAgreed()).isFalse();
+        assertThat(changed.mockSignatureCompleted()).isFalse();
+        assertThat(changed.smsVerified()).isFalse();
+        assertThat(changed.lastEligibility()).isNull();
+        assertThat(changed.applicationDocument()).isNull();
+        DomainException staleDocument = assertThrows(DomainException.class,
+                () -> progress.validateAndSave(1,100,501,"INTEREST_FIRST"));
+        assertThat(staleDocument.code()).isEqualTo("B01_APPLICATION_NOT_CURRENT");
+
+        progress.saveSelection(1,100,new B01ProgressService.SelectionCommand(
+                "restore-order",501,"PRINCIPAL_FIRST"));
+        documentFileId = documents.upload(1,100,new MockMultipartFile("file","restored.pdf","application/pdf",
+                new ClassPathResource("b01/mock-ocr/b01-t01-application.pdf").getInputStream().readAllBytes()))
+                .documentFileId();
+        progress.validateAndSave(1,100,501,"PRINCIPAL_FIRST");
+        consent("consent-document-change");
+        service.signature(1,100,"signature-document-change",png(true));
+        documents.upload(1,100,new MockMultipartFile("file","replacement.pdf","application/pdf",
+                new ClassPathResource("b01/mock-ocr/b01-t01-application.pdf").getInputStream().readAllBytes()));
+        var replaced = progress.context(1,100);
+        assertThat(replaced.applicationDocument().version()).isEqualTo(3);
+        assertThat(replaced.applicationDocument().displayName()).isEqualTo("replacement.pdf");
+        assertThat(replaced.consentAgreed()).isFalse();
+        assertThat(replaced.mockSignatureCompleted()).isFalse();
+        assertThat(replaced.smsVerified()).isFalse();
+        assertThat(replaced.currentStep()).isEqualTo("ELIGIBILITY_VALIDATION");
+    }
+
+    @Test void rejectsForeignAndMissingWorkItemContext() {
+        DomainException foreign = assertThrows(DomainException.class, () -> progress.context(2,100));
+        DomainException missing = assertThrows(DomainException.class, () -> progress.context(1,999));
+        assertThat(foreign.code()).isEqualTo("WORK_ITEM_NOT_AVAILABLE");
+        assertThat(missing.code()).isEqualTo("WORK_ITEM_NOT_AVAILABLE");
+    }
+
     private void consent(String request) {
         service.consent(1,100,new B01VerificationService.ConsentCommand(request,501,"PRINCIPAL_FIRST",
                 documentFileId,B01VerificationService.NOTICE_VERSION,true));
@@ -175,8 +264,9 @@ class B01VerificationMySqlIT {
     }
     static final class CapturingSender implements B01SmsSender {
         final AtomicReference<String> phone=new AtomicReference<>(), text=new AtomicReference<>();
-        public void send(String phone,String text){this.phone.set(phone);this.text.set(text);}
+        final AtomicInteger sendCount=new AtomicInteger();
+        public SendReceipt send(String phone,String text){this.phone.set(phone);this.text.set(text);sendCount.incrementAndGet();return SendReceipt.accepted("TEST");}
         String otp(){String value=text.get();return value.substring(value.indexOf("는 ")+2,value.indexOf("입니다"));}
-        void clear(){phone.set(null);text.set(null);}
+        void clear(){phone.set(null);text.set(null);sendCount.set(0);}
     }
 }

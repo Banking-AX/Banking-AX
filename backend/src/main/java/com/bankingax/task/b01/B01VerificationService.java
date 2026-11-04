@@ -76,6 +76,8 @@ public class B01VerificationService {
                 return new ConsentResult(draft.path("consentRecordId").asLong(), snapshot.fingerprint(), "CONSENT_COMPLETED");
             long consentId = insertConsent(workItemId);
             application(draft, snapshot);
+            draft.set("lastEligibility", json.valueToTree(validated));
+            draft.put("lastEligibilityAt", clock.instant().toString());
             draft.put("consentRecordId", consentId).put("consentAgreed", true)
                     .put("consentRequestId", command.requestId()).put("currentStep", "CONSENT_COMPLETED");
             clearAfterConsent(draft);
@@ -107,12 +109,15 @@ public class B01VerificationService {
         SmsPrepared prepared = requiredTransaction().execute(status -> prepareSms(customerId, workItemId, requestId, otp));
         if (prepared.existing() != null) return prepared.existing();
         try {
-            sms.send(prepared.phone(), "[Banking-AX] 인증번호는 " + otp + "입니다. 3분 내 입력해 주세요.");
+            B01SmsSender.SendReceipt receipt = sms.send(prepared.phone(),
+                    "[Banking-AX] 인증번호는 " + otp + "입니다. 3분 내 입력해 주세요.");
+            if (!"ACCEPTED".equals(receipt.acceptanceStatus()))
+                throw new DomainException("SMS_DELIVERY_UNAVAILABLE", "The verification message could not be sent.", true);
         } catch (RuntimeException exception) {
             requiredTransaction().executeWithoutResult(status -> markDeliveryFailed(workItemId, prepared.challengeId()));
             throw exception;
         }
-        return requiredTransaction().execute(status -> markDelivered(customerId, workItemId, prepared));
+        return requiredTransaction().execute(status -> markAccepted(customerId, workItemId, prepared));
     }
 
     public SmsVerification verifySms(long customerId, long workItemId, String requestId,
@@ -125,7 +130,7 @@ public class B01VerificationService {
             requireCurrentApplication(customerId, workItemId, draft);
             if (draft.path("smsVerified").asBoolean(false))
                 return VerificationAttempt.error("OTP_ALREADY_USED", "The verification code has already been used.");
-            if (!challengeId.equals(text(draft, "smsChallengeId")) || !"DELIVERED".equals(text(draft, "smsDeliveryStatus")))
+            if (!challengeId.equals(text(draft, "smsChallengeId")) || !isAcceptedStatus(text(draft, "smsDeliveryStatus")))
                 return VerificationAttempt.error("OTP_INVALID", "The verification code is invalid.");
             Instant now = clock.instant(), expires = instant(draft, "smsExpiresAt");
             if (expires == null || !now.isBefore(expires)) {
@@ -229,9 +234,12 @@ public class B01VerificationService {
             throw new DomainException("MOCK_SIGNATURE_REQUIRED", "Mock signature is required before SMS verification.");
         if (draft.path("smsVerified").asBoolean(false)) throw new DomainException("SMS_ALREADY_VERIFIED", "SMS verification is already complete.");
         Instant now = clock.instant();
-        if (requestId.equals(text(draft, "smsRequestId")) && "DELIVERED".equals(text(draft, "smsDeliveryStatus")))
+        boolean sameRequest = requestId.equals(text(draft, "smsRequestId"));
+        if (sameRequest && isAcceptedStatus(text(draft, "smsDeliveryStatus")))
             return new SmsPrepared(null, null, null, new SmsIssue(text(draft, "smsChallengeId"),
-                    mask(locked.phone()), instant(draft, "smsExpiresAt"), "DELIVERED"));
+                    mask(locked.phone()), instant(draft, "smsExpiresAt"), "ACCEPTED"));
+        if (sameRequest && "PENDING".equals(text(draft, "smsDeliveryStatus")))
+            throw new DomainException("SMS_REQUEST_IN_PROGRESS", "The verification message request is already in progress.", true);
         Instant last = instant(draft, "smsRequestedAt");
         if (last != null && now.isBefore(last.plusSeconds(resendSeconds)))
             throw new DomainException("SMS_RESEND_TOO_SOON", "Please wait before requesting another code.");
@@ -246,13 +254,13 @@ public class B01VerificationService {
         return new SmsPrepared(challenge, locked.phone(), text(draft, "applicationFingerprint"), null);
     }
 
-    private SmsIssue markDelivered(long customerId, long workItemId, SmsPrepared prepared) {
+    private SmsIssue markAccepted(long customerId, long workItemId, SmsPrepared prepared) {
         Locked locked = lock(customerId, workItemId); ObjectNode draft = draft(locked.draft());
         if (!prepared.challengeId().equals(text(draft, "smsChallengeId"))) throw changed();
-        draft.put("smsDeliveryStatus", "DELIVERED"); saveDraft(workItemId, draft);
-        event(workItemId, "B01_SMS_SENT", customerId, text(draft, "smsRequestId") + ":sms-sent",
+        draft.put("smsDeliveryStatus", "ACCEPTED"); saveDraft(workItemId, draft);
+        event(workItemId, "B01_SMS_ACCEPTED", customerId, text(draft, "smsRequestId") + ":sms-accepted",
                 object().put("challengeId", prepared.challengeId()).put("applicationFingerprint", prepared.fingerprint()));
-        return new SmsIssue(prepared.challengeId(), mask(locked.phone()), instant(draft, "smsExpiresAt"), "DELIVERED");
+        return new SmsIssue(prepared.challengeId(), mask(locked.phone()), instant(draft, "smsExpiresAt"), "ACCEPTED");
     }
 
     private void markDeliveryFailed(long workItemId, String challenge) {
@@ -338,6 +346,8 @@ public class B01VerificationService {
     private static String text(ObjectNode node, String name) { JsonNode value=node.get(name); return value==null||value.isNull()?null:value.asText(); }
     private static Instant instant(ObjectNode node, String name) { String value=text(node,name); return value==null?null:Instant.parse(value); }
     private static String mask(String phone) { String value=phone.replaceAll("[^0-9]",""); return value.length()<7?"***":value.substring(0,3)+"-****-"+value.substring(value.length()-4); }
+    // DELIVERED was the legacy label for provider acceptance; retain it only for in-flight challenges.
+    private static boolean isAcceptedStatus(String status) { return "ACCEPTED".equals(status) || "DELIVERED".equals(status); }
     private static void validateRequest(String id) { if(id==null||id.isBlank()||id.length()>64) throw new DomainException("INVALID_REQUEST_ID","A requestId of at most 64 characters is required."); }
     private void requireHmacSecret() { if(hmacSecret.length<32) throw new DomainException("SMS_VERIFICATION_NOT_CONFIGURED","SMS verification is not safely configured.",true); }
     private void requirePersistence() { if(jdbc==null||transactions==null) throw new DomainException("B01_PERSISTENCE_UNAVAILABLE","B-01 persistence is not configured.",true); }

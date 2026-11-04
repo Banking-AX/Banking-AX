@@ -98,6 +98,9 @@ class B01DocumentUploadMySqlIT {
                 .andExpect(jsonPath("$.data.method").value("MOCK"))
                 .andExpect(jsonPath("$.data.fields.loans[0].maskedAccountNumber").value("****-T01"))
                 .andExpect(jsonPath("$.data.signatureChecks.debtorSignatureField").value("NOT_VERIFIED"))
+                .andExpect(jsonPath("$.data.visualChecks.alignmentStatus").value("ALIGNED"))
+                .andExpect(jsonPath("$.data.visualChecks.selectedOrder").value("PRINCIPAL_FIRST"))
+                .andExpect(jsonPath("$.data.visualChecks.debtorSignatureTrace").value("TRACE_PRESENT"))
                 .andExpect(jsonPath("$.data.authenticityVerified").value(false))
                 .andExpect(jsonPath("$.data.manualVerificationRequired").value(true))
                 .andReturn().getResponse().getContentAsString();
@@ -108,6 +111,8 @@ class B01DocumentUploadMySqlIT {
                 + "and method='MOCK' and status='SUCCEEDED'")).isEqualTo(1);
         assertThat(jdbc.queryForObject("select json_unquote(json_extract(extracted,'$.fields.loans[0].accountNumber')) "
                 + "from document_extraction", String.class)).isEqualTo("MOCK-B01-T01");
+        assertThat(jdbc.queryForObject("select json_unquote(json_extract(extracted,'$.visualChecks.selectedOrder')) "
+                + "from document_extraction", String.class)).isEqualTo("PRINCIPAL_FIRST");
 
         String validation = http.perform(post("/api/v1/customer/b01/work-items/{id}/eligibility", 100)
                         .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
@@ -154,6 +159,20 @@ class B01DocumentUploadMySqlIT {
         }
         assertThat(count("select count(*) from document_extraction where document_file_id="
                 + uploaded.documentFileId())).isEqualTo(1);
+    }
+
+    @Test
+    void sequentialRetryWithSameRequestIdReturnsStoredDocumentWithoutAnotherFile() throws Exception {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
+                            .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture()))
+                            .param("requestId", "same-upload-request")
+                            .with(customer(1)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.documentFileId").isNumber());
+        }
+        assertThat(count("select count(*) from document_file")).isEqualTo(1);
+        assertThat(count("select count(*) from document_extraction")).isEqualTo(1);
     }
 
     @Test
