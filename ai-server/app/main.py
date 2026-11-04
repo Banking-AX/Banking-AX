@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.customer_agent.router import create_router
+from app.document_analysis.router import create_router as create_document_analysis_router
 from app.staff_agent.router import create_router as create_staff_router
 from .retrieve import search
 from .settings import BACKEND, INDEX, MODE, SEARCH_TIMEOUT_SECONDS
@@ -17,6 +18,7 @@ from .settings import BACKEND, INDEX, MODE, SEARCH_TIMEOUT_SECONDS
 
 app = FastAPI(title='Shinhan SW Agent RAG PoC', version='1.0.0')
 app.include_router(create_router(), prefix='/api/v1')
+app.include_router(create_document_analysis_router(), prefix='/api/v1')
 app.include_router(create_staff_router(), prefix='/api/v1')
 
 class StaffRankingRequest(BaseModel):

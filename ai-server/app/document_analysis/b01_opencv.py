@@ -67,6 +67,20 @@ def render_document(path: str | Path, dpi: int = RENDER_DPI) -> np.ndarray:
     return image
 
 
+def render_document_bytes(content: bytes, content_type: str, dpi: int = RENDER_DPI) -> np.ndarray:
+    if content_type == "application/pdf":
+        with fitz.open(stream=content, filetype="pdf") as document:
+            if document.page_count != 1:
+                raise ValueError("B-01 image analysis accepts exactly one page.")
+            pixmap = document[0].get_pixmap(dpi=dpi, colorspace=fitz.csGRAY, alpha=False)
+            return np.frombuffer(pixmap.samples, dtype=np.uint8).reshape(pixmap.height, pixmap.width).copy()
+    encoded = np.frombuffer(content, dtype=np.uint8)
+    image = cv2.imdecode(encoded, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        raise ValueError("Document image could not be decoded.")
+    return image
+
+
 def align_to_reference(reference: np.ndarray, candidate: np.ndarray) -> AlignmentResult:
     if reference.shape != (REFERENCE_HEIGHT, REFERENCE_WIDTH):
         raise ValueError("Reference form must be rendered at the reviewed 150 DPI dimensions.")
