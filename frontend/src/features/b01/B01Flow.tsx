@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { B01Adapter, B01Eligibility, B01Loan, B01Result } from '../../api/b01'
+import type { B01Adapter, B01Context, B01Document, B01Eligibility, B01ImageMismatchCode, B01Loan, B01Result, B01VisualChecks, RepaymentOrder } from '../../api/b01'
+import { ApiError } from '../../api/client'
 import { toUserMessage } from '../../api/errorMessages'
 import { SiteFooter } from '../../components/SiteFooter'
 import { SiteHeader } from '../../components/SiteHeader'
 import { SignFlow } from '../sign/SignFlow'
 import { getSignSetup } from '../sign/signFixtures'
 import {
-  B01_STEPS, NOTICE_BASIS, NOTICE_ITEMS, NOTICE_TITLE, ORDER_DESCRIPTIONS, ORDER_LABELS, PENDING_SUBTITLE, PENDING_TITLE,
+  B01_STEPS, NOTICE_BASIS, NOTICE_ITEMS, NOTICE_TITLE, ORDER_DESCRIPTIONS, ORDER_LABELS, PENDING_SUBTITLE,
   RULE_BASIS, RULE_REASONS, THIRD_PARTY_NOTICE, oppositeOrder,
 } from './b01Content'
 
@@ -29,20 +30,57 @@ function accelerationLabel(loan: B01Loan): string {
   return loan.accelerationDate ? `상실 (${loan.accelerationDate.replaceAll('-', '.')})` : '상실'
 }
 
+const IMAGE_MESSAGES: Record<B01ImageMismatchCode, string> = {
+  IMAGE_ANALYSIS_NOT_AVAILABLE: '이미지 분석 결과가 없습니다. 신청서를 다시 제출해 주세요.',
+  IMAGE_ANALYSIS_UNAVAILABLE: '이미지 분석 서비스를 사용할 수 없습니다. 잠시 후 다시 제출해 주세요.',
+  ALIGNMENT_FAILED: '신청서 양식을 바르게 맞추지 못했습니다. 선명한 원본을 다시 제출해 주세요.',
+  IMAGE_ANALYSIS_UNCERTAIN: '체크 또는 서명란 표시를 확실하게 판정하지 못했습니다. 신청서를 다시 제출해 주세요.',
+  CHECKBOX_NOT_SELECTED: '변경할 충당순서 체크박스가 선택되지 않았습니다.',
+  MULTIPLE_CHECKBOXES: '변경할 충당순서 체크박스가 두 개 모두 선택되었습니다.',
+  REQUESTED_ORDER_MISMATCH: '신청서의 체크 결과가 화면에서 요청한 충당순서와 다릅니다.',
+  DEBTOR_SIGNATURE_TRACE_NOT_FOUND: '신청서의 채무자 서명란에서 필기 흔적을 확인하지 못했습니다.',
+}
+
+function ocrTitle(method: string): string {
+  if (method === 'MOCK') return 'Mock OCR 처리 결과'
+  if (method === 'CLOVA_TEMPLATE') return 'CLOVA OCR 처리 결과'
+  return '문서 텍스트 인식 결과'
+}
+
+function matchLabel(matched: boolean): string {
+  return matched ? '일치' : '불일치 또는 확인 불가'
+}
+
+function checkboxLabel(checks: B01VisualChecks | null): string {
+  if (!checks) return '분석 결과 없음'
+  if (checks.uncertain) return '판정 불확실'
+  if (checks.firstBox === 'CHECKED' && checks.secondBox === 'UNCHECKED') return '비용 → 원금 → 이자 선택'
+  if (checks.firstBox === 'UNCHECKED' && checks.secondBox === 'CHECKED') return '비용 → 이자 → 원금 선택'
+  if (checks.firstBox === 'CHECKED' && checks.secondBox === 'CHECKED') return '두 항목 모두 선택됨'
+  if (checks.firstBox === 'UNCHECKED' && checks.secondBox === 'UNCHECKED') return '선택 없음'
+  return '판정 불확실'
+}
+
 export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapter; workItemId: string; signerName: string }) {
   const [phase, setPhase] = useState<Phase>('select')
+  const [context, setContext] = useState<B01Context | null>(null)
+  const [restoring, setRestoring] = useState(true)
+  const [resuming, setResuming] = useState(false)
+  const [resumeError, setResumeError] = useState<string | null>(null)
+  const resumeInFlight = useRef(false)
 
   const [loans, setLoans] = useState<B01Loan[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [requestedOrder, setRequestedOrder] = useState<RepaymentOrder | null>(null)
   const [eligibility, setEligibility] = useState<B01Eligibility | null>(null)
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState<string | null>(null)
-  const checkSeq = useRef(0)
 
   const [agreed, setAgreed] = useState(false)
   const [upload, setUpload] = useState<Upload>({ state: 'idle' })
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [document, setDocument] = useState<B01Document | null>(null)
   const [consenting, setConsenting] = useState(false)
   const [consentError, setConsentError] = useState<string | null>(null)
 
@@ -54,7 +92,21 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
   const lastFocusKey = useRef(focusKey)
 
   const selected = loans?.find(loan => loan.loanId === selectedId) ?? null
-  const requestedOrder = selected ? oppositeOrder(selected.repaymentOrder) : null
+  const onHold = context?.workItemStatus === 'ON_HOLD'
+
+  const applyContext = (next: B01Context) => {
+    setContext(next)
+    setSelectedId(next.selectedLoanId)
+    setRequestedOrder(next.requestedRepaymentOrder)
+    setDocument(next.applicationDocument)
+    setEligibility(next.lastEligibility)
+    setAgreed(next.consentAgreed)
+    setUpload(next.applicationDocument ? { state: 'done', fileName: next.applicationDocument.displayName } : { state: 'idle' })
+    if (next.readyToExecute) { setResult({ status: 'PENDING' }); setPhase('done') }
+    else if (next.consentAgreed || next.currentStep === 'MOCK_SIGNATURE' || next.currentStep === 'SMS_VERIFICATION') setPhase('sign')
+    else if (next.selectedLoanId) setPhase('confirm')
+    else setPhase('select')
+  }
 
   const loadLoans = () => {
     setLoans(null)
@@ -62,11 +114,56 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     adapter.listLoans().then(setLoans).catch(error => setLoadError(toUserMessage(error)))
   }
 
+  const resume = async () => {
+    if (!context || context.workItemStatus !== 'ON_HOLD' || resumeInFlight.current) return
+    resumeInFlight.current = true
+    setResuming(true)
+    setResumeError(null)
+    try {
+      const resumed = await adapter.resume(context.workItemVersion)
+      if (resumed.status !== 'ACTIVE') throw new ApiError('INVALID_STATE', 409)
+      const [saved, availableLoans] = await Promise.all([adapter.getContext(), adapter.listLoans()])
+      applyContext(saved)
+      setLoans(availableLoans)
+      return
+    } catch (error) {
+      // The resume transaction may have committed even if its response was lost. Always reconcile first.
+      try {
+        const latest = await adapter.getContext()
+        applyContext(latest)
+        if (latest.workItemStatus === 'ACTIVE') {
+          setLoans(await adapter.listLoans())
+          return
+        }
+      } catch {
+        // Keep the already restored screen state when reconciliation is unavailable.
+      }
+      if (error instanceof ApiError) {
+        if (error.code === 'VERSION_CONFLICT') setResumeError('업무 정보가 변경되어 최신 상태를 불러왔어요. 내용을 확인한 뒤 다시 시도해 주세요.')
+        else if (error.code === 'INVALID_STATE') setResumeError('업무 상태가 변경됐어요. 최신 상태를 확인한 뒤 다시 시도해 주세요.')
+        else if (error.code === 'WORK_ITEM_NOT_AVAILABLE') setResumeError('이 업무를 재개할 수 없거나 접근할 수 없어요.')
+        else if (error.code === 'WORKFLOW_ACTIVE_EXISTS') setResumeError('같은 업무 흐름에서 다른 업무가 진행 중이에요. 진행 중인 업무를 먼저 확인해 주세요.')
+        else if (error.code === 'NETWORK_ERROR') setResumeError('재개 결과를 확인하지 못했어요. 서버 상태를 다시 확인한 뒤 안전하게 재시도해 주세요.')
+        else setResumeError(toUserMessage(error))
+      } else setResumeError(toUserMessage(error))
+    } finally {
+      resumeInFlight.current = false
+      setResuming(false)
+    }
+  }
+
   useEffect(() => {
     let active = true
-    adapter.listLoans()
-      .then(list => { if (active) setLoans(list) })
+    setRestoring(true)
+    adapter.getContext()
+      .then(async saved => {
+        if (!active) return
+        applyContext(saved)
+        if (saved.workItemStatus === 'ACTIVE') setLoans(await adapter.listLoans())
+        else setLoans([])
+      })
       .catch(error => { if (active) setLoadError(toUserMessage(error)) })
+      .finally(() => { if (active) setRestoring(false) })
     return () => { active = false }
   }, [adapter])
 
@@ -79,15 +176,21 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
 
   const pickLoan = (loan: B01Loan) => {
     if (loan.loanId === selectedId) return
-    const seq = ++checkSeq.current
     setSelectedId(loan.loanId)
+    setRequestedOrder(oppositeOrder(loan.repaymentOrder))
     setEligibility(null)
+    setDocument(null)
+    setUpload({ state: 'idle' })
+    setAgreed(false)
     setCheckError(null)
-    setChecking(true)
-    adapter.checkEligibility(loan.loanId, oppositeOrder(loan.repaymentOrder))
-      .then(next => { if (checkSeq.current === seq) setEligibility(next) })
-      .catch(error => { if (checkSeq.current === seq) setCheckError(toUserMessage(error)) })
-      .finally(() => { if (checkSeq.current === seq) setChecking(false) })
+  }
+
+  const saveSelection = async () => {
+    if (!selected || !requestedOrder || checking) return
+    setChecking(true); setCheckError(null)
+    try { applyContext(await adapter.saveSelection(selected.loanId, requestedOrder)); setPhase('confirm') }
+    catch (error) { setCheckError(toUserMessage(error)) }
+    finally { setChecking(false) }
   }
 
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -96,9 +199,25 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     if (!file) return
     setUpload({ state: 'uploading' })
     setUploadError(null)
+    setCheckError(null)
+    setDocument(null)
+    setEligibility(null)
+    setAgreed(false)
     try {
-      await adapter.uploadApplication(file)
+      const uploaded = await adapter.uploadApplication(file)
+      setDocument({ documentFileId: uploaded.documentFileId, version: uploaded.version, displayName: file.name,
+        sizeBytes: file.size, contentType: file.type, uploadedAt: new Date().toISOString(),
+        ocr: { method: uploaded.method, status: uploaded.status, loans: uploaded.fields.loans,
+          requestedRepaymentOrder: uploaded.fields.requestedRepaymentOrder,
+          visualChecks: uploaded.visualChecks,
+          authenticityVerified: uploaded.authenticityVerified, manualVerificationRequired: uploaded.manualVerificationRequired } })
       setUpload({ state: 'done', fileName: file.name })
+      if (selected && requestedOrder) {
+        setChecking(true)
+        try { setEligibility(await adapter.checkEligibility(selected.loanId, requestedOrder)) }
+        catch (error) { setCheckError(toUserMessage(error)) }
+        finally { setChecking(false) }
+      }
     } catch (error) {
       setUpload({ state: 'idle' })
       setUploadError(toUserMessage(error))
@@ -112,7 +231,8 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     setConsentError(null)
     try {
       // The consent time is not kept client-side; the adapter returns it from finalize.
-      await adapter.recordConsent({ loanId: selected.loanId, requestedOrder })
+      if (!document) return
+      await adapter.recordConsent({ loanId: selected.loanId, requestedOrder, documentFileId: document.documentFileId })
       setPhase('sign')
     } catch (error) {
       setConsentError(toUserMessage(error))
@@ -132,6 +252,31 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     }
   }
 
+  if (restoring) return <div className="b01-page"><SiteHeader /><main className="b01-main"><p role="status" className="b01-status">저장된 진행 상태를 불러오고 있어요.</p></main><SiteFooter /></div>
+
+  if (onHold) return <div className="b01-page">
+    <SiteHeader />
+    <main className="b01-main">
+      <section className="b01-card">
+        <h1 className="b01-card__title">보류된 채무변제 충당순서 변경 업무</h1>
+        <div role="status" className="b01-alert">저장된 내용은 유지되고 있어요. 이어서 진행하면 마지막으로 저장된 단계부터 계속할 수 있어요.</div>
+        <dl className="b01-dl">
+          <dt className="b01-dl__key">선택한 대출</dt><dd className="b01-dl__value">{selectedId ? `대출 ID ${selectedId}` : '선택 전'}</dd>
+          <dt className="b01-dl__key">요청 충당순서</dt><dd className="b01-dl__value">{requestedOrder ? ORDER_LABELS[requestedOrder] : '선택 전'}</dd>
+          <dt className="b01-dl__key">신청서</dt><dd className="b01-dl__value">{document?.displayName ?? '업로드 전'}</dd>
+          <dt className="b01-dl__key">동의·서명·SMS</dt><dd className="b01-dl__value">{context?.consentAgreed ? '동의 완료' : '동의 전'} · {context?.mockSignatureCompleted ? '모의서명 완료' : '모의서명 전'} · {context?.smsVerified ? 'SMS 완료' : 'SMS 전'}</dd>
+        </dl>
+        {resumeError && <div role="alert" className="b01-alert">{resumeError}</div>}
+        <div className="b01-done__actions">
+          <button type="button" onClick={() => void resume()} disabled={resuming}
+            className="b01-button b01-button--primary">{resuming ? '재개 상태 확인 중…' : '이어서 진행'}</button>
+          <Link to="/chat" className="b01-button b01-button--plain">채팅으로 돌아가기</Link>
+        </div>
+      </section>
+    </main>
+    <SiteFooter />
+  </div>
+
   if (phase === 'sign' && selected && requestedOrder) {
     const setup = getSignSetup('b01', signerName)
     if (setup) {
@@ -146,24 +291,23 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           return field
         }),
       }))
-      return <SignFlow {...setup} docs={docs} adapter={adapter.sign} backHref={`/tasks/b01/${workItemId}`} onDone={() => void runFinalize()} />
+      return <SignFlow {...setup} docs={docs} adapter={adapter.sign} backHref={`/tasks/b01/${workItemId}`}
+        allowDemoSignature={false} initialStep={context?.mockSignatureCompleted ? 'otp' : 'doc'}
+        onDone={() => void runFinalize()} doneLabel="본인확인 결과 보기" />
     }
   }
 
   const stepIndex = phase === 'select' ? 0 : phase === 'done' ? 2 : 1
   const uploadReady = !adapter.requiresApplicationDocument || upload.state === 'done'
   const canNext = phase === 'select'
-    ? !!eligibility?.eligible && !checking
-    : agreed && uploadReady && !consenting && upload.state !== 'uploading'
+    ? !!selected && !!requestedOrder && !checking && !onHold
+    : agreed && uploadReady && !!eligibility?.eligible && !consenting && upload.state !== 'uploading' && !checking && !onHold
   const hint = phase === 'select'
-    ? (!selected ? '변경할 대출을 선택해 주세요.'
-      : checking ? '변경 가능 여부를 확인하고 있어요.'
-        : eligibility?.eligible ? '선택한 대출은 충당순서를 바꿀 수 있어요.'
-          : eligibility ? '변경할 수 없는 대출이에요. 다른 대출을 선택해 주세요.'
-            : '변경 가능 여부를 확인하지 못했어요.')
+    ? (!selected ? '변경할 대출을 선택해 주세요.' : checking ? '선택 정보를 저장하고 있어요.' : '신청서에 작성할 변경 내용을 확인해 주세요.')
     : (!agreed ? '유의사항 확인에 체크해야 변경할 수 있어요.'
       : !uploadReady ? '신청서를 첨부해야 변경할 수 있어요.'
-        : '신청서에 서명하고 문자 인증을 마치면 조건을 다시 확인한 뒤 바로 변경돼요.')
+        : !eligibility?.eligible ? '신청서와 대출정보 검증을 통과해야 다음 단계로 진행할 수 있어요.'
+          : '서명과 문자 인증을 마치면 변경 처리 전 단계까지 준비돼요.')
 
   return <div className="b01-page">
     <SiteHeader />
@@ -203,7 +347,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           {loans.map(loan => {
             const isSelected = loan.loanId === selectedId
             return <label key={loan.loanId} className={`b01-loan${isSelected ? ' b01-loan--selected' : ''}`}>
-              <input type="radio" name="b01-loan" checked={isSelected} onChange={() => pickLoan(loan)} className="b01-loan__radio" />
+              <input type="radio" name="b01-loan" checked={isSelected} onChange={() => pickLoan(loan)} disabled={onHold} className="b01-loan__radio" />
               <span className="b01-loan__body">
                 <span className="b01-loan__head"><strong className="b01-loan__name">{loan.loanName}</strong><span className="b01-loan__no">{loan.loanNoMasked}</span></span>
                 <span className="b01-loan__facts">
@@ -212,15 +356,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
                   <span className="b01-fact"><span className="b01-fact__key">기한의 이익</span><strong>{accelerationLabel(loan)}</strong></span>
                   <span className="b01-fact"><span className="b01-fact__key">현재 충당순서</span><strong>{ORDER_LABELS[loan.repaymentOrder]}</strong></span>
                 </span>
-                {isSelected && <span aria-live="polite" className="b01-loan__ruling">
-                  {checking && <span className="b01-status">변경 가능 여부를 확인하고 있어요…</span>}
-                  {checkError && <span role="alert" className="b01-alert">{checkError}</span>}
-                  {eligibility && <>
-                    <span className="b01-loan__result"><span className={`b01-result${eligibility.eligible ? ' b01-result--ok' : ' b01-result--no'}`}>{eligibility.eligible ? '변경 가능' : '변경 불가'}</span><span className="b01-loan__reason">{RULE_REASONS[eligibility.ruleCode]}</span></span>
-                    {eligibility.thirdPartyProvider && <span className="b01-loan__notice"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="b01-loan__notice-icon"><path d="M12 3l10 18H2z"></path><path d="M12 10v4M12 17h.01"></path></svg>{THIRD_PARTY_NOTICE}</span>}
-                    <span className="b01-basis">근거: {RULE_BASIS}</span>
-                  </>}
-                </span>}
+                {isSelected && <span aria-live="polite" className="b01-loan__ruling"><span className="b01-status">선택됨 · 신청서 업로드 후 적합성을 확인해요.</span>{checkError && <span role="alert" className="b01-alert">{checkError}</span>}</span>}
               </span>
             </label>
           })}
@@ -257,6 +393,33 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           </span>
           {uploadError && <span role="alert" className="b01-alert">{uploadError}</span>}
         </div>}
+        {document?.ocr && <div className="b01-notice">
+          <strong className="b01-notice__title">{ocrTitle(document.ocr.method)}</strong>
+          <span>처리 상태: {document.ocr.status} · 방식: {document.ocr.method}</span>
+          <span>인식 계좌: {document.ocr.loans.map(item => item.maskedAccountNumber).join(', ') || '없음'}</span>
+          <span>인식 잔액: {document.ocr.loans.length === 1 ? formatWon(document.ocr.loans[0].balance) : '확인 불가'}</span>
+          <span>인식 기한의 이익 상실일: {document.ocr.loans.length === 1 ? (document.ocr.loans[0].accelerationDate ?? '확인 불가') : '확인 불가'}</span>
+          <span>변경순서 체크박스: {checkboxLabel(document.ocr.visualChecks)}</span>
+          <span>채무자 서명란 필기 흔적: {document.ocr.visualChecks?.debtorSignatureTrace === 'TRACE_PRESENT' ? '흔적 감지' : document.ocr.visualChecks?.debtorSignatureTrace === 'TRACE_ABSENT' ? '흔적 없음' : '판정 불확실'}</span>
+          {document.ocr.method === 'MOCK'
+            ? <span className="b01-basis">등록된 테스트 파일 해시와 Fixture를 연결한 Mock 결과입니다. 실제 문자 인식·문서 진위·본인 서명 검증 결과가 아닙니다.</span>
+            : <span className="b01-basis">텍스트 인식과 이미지 흔적 분석 결과입니다. 서명자 본인 여부나 문서 진위를 확인한 결과가 아닙니다.</span>}
+        </div>}
+        {checking && <p role="status" className="b01-status">신청서와 대출정보를 비교하고 있어요.</p>}
+        {checkError && <div role="alert" className="b01-alert">{checkError}</div>}
+        {eligibility && <div className="b01-loan__ruling">
+          <span className="b01-loan__result"><span className={`b01-result${eligibility.eligible ? ' b01-result--ok' : ' b01-result--no'}`}>{eligibility.eligible ? '서류 항목 검증 통과' : '서류 재제출 또는 확인 필요'}</span><span className="b01-loan__reason">{RULE_REASONS[eligibility.ruleCode]}</span></span>
+          <span>계좌번호 인식 결과: {matchLabel(eligibility.ocrMatched && !eligibility.mismatchCodes.includes('ACCOUNT_NUMBER_MISMATCH'))}</span>
+          <span>대출잔액 일치 여부: {matchLabel(eligibility.ocrMatched && !eligibility.mismatchCodes.includes('BALANCE_MISMATCH'))}</span>
+          <span>기한의 이익 상실일 일치 여부: {matchLabel(eligibility.ocrMatched && !eligibility.mismatchCodes.includes('ACCELERATION_DATE_MISMATCH'))}</span>
+          <span>변경순서 체크 결과와 요청 일치 여부: {matchLabel(eligibility.image.matched && !eligibility.image.mismatchCodes.includes('REQUESTED_ORDER_MISMATCH'))}</span>
+          <span>채무자 서명란 필기 흔적: {eligibility.image.mismatchCodes.includes('DEBTOR_SIGNATURE_TRACE_NOT_FOUND') ? '흔적 없음' : eligibility.image.matched ? '흔적 감지' : '확인 불가'}</span>
+          {!eligibility.ocrMatched && <span className="b01-loan__notice">신청서 정보가 선택한 대출과 일치하지 않아요: {eligibility.mismatchCodes.join(', ')}</span>}
+          {!eligibility.image.matched && <span className="b01-loan__notice">{eligibility.image.mismatchCodes.map(code => IMAGE_MESSAGES[code]).join(' ')}</span>}
+          {eligibility.thirdPartyProvider && <span className="b01-loan__notice">{THIRD_PARTY_NOTICE}</span>}
+          {eligibility.manualVerificationRequired && <span className="b01-basis">서류 항목 검증과 최종 모의 처리 허용 여부는 별개입니다. 문서 진위와 서명자 본인 여부는 확인되지 않았습니다.</span>}
+          <span className="b01-basis">근거: {RULE_BASIS}</span>
+        </div>}
         <label className={`b01-agree${agreed ? ' b01-agree--on' : ''}`}><input type="checkbox" checked={agreed} disabled={consenting} onChange={() => setAgreed(value => !value)} className="b01-agree__input" />유의사항을 확인했습니다</label>
         <span className="b01-card__foot">동의하시면 서명과 문자 인증 단계로 넘어가요.</span>
         {consentError && <div role="alert" className="b01-alert">{consentError}</div>}
@@ -282,7 +445,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
             ? <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
             : <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>}</span>
           <div className="b01-done__titles">
-            <h2 id="b01-done-title" ref={headingRef} tabIndex={-1} className="b01-done__title">{result.status === 'DONE' ? '충당순서 변경이 완료되었어요' : PENDING_TITLE}</h2>
+            <h2 id="b01-done-title" ref={headingRef} tabIndex={-1} className="b01-done__title">{result.status === 'DONE' ? '충당순서 변경이 완료되었어요' : '본인확인이 완료되었습니다. 충당순서 변경 처리 전 단계입니다.'}</h2>
             {result.status === 'DONE'
               ? result.maskedEmail && <span className="b01-done__sub">결과를 {result.maskedEmail}으로 보냈어요</span>
               : <span className="b01-done__sub">{PENDING_SUBTITLE}</span>}
@@ -307,7 +470,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
         <span aria-live="polite" className={`b01-bar__hint${canNext ? '' : ' b01-bar__hint--warn'}`}>{hint}</span>
         {phase === 'confirm' && <button type="button" onClick={() => setPhase('select')} disabled={consenting} className="b01-button b01-button--plain b01-bar__button">이전</button>}
         {phase === 'select'
-          ? <button type="button" onClick={() => setPhase('confirm')} disabled={!canNext} className="b01-button b01-button--primary b01-bar__button">다음</button>
+          ? <button type="button" onClick={() => void saveSelection()} disabled={!canNext} className="b01-button b01-button--primary b01-bar__button">다음</button>
           : <button type="button" onClick={() => void consent()} disabled={!canNext} className="b01-button b01-button--primary b01-bar__button">{consenting ? '동의 기록 중…' : '서명·인증하고 변경하기'}</button>}
       </div>}
     </main>
