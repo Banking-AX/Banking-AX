@@ -6,6 +6,9 @@ import { StaffBranchPage, StaffDashboardPage, StaffQueuePage } from './features/
 import { LoginPage } from './pages/LoginPage'
 import { MainPage } from './pages/MainPage'
 import { RequireAuth } from './auth/RequireAuth'
+import { useAuth } from './auth/AuthContext'
+import { ChatModal } from './features/chat/ChatModal'
+import { ChatDockProvider } from './features/chat/chatDockContext'
 import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02CaseDetailPage } from './pages/C02CaseDetailPage'
@@ -25,7 +28,10 @@ import { WorkRecordsPage } from './pages/WorkRecordsPage'
 import { WorkRecordDetailPage } from './pages/WorkRecordDetailPage'
 
 export function App() {
-  return <Routes>
+  const { status, user } = useAuth()
+  // The chat stays mounted while a customer is signed in so the conversation survives page changes.
+  return <ChatDockProvider>
+    <Routes>
     <Route path="/" element={<MainPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/sign/:docKey" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><SignPage /></RequireAuth>} />
@@ -56,5 +62,7 @@ export function App() {
       <Route path="*" element={<Navigate to="/staff" replace />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>
+    </Routes>
+    {status === 'authenticated' && user?.role === 'CUSTOMER' && <ChatModal />}
+  </ChatDockProvider>
 }
