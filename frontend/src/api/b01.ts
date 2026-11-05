@@ -109,9 +109,10 @@ export function createRealB01Adapter(workItemId: string): B01Adapter {
     },
     sign,
     async finalize() {
-      const value = context(data(await apiFetch<ServerContext>(`${base}/context`)))
-      if (!value.readyToExecute) throw new ApiError('INVALID_STATE', 409, 'Verification is not complete.')
-      return { status: 'PENDING' }
+      const value = data(await apiFetch<{ processedAt: string; consentAt: string | null }>(`${base}/execute`, {
+        method: 'POST', body: JSON.stringify({ requestId: id('execute') }),
+      }))
+      return { status: 'DONE', processedAt: value.processedAt, consentAt: value.consentAt ?? undefined }
     },
   }
 }

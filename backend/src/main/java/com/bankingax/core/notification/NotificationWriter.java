@@ -17,7 +17,14 @@ public class NotificationWriter {
 
     // Connector/J reports found rows by default, so the update count cannot distinguish insert from replay.
     public void store(long customerId, Long caseId, Long workItemId, String type, String title, String content, String dedupKey) {
-        jdbc.update("insert into notification(customer_id,case_id,work_item_id,type,title,content,dedup_key) values(?,?,?,?,?,?,?) "
-                + "on duplicate key update id=id", customerId, caseId, workItemId, type, title, content, dedupKey);
+        store(customerId, caseId, workItemId, null, type, title, content, dedupKey);
+    }
+
+    /** Same as above for a B task result, which links the row through task_result_id instead of a Case. */
+    public void store(long customerId, Long caseId, Long workItemId, Long taskResultId, String type, String title,
+                      String content, String dedupKey) {
+        jdbc.update("insert into notification(customer_id,case_id,work_item_id,task_result_id,type,title,content,dedup_key) "
+                + "values(?,?,?,?,?,?,?,?) on duplicate key update id=id",
+                customerId, caseId, workItemId, taskResultId, type, title, content, dedupKey);
     }
 }

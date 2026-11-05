@@ -78,6 +78,43 @@ describe('authenticated API client', () => {
     expect(lost).toHaveBeenCalledTimes(1)
   })
 
+  it('recovers a lost in-memory token through the refresh cookie and retries once', async () => {
+    const lost = vi.fn()
+    let refreshCalls = 0
+    setAuthenticationLostHandler(lost)
+    setRefreshAccessTokenHandler(async () => { refreshCalls += 1; return 'replacement-access' })
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (new Headers(init?.headers).get('Authorization') === 'Bearer replacement-access') {
+        return new Response(envelope({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      return new Response(envelope(null, {
+        code: 'AUTH_REQUIRED', message: 'missing bearer', retryable: false, traceId: 'trace',
+      }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await apiFetch<{ ok: boolean }>('/api/v1/customer/chat/rooms/7/agent-runs', { method: 'POST' })
+
+    expect(response.data?.ok).toBe(true)
+    expect(refreshCalls).toBe(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(lost).not.toHaveBeenCalled()
+  })
+
+  it('ends the session once when a missing token cannot be refreshed', async () => {
+    const lost = vi.fn()
+    setAuthenticationLostHandler(lost)
+    setRefreshAccessTokenHandler(async () => { throw new Error('no refresh cookie') })
+    const fetchMock = vi.fn(async () => new Response(envelope(null, {
+      code: 'AUTH_REQUIRED', message: 'missing bearer', retryable: false, traceId: 'trace',
+    }), { status: 401, headers: { 'Content-Type': 'application/json' } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiFetch('/api/v1/customer/chat/rooms')).rejects.toMatchObject({ code: 'AUTH_REQUIRED' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(lost).toHaveBeenCalledTimes(1)
+  })
+
   it('does not send the customer JWT to FastAPI agent routes', async () => {
     setAccessToken('customer-access')
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {

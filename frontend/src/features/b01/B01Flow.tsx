@@ -102,7 +102,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     setEligibility(next.lastEligibility)
     setAgreed(next.consentAgreed)
     setUpload(next.applicationDocument ? { state: 'done', fileName: next.applicationDocument.displayName } : { state: 'idle' })
-    if (next.readyToExecute) { setResult({ status: 'PENDING' }); setPhase('done') }
+    if (next.readyToExecute) void runFinalize()
     else if (next.consentAgreed || next.currentStep === 'MOCK_SIGNATURE' || next.currentStep === 'SMS_VERIFICATION') setPhase('sign')
     else if (next.selectedLoanId) setPhase('confirm')
     else setPhase('select')

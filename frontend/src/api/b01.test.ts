@@ -121,15 +121,16 @@ describe('B-01 Spring BFF adapter', () => {
     await expect(createRealB01Adapter('100').uploadApplication(file)).resolves.toMatchObject({ documentFileId: 77, method: 'MOCK' })
   })
 
-  it('never reports READY_TO_EXECUTE as a completed repayment-order change', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(envelope({
-      workItemId: 100, workItemVersion: 3, workItemStatus: 'ACTIVE', resumeStep: null, selectedLoanId: 501,
-      requestedRepaymentOrder: 'PRINCIPAL_FIRST', applicationDocument: null, lastEligibility: null,
-      consentAgreed: true, mockSignatureCompleted: true, smsVerified: true,
-      currentStep: 'READY_TO_EXECUTE', readyToExecute: true,
-    }), { status: 200 })))
+  it('reports DONE only from the server execute result', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => new Response(envelope({
+      status: 'DONE', processedAt: '2026-11-05T09:00:00Z', consentAt: '2026-11-05T08:59:00Z',
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
 
-    await expect(createRealB01Adapter('100').finalize()).resolves.toEqual({ status: 'PENDING' })
+    await expect(createRealB01Adapter('100').finalize()).resolves.toEqual({
+      status: 'DONE', processedAt: '2026-11-05T09:00:00Z', consentAt: '2026-11-05T08:59:00Z',
+    })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/customer/b01/work-items/100/execute')
   })
 
   it('sends the context version to the common WorkItem resume API', async () => {

@@ -10,16 +10,20 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @ConditionalOnProperty(name = "app.b01.image-analysis-enabled", havingValue = "true")
 final class B01FastApiImageAnalysisAdapter implements B01DocumentImageAnalysisPort {
+    private static final Logger log = LoggerFactory.getLogger(B01FastApiImageAnalysisAdapter.class);
     private static final String PATH = "/api/v1/internal/document-analysis/b01";
     private static final Set<String> ALIGNMENTS = Set.of("ALIGNED", "ALIGNMENT_FAILED", "TEMPLATE_MISMATCH");
     private static final Set<String> BOX_STATES = Set.of("CHECKED", "UNCHECKED", "UNCERTAIN");
@@ -63,6 +67,9 @@ final class B01FastApiImageAnalysisAdapter implements B01DocumentImageAnalysisPo
         try {
             String boundary = "banking-ax-image-" + UUID.randomUUID();
             HttpRequest outbound = HttpRequest.newBuilder(endpoint)
+                    // Uvicorn's local HTTP server does not support Java HttpClient's h2c upgrade.
+                    // Keep this trusted internal multipart boundary on HTTP/1.1.
+                    .version(HttpClient.Version.HTTP_1_1)
                     .timeout(timeout)
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                     .header("X-Customer-Agent-Token", token)
@@ -70,18 +77,30 @@ final class B01FastApiImageAnalysisAdapter implements B01DocumentImageAnalysisPo
                     .build();
             HttpResponse<String> response = http.send(outbound,
                     HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() == 401 || response.statusCode() == 403)
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                log.warn("B-01 image analysis rejected request: status={}", response.statusCode());
                 return unavailable("IMAGE_ANALYSIS_AUTH_FAILED");
-            if (response.statusCode() < 200 || response.statusCode() >= 300)
+            }
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.warn("B-01 image analysis returned non-success: status={}, validation={}",
+                        response.statusCode(), validationSummary(response.body()));
                 return unavailable(response.statusCode() == 503
                         ? "IMAGE_ANALYSIS_UNAVAILABLE" : "IMAGE_ANALYSIS_FAILED");
+            }
             return parse(response.body(), request.requestId());
         } catch (HttpTimeoutException exception) {
+            log.warn("B-01 image analysis timed out: type={}", exception.getClass().getSimpleName());
             return unavailable("IMAGE_ANALYSIS_TIMEOUT");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
+            log.warn("B-01 image analysis interrupted: type={}", exception.getClass().getSimpleName());
             return unavailable("IMAGE_ANALYSIS_INTERRUPTED");
         } catch (Exception exception) {
+            Throwable cause = exception.getCause();
+            log.warn("B-01 image analysis transport/response failure: type={}, causeType={}, message={}",
+                    exception.getClass().getSimpleName(),
+                    cause == null ? "none" : cause.getClass().getSimpleName(),
+                    safeExceptionMessage(exception.getMessage()));
             return unavailable("IMAGE_ANALYSIS_UNAVAILABLE");
         }
     }
@@ -112,6 +131,31 @@ final class B01FastApiImageAnalysisAdapter implements B01DocumentImageAnalysisPo
         String value = root.path(field).asText("");
         if (value.isBlank()) throw new IllegalArgumentException("Missing image analysis field");
         return value;
+    }
+
+    /** Logs FastAPI validation metadata only; request content and credentials never enter logs. */
+    private String validationSummary(String body) {
+        try {
+            JsonNode detail = json.readTree(body).path("detail");
+            if (!detail.isArray()) return "none";
+            var entries = new ArrayList<String>();
+            for (JsonNode item : detail) {
+                String type = item.path("type").asText("unknown");
+                JsonNode location = item.path("loc");
+                var parts = new ArrayList<String>();
+                if (location.isArray()) for (JsonNode part : location) parts.add(part.asText());
+                entries.add(type + "@" + String.join(".", parts));
+            }
+            return entries.isEmpty() ? "none" : String.join(",", entries);
+        } catch (Exception ignored) {
+            return "unparseable";
+        }
+    }
+
+    private static String safeExceptionMessage(String value) {
+        if (value == null || value.isBlank()) return "none";
+        // Java HTTP client transport messages contain protocol diagnostics, not request bodies or headers.
+        return value.replaceAll("[\\r\\n]", " ").substring(0, Math.min(value.length(), 160));
     }
 
     private static byte[] multipart(String boundary, AnalysisRequest request) throws Exception {

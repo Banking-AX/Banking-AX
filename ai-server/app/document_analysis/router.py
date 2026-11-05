@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 from pathlib import Path
 from typing import Callable, Literal
@@ -18,6 +19,7 @@ SUPPORTED_TYPES = {
     "image/png": b"\x89PNG\r\n\x1a\n",
     "image/jpeg": b"\xff\xd8\xff",
 }
+log = logging.getLogger(__name__)
 
 
 class B01ImageAnalysisResponse(BaseModel):
@@ -107,12 +109,16 @@ def create_router(
         if len(content) > limit:
             raise HTTPException(413, "DOCUMENT_TOO_LARGE")
         content_type = _content_type(file, content)
+        log.info("B-01 image analysis input accepted: content_type=%s, bytes=%d, pdf_magic=%s",
+                 content_type, len(content), content.startswith(b"%PDF-"))
         try:
             candidate = render_document_bytes(content, content_type)
             return _response(request_id, analyzer(reference, candidate))
         except HTTPException:
             raise
         except ValueError as exc:
+            # render_document_bytes only emits fixed validation reasons; do not log document data.
+            log.warning("B-01 image analysis input rejected: reason=%s", str(exc))
             raise HTTPException(422, "DOCUMENT_ANALYSIS_INPUT_INVALID") from exc
         except Exception as exc:
             raise HTTPException(500, "DOCUMENT_ANALYSIS_FAILED") from exc

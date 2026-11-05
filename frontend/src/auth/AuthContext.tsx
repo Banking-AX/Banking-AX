@@ -65,8 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession, applyUser, navigate])
 
   const login = useCallback(async (loginId: string, password: string) => {
-    const session = await authApi.login(loginId, password)
+    // Invalidate a bootstrap refresh before awaiting login. Otherwise a late
+    // refresh failure can clear the state while the user is signing in.
     sessionGeneration.current += 1
+    const session = await authApi.login(loginId, password)
     applySession(session)
     return { userId: session.userId, name: session.name, role: session.role }
   }, [applySession])

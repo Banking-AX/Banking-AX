@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,6 +87,7 @@ class B01DocumentUploadMySqlIT {
 
     @Test
     void customerUploadsRecognizedFixtureAndPersistsSafeOcrResult() throws Exception {
+        selectLoan(501, "PRINCIPAL_FIRST");
         byte[] fixture = fixture();
         var response = http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
                         .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture))
@@ -126,6 +128,63 @@ class B01DocumentUploadMySqlIT {
                 .andExpect(jsonPath("$.data.automaticProcessingAllowed").value(false))
                 .andReturn().getResponse().getContentAsString();
         assertThat(validation).doesNotContain("MOCK-B01-T01");
+    }
+
+    @Test
+    void validationUsesThePersistedLoanSelectionAndRejectsAnUnselectedLoan() throws Exception {
+        jdbc.update("""
+                insert into loan(id,customer_id,loan_no,loan_name,principal_amount,balance,overdue_days,
+                  acceleration_declared,acceleration_date,repayment_order)
+                values(502,1,'MOCK-B01-OTHER','other synthetic loan',30000000,26500000,62,
+                  true,'2026-08-31','INTEREST_FIRST')
+                """);
+        selectLoan(501, "PRINCIPAL_FIRST");
+        http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
+                        .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture()))
+                        .param("requestId", "b01-upload-selected")
+                        .with(customer(1)))
+                .andExpect(status().isOk());
+
+        http.perform(post("/api/v1/customer/b01/work-items/{id}/eligibility", 100)
+                        .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"requestId":"b01-validate-stale","loanId":502,
+                                 "requestedRepaymentOrder":"PRINCIPAL_FIRST"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("B01_SELECTION_NOT_CURRENT"));
+
+        assertThat(jdbc.queryForObject("select json_unquote(json_extract(draft_data,'$.selectedLoanId')) "
+                + "from work_item where id=100", String.class)).isEqualTo("501");
+
+        http.perform(post("/api/v1/customer/b01/work-items/{id}/eligibility", 100)
+                        .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"requestId":"b01-validate-selected","loanId":501,
+                                 "requestedRepaymentOrder":"PRINCIPAL_FIRST"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.loanId").value(501))
+                .andExpect(jsonPath("$.data.ruleCode").value("ELIGIBLE"))
+                .andExpect(jsonPath("$.data.ocr.matched").value(true));
+    }
+
+    @Test
+    void validationRejectsAnApplicationWhenNoLoanWasSelected() throws Exception {
+        http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
+                        .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture()))
+                        .param("requestId", "b01-upload-unselected")
+                        .with(customer(1)))
+                .andExpect(status().isOk());
+
+        http.perform(post("/api/v1/customer/b01/work-items/{id}/eligibility", 100)
+                        .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"requestId":"b01-validate-unselected","loanId":501,
+                                 "requestedRepaymentOrder":"PRINCIPAL_FIRST"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("B01_SELECTION_NOT_CURRENT"));
     }
 
     @Test
@@ -203,6 +262,17 @@ class B01DocumentUploadMySqlIT {
     private static org.springframework.test.web.servlet.request.RequestPostProcessor customer(long id) {
         return jwt().jwt(token -> token.subject(Long.toString(id)).claim("role", "CUSTOMER"))
                 .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
+    }
+
+    private void selectLoan(long loanId, String order) throws Exception {
+        http.perform(put("/api/v1/customer/b01/work-items/{id}/context", 100)
+                        .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"requestId":"b01-select-%d","loanId":%d,
+                                 "requestedRepaymentOrder":"%s"}
+                                """.formatted(loanId, loanId, order)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.selectedLoanId").value(loanId));
     }
 
     private static byte[] fixture() throws Exception {
