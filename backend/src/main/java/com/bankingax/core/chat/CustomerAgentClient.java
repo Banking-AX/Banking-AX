@@ -21,6 +21,7 @@ public interface CustomerAgentClient {
             WorkflowView workflow,
             JsonNode loanInquiry,
             ExecutionStatus executionStatus,
+            JsonNode taskAction,
             String answer,
             String answerStatus) { }
 

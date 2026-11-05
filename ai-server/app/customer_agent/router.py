@@ -144,17 +144,25 @@ class ExecutionStatus(BaseModel):
     workflowStatus: Literal["COMPLETED"]
 
 
+class CustomerTaskAction(BaseModel):
+    taskCode: Literal["REPAYMENT_ORDER_CHANGE"]
+    label: Literal["신청 화면으로 이동"] = "신청 화면으로 이동"
+    actionRequestId: str = Field(min_length=1, max_length=90)
+
+
 class CustomerNaturalStartResponse(BaseModel):
     requestId: str
     customerId: int
     outcome: Literal[
         "STARTED", "INFORMATION_ONLY", "CLARIFICATION_REQUIRED", "UNSUPPORTED",
         "NO_EXECUTABLE_TASK", "COMPOSITE_NOT_SUPPORTED", "TASK_NOT_AUTOSTART_ENABLED",
+        "TASK_ACTION_AVAILABLE",
     ]
     classification: IntentClassification
     workflow: WorkflowStartData | None = None
     loanInquiry: LoanInquiryData | None = None
     executionStatus: ExecutionStatus | None = None
+    taskAction: CustomerTaskAction | None = None
     answer: str | None = None
     answerStatus: Literal["GENERATED", "FAILED", "NOT_APPLICABLE"] = "NOT_APPLICABLE"
 
@@ -166,6 +174,8 @@ def build_registry(gateway: SpringToolGateway | None = None) -> TaskRegistry:
 
 def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
     available = {str(definition["taskCode"]) for definition in registry.definitions()}
+    # B-01 is started only after the customer clicks the structured chat action.
+    available.add(TaskCode.REPAYMENT_ORDER_CHANGE.value)
     return IntentClassifier(OpenAiIntentClient(), available)
 
 
@@ -228,9 +238,13 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
 
             outcome = _non_start_outcome(classification)
             if outcome is not None:
+                action = (CustomerTaskAction(
+                    taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=request.requestId)
+                    if outcome == "TASK_ACTION_AVAILABLE" else None)
                 return CustomerNaturalStartResponse(
                     requestId=request.requestId, customerId=request.customerId, outcome=outcome,
                     classification=classification, answer=_non_start_answer(outcome, classification),
+                    taskAction=action,
                     answerStatus="GENERATED").model_dump(mode="json")
 
             try:
@@ -311,6 +325,8 @@ def _non_start_outcome(classification: IntentClassification) -> str | None:
     task = classification.tasks[0]
     if task.requestKind is RequestKind.INFORMATION:
         return "INFORMATION_ONLY"
+    if classification.executionTargets == [TaskCode.REPAYMENT_ORDER_CHANGE]:
+        return "TASK_ACTION_AVAILABLE"
     if classification.executionTargets != [TaskCode.LOAN_INQUIRY]:
         return "TASK_NOT_AUTOSTART_ENABLED" if classification.executionTargets else "NO_EXECUTABLE_TASK"
     return None
@@ -327,6 +343,9 @@ def _non_start_answer(outcome: str, classification: IntentClassification) -> str
         return "여러 업무가 함께 요청되었습니다. 한 번에 한 업무씩 요청해 주세요."
     if outcome == "TASK_NOT_AUTOSTART_ENABLED":
         return "요청한 업무는 현재 채팅에서 자동으로 시작할 수 없습니다."
+    if outcome == "TASK_ACTION_AVAILABLE":
+        return ("채무변제충당순서 변경 신청을 도와드리겠습니다. "
+                "신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.")
     return "실행할 수 있는 금융업무를 확인하지 못했습니다. 요청을 구체적으로 알려주세요."
 
 

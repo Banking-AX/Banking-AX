@@ -12,14 +12,17 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = {ChatController.class, ChatAgentController.class})
+@RestControllerAdvice(assignableTypes = {
+    ChatController.class, ChatAgentController.class, ChatTaskActionController.class
+})
 class ChatExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiEnvelope<Void>> handleDomain(DomainException exception) {
         HttpStatus status = switch (exception.code()) {
             case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
             case "CHAT_ROOM_NOT_AVAILABLE", "CUSTOMER_NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            case "DUPLICATE_REQUEST_CONFLICT", "CHAT_MESSAGE_CONFLICT" -> HttpStatus.CONFLICT;
+            case "DUPLICATE_REQUEST_CONFLICT", "CHAT_MESSAGE_CONFLICT", "VERSION_CONFLICT",
+                    "WORKFLOW_ACTIVE_EXISTS", "INVALID_STATE" -> HttpStatus.CONFLICT;
             case "CUSTOMER_AGENT_INVALID_RESPONSE" -> HttpStatus.BAD_GATEWAY;
             case "CHAT_PERSISTENCE_UNAVAILABLE", "CUSTOMER_AGENT_UNAVAILABLE" ->
                     HttpStatus.SERVICE_UNAVAILABLE;

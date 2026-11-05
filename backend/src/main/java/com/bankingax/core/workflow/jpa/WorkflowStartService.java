@@ -10,6 +10,9 @@ import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 
 @Service
 @ConditionalOnProperty(name = "app.case-port", havingValue = "jpa")
@@ -19,15 +22,48 @@ public class WorkflowStartService {
     private final WorkflowRepository workflowRepository;
     private final WorkItemRepository workItemRepository;
     private final TransactionTemplate transactions;
+    private final EntityManager entityManager;
 
     public WorkflowStartService(WorkflowService workflows, TaskHandler tasks,
                                 WorkflowRepository workflowRepository, WorkItemRepository workItemRepository,
-                                TransactionTemplate transactions) {
+                                TransactionTemplate transactions, EntityManager entityManager) {
         this.workflows = workflows;
         this.tasks = tasks;
         this.workflowRepository = workflowRepository;
         this.workItemRepository = workItemRepository;
         this.transactions = transactions;
+        this.entityManager = entityManager;
+    }
+
+    @Transactional
+    public StartResult startOrReconnect(StartCommand command) {
+        validate(command);
+        if (command.chatRoomId() == null) {
+            throw new DomainException("INVALID_REQUEST", "A chatRoomId is required for a chat task action.");
+        }
+        lockOwnedChatRoom(command.customerId(), command.chatRoomId());
+        StartResult replay = findReplay(command);
+        if (replay != null) {
+            return replay;
+        }
+        var linked = workItemRepository.findLatestLinkedUnfinished(
+                command.customerId(), command.chatRoomId(), command.taskCode().name());
+        if (linked.isPresent()) {
+            return result(linked.get());
+        }
+        return createAndStart(command);
+    }
+
+    private void lockOwnedChatRoom(long customerId, long chatRoomId) {
+        try {
+            entityManager.createNativeQuery(
+                    "select id from chat_room where id=:roomId and customer_id=:customerId for update")
+                    .setParameter("roomId", chatRoomId)
+                    .setParameter("customerId", customerId)
+                    .getSingleResult();
+        } catch (NoResultException exception) {
+            throw new DomainException("CHAT_ROOM_NOT_AVAILABLE", "Chat room is not available.");
+        }
     }
 
     public StartResult start(StartCommand command) {
@@ -77,6 +113,12 @@ public class WorkflowStartService {
 
     private static StartResult result(WorkItemView workItem) {
         return new StartResult(workItem.workflowId(), workItem.workItemId(), workItem.taskCode(), workItem.status());
+    }
+
+    private StartResult result(WorkItemEntity workItem) {
+        WorkflowEntity workflow = workflowRepository.findById(workItem.workflowId)
+                .orElseThrow(() -> new DomainException("NOT_FOUND", "Workflow was not found."));
+        return new StartResult(workflow.id, workItem.id, workItem.taskCode, workItem.status);
     }
 
     private static void validate(StartCommand command) {

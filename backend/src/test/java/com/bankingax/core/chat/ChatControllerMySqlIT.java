@@ -35,6 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "app.auth.enabled=true",
+    "app.case-port=jpa",
     "app.auth.jwt-secret=chat-controller-test-secret-with-at-least-thirty-two-bytes",
     "app.auth.issuer=banking-ax-chat-test"
 })
@@ -74,6 +75,9 @@ class ChatControllerMySqlIT {
     @BeforeEach
     void seedUsers() {
         reset(customerAgent);
+        jdbc.update("delete from task_result");
+        jdbc.update("delete from work_item");
+        jdbc.update("delete from workflow");
         jdbc.update("delete from chat_message");
         jdbc.update("delete from chat_room");
         jdbc.update("delete from refresh_token");
@@ -90,6 +94,38 @@ class ChatControllerMySqlIT {
         jdbc.update(
                 "insert into `user`(id,login_id,password_hash,`role`,name,is_active) values(?,?,?,?,?,true)",
                 999, "chat_admin", passwords.encode("test-password"), "ADMIN", "admin");
+    }
+
+    @Test
+    void startsAndReconnectsB01FromOwnedChatActionWithoutDuplicateWorkItems() {
+        String owner = login("chat_customer_one");
+        String other = login("chat_customer_two");
+        long roomId = createRoom(owner);
+        String path = "/api/v1/customer/chat/rooms/" + roomId + "/task-actions";
+
+        ResponseEntity<Map> first = exchange(HttpMethod.POST, path, Map.of(
+                "actionRequestId", "b01-action-1", "taskCode", "REPAYMENT_ORDER_CHANGE"), owner);
+        ResponseEntity<Map> replay = exchange(HttpMethod.POST, path, Map.of(
+                "actionRequestId", "b01-action-1", "taskCode", "REPAYMENT_ORDER_CHANGE"), owner);
+        ResponseEntity<Map> reconnect = exchange(HttpMethod.POST, path, Map.of(
+                "actionRequestId", "b01-action-2", "taskCode", "REPAYMENT_ORDER_CHANGE"), owner);
+        ResponseEntity<Map> foreign = exchange(HttpMethod.POST, path, Map.of(
+                "actionRequestId", "foreign-action", "taskCode", "REPAYMENT_ORDER_CHANGE"), other);
+
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.OK);
+        long workItemId = number(data(first).get("workItemId"));
+        assertThat(number(data(replay).get("workItemId"))).isEqualTo(workItemId);
+        assertThat(number(data(reconnect).get("workItemId"))).isEqualTo(workItemId);
+        assertThat(data(first).get("taskCode")).isEqualTo("REPAYMENT_ORDER_CHANGE");
+        assertThat(data(first).get("status")).isEqualTo("ACTIVE");
+        assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(errorCode(foreign)).isEqualTo("CHAT_ROOM_NOT_AVAILABLE");
+        assertThat(jdbc.queryForObject(
+                "select count(*) from work_item where task_code='REPAYMENT_ORDER_CHANGE'", Integer.class))
+                .isOne();
+        assertThat(jdbc.queryForObject(
+                "select chat_room_id from workflow where id=(select workflow_id from work_item where id=?)",
+                Long.class, workItemId)).isEqualTo(roomId);
     }
 
     @Test
@@ -130,6 +166,44 @@ class ChatControllerMySqlIT {
             assertThat(sent.chatRoomId()).isEqualTo(roomId);
             assertThat(sent.message()).isEqualTo("내 대출정보 조회해 줘");
             assertThat(sent.recentMessages()).doesNotContain("CUSTOMER: 내 대출정보 조회해 줘");
+        });
+    }
+
+    @Test
+    void persistsStructuredB01ActionOnAgentMessageForRefreshRestoration() throws Exception {
+        String token = login("chat_customer_one");
+        long roomId = createRoom(token);
+        when(customerAgent.start(any())).thenReturn(b01ActionResponse());
+
+        ResponseEntity<Map> response = exchange(
+                HttpMethod.POST,
+                "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs",
+                Map.of(
+                        "messageRequestId", "b01-message-1",
+                        "operationRequestId", "b01-operation-1",
+                        "content", "채무변제 충당순서 변경 신청할래"),
+                token);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(nested(data(response), "agentMessage").get("content"))
+                .isEqualTo("채무변제충당순서 변경 신청을 도와드리겠습니다. 신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.");
+        String citations = jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class,
+                roomId);
+        assertThat(json.readTree(citations).path("taskAction").path("taskCode").asText())
+                .isEqualTo("REPAYMENT_ORDER_CHANGE");
+        assertThat(json.readTree(citations).path("taskAction").path("actionRequestId").asText())
+                .isEqualTo("b01-operation-1");
+
+        ResponseEntity<Map> restored = exchange(
+                HttpMethod.GET,
+                "/api/v1/customer/chat/rooms/" + roomId + "/messages",
+                null,
+                token);
+        assertThat(listData(restored)).anySatisfy(message -> {
+            assertThat(message.get("senderType")).isEqualTo("AGENT");
+            assertThat(message.get("citations")).isEqualTo(citations);
         });
     }
 
@@ -270,7 +344,25 @@ class ChatControllerMySqlIT {
                 json.createObjectNode().put("chatRoomId", roomId),
                 new CustomerAgentClient.ExecutionStatus(
                         501, 1001, "LOAN_INQUIRY", "DONE", "COMPLETED"),
+                null,
                 "대출계좌 3건을 조회했습니다.",
+                "GENERATED");
+    }
+
+    private CustomerAgentClient.AgentResponse b01ActionResponse() {
+        return new CustomerAgentClient.AgentResponse(
+                "b01-operation-1",
+                1,
+                "TASK_ACTION_AVAILABLE",
+                json.createObjectNode(),
+                null,
+                null,
+                null,
+                json.createObjectNode()
+                        .put("taskCode", "REPAYMENT_ORDER_CHANGE")
+                        .put("label", "신청 화면으로 이동")
+                        .put("actionRequestId", "b01-operation-1"),
+                "채무변제충당순서 변경 신청을 도와드리겠습니다. 신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.",
                 "GENERATED");
     }
 
