@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>직원 로그인</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"><style>body{margin:0}</style></head><body><div id="root">
+
+<div style="width: 100%; min-height: 900px; display: flex; flex-wrap: wrap; background: #F6F8FB; color: #2B2B2B; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif">
+
+<section aria-label="시스템 소개" style="flex: 1 1 480px; min-width: 0; box-sizing: border-box; padding: 56px 64px; background: #1E3A5F; color: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; gap: 40px">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg width="40" height="40" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="#FFFFFF"></rect><path d="M8 22 L12.5 10 L17 22 M9.8 17.5 H15.2" stroke="#2E70C3" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19 13 L24.5 21.5 M24.5 13 L19 21.5" stroke="#C9682A" stroke-width="2.4" stroke-linecap="round"></path></svg>
+<strong style="font-size: 24px">AX뱅크</strong>
+</div>
+<div style="display: flex; flex-direction: column; gap: 18px; max-width: 480px">
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; background: #FDF0E4; color: #A3500F; font-size: 14px; font-weight: 700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>직원 전용</span>
+<h1 style="margin: 0; font-size: 40px; line-height: 1.3; font-weight: 700; letter-spacing: -1px">사전접수<br>업무 시스템</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.7; color: #D6E4F5">고객이 제출한 C업무를 AI 사전점검 결과서와 함께 검토하고 결과를 등록하며, 소속 지점의 방문 예약을 관리하는 직원용 시스템입니다.</p>
+<ul style="margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; color: #FFFFFF">
+<li style="display: flex; align-items: center; gap: 10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CC3F0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>AI 사전점검 결과서 · 직원 확인 항목 우선 표시</li>
+<li style="display: flex; align-items: center; gap: 10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CC3F0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>서류별 확인 완료 · 보완 필요 기록</li>
+<li style="display: flex; align-items: center; gap: 10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CC3F0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>진행 가능 · 요건 미충족 · 서류 부족 등록과 지점 예약·배정 관리</li>
+</ul>
+</div>
+<span style="font-size: 13px; color: #BFD3EC">교육용 시연 시스템 · 실제 금융기관의 업무 시스템이 아닙니다</span>
+</section>
+
+<main style="flex: 1 1 480px; min-width: 0; box-sizing: border-box; padding: 56px 24px; display: flex; align-items: center; justify-content: center">
+<div style="width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0; font-size: 28px; font-weight: 700">직원 로그인</h2>
+<p style="margin: 0; font-size: 15px; color: #4B5563">고객용 개인뱅킹 계정으로는 로그인할 수 없어요.</p>
+</div>
+<form novalidate="" style="display: flex; flex-direction: column; gap: 16px; padding: 28px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E5E7EB; box-shadow: 0 4px 14px rgba(0,0,0,0.05)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="staff-id" style="font-size: 14px; font-weight: 500">직원 ID</label>
+<input id="staff-id" type="text" autocomplete="username" value="" aria-invalid="false" placeholder="직원 ID를 입력해 주세요" style="height: 52px; box-sizing: border-box; padding: 0px 16px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 16px; color: rgb(43, 43, 43);">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="staff-pw" style="font-size: 14px; font-weight: 500">비밀번호</label>
+<input id="staff-pw" type="password" autocomplete="current-password" value="" aria-invalid="false" aria-describedby="staff-err" placeholder="비밀번호를 입력해 주세요" style="height: 52px; box-sizing: border-box; padding: 0px 16px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 16px; color: rgb(43, 43, 43);">
+
+</div>
+
+<button type="submit" style="height: 56px; margin-top: 4px; border: 0; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">로그인</button>
+
+
+</form>
+<p style="margin: 0; display: flex; gap: 8px; padding: 12px 14px; border-radius: 8px; border: 1px dashed #C9D3E0; background: #FFFFFF; font-size: 13px; line-height: 1.6; color: #4B5563"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg><span>시연용 직원 계정: <span style="font-family: ui-monospace, Menlo, monospace; color: #1F5AA6">staff_demo / demo1234</span></span></p>
+</div>
+</main>
+
+</div>
+</div></body></html>

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,13 @@ public class JpaCasePort implements CasePort {
         ServiceCaseEntity c=cases.findForUpdate(caseId).orElseThrow(()->new DomainException("NOT_FOUND","Service case was not found.")); revision(c,revision); if(c.caseStatus==CaseStatus.CANCELED) throw stale(); c.reviewStatus=status; return flushedView(c);
     }
     @Override @Transactional(readOnly=true) public ServiceCaseView get(long actorId,long caseId) { return view(owned(actorId,caseId)); }
+    @Override @Transactional(readOnly=true) public Optional<ServiceCaseView> findByWorkItem(long actorId,long workItemId,TaskCode taskCode) {
+        return cases.findByWorkItemId(workItemId).map(c -> {
+            if (c.customerId != actorId) throw new DomainException("FORBIDDEN","Case ownership does not match.");
+            if (c.taskCode != taskCode) throw new DomainException("INVALID_TASK","WorkItem is linked to another task.");
+            return view(c);
+        });
+    }
     private ServiceCaseView sameCreate(ServiceCaseEntity c,CreateCaseCommand command) {
         if(c.customerId!=command.actorId()||c.taskCode!=command.taskCode()||!Objects.equals(c.loanId,command.loanId())||!Objects.equals(c.decedentId,command.decedentId())||!Objects.equals(c.visitRequired,command.visitRequired())||!sameApplication(c.application,command.application()))
             throw new DomainException("DUPLICATE_REQUEST_CONFLICT","workItem already belongs to a Case created with a different request.");

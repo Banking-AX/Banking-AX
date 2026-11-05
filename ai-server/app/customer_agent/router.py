@@ -13,6 +13,7 @@ from .tasks.loan_inquiry import LoanInquiryAnswerTask, LoanInquiryTask
 from .tasks.transaction_search import TransactionSearchTask
 from .tasks.housing_savings_close import HousingSavingsCloseTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
+from .tasks.repayment_order_change import RepaymentOrderChangeTask
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway, SpringToolHttpError
 from .intent_classifier import (
@@ -169,13 +170,17 @@ class CustomerNaturalStartResponse(BaseModel):
 
 def build_registry(gateway: SpringToolGateway | None = None) -> TaskRegistry:
     selected = gateway or SpringHttpToolGateway()
-    return TaskRegistry([TransactionSearchTask(selected), HousingSavingsCloseTask(selected), LoanInquiryTask(selected), DebtAdjustmentTask(selected), InheritanceDepositTask(SpringC02ValidationGateway(selected))])
+    return TaskRegistry([TransactionSearchTask(selected), LoanInquiryTask(selected),
+                         RepaymentOrderChangeTask(), HousingSavingsCloseTask(selected),
+                         DebtAdjustmentTask(selected),
+                         InheritanceDepositTask(SpringC02ValidationGateway(selected))])
 
 
 def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
-    available = {str(definition["taskCode"]) for definition in registry.definitions()}
-    # B-01 is started only after the customer clicks the structured chat action.
-    available.add(TaskCode.REPAYMENT_ORDER_CHANGE.value)
+    # A task may be startable in Spring without being directly executable in
+    # this registry. Only A-02 runs immediately; the other screens collect
+    # customer input and consent before any financial side effect.
+    available = {code.value for code in TaskCode}
     return IntentClassifier(OpenAiIntentClient(), available)
 
 
@@ -247,15 +252,16 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                     taskAction=action,
                     answerStatus="GENERATED").model_dump(mode="json")
 
+            target = classification.executionTargets[0]
             try:
                 raw = selected_workflow_gateway.workflow_start({
                     "requestId": request.requestId,
                     "customerId": request.customerId,
                     "chatRoomId": request.chatRoomId,
-                    "taskCode": TaskCode.LOAN_INQUIRY.value,
+                    "taskCode": target.value,
                 })
                 envelope = WorkflowStartEnvelope.model_validate(raw)
-                if envelope.requestId != request.requestId or envelope.taskCode is not TaskCode.LOAN_INQUIRY:
+                if envelope.requestId != request.requestId or envelope.taskCode is not target:
                     raise ValueError("workflow start response does not match the request")
             except ValidationError as exc:
                 raise HTTPException(502, "WORKFLOW_START_INVALID_RESPONSE") from exc
@@ -267,6 +273,17 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
             except RuntimeError as exc:
                 raise HTTPException(503, "WORKFLOW_START_UNAVAILABLE") from exc
+
+            if target is not TaskCode.LOAN_INQUIRY:
+                return CustomerNaturalStartResponse(
+                    requestId=request.requestId, customerId=request.customerId, outcome="STARTED",
+                    classification=classification, workflow=WorkflowStartData(
+                        workflowId=envelope.data.workflowId,
+                        workItemId=envelope.data.workItemId,
+                        taskCode=envelope.data.taskCode,
+                        status=envelope.data.status),
+                    answer="업무를 준비했습니다. 화면에서 필요한 정보를 확인한 뒤 계속해 주세요.",
+                    answerStatus="GENERATED").model_dump(mode="json")
 
             try:
                 task_result = selected_registry.get(TaskCode.LOAN_INQUIRY.value).run({
@@ -325,10 +342,17 @@ def _non_start_outcome(classification: IntentClassification) -> str | None:
     task = classification.tasks[0]
     if task.requestKind is RequestKind.INFORMATION:
         return "INFORMATION_ONLY"
-    if classification.executionTargets == [TaskCode.REPAYMENT_ORDER_CHANGE]:
+    if not classification.executionTargets:
+        return "NO_EXECUTABLE_TASK"
+    if len(classification.executionTargets) != 1:
+        return "NO_EXECUTABLE_TASK"
+    # B-01 must be explicitly started through the structured chat action.
+    if classification.executionTargets[0] is TaskCode.REPAYMENT_ORDER_CHANGE:
         return "TASK_ACTION_AVAILABLE"
-    if classification.executionTargets != [TaskCode.LOAN_INQUIRY]:
-        return "TASK_NOT_AUTOSTART_ENABLED" if classification.executionTargets else "NO_EXECUTABLE_TASK"
+    # C-01 must enter through its dedicated start API, which creates the Case
+    # together with intake data. Do not create an orphan WorkItem here.
+    if classification.executionTargets[0] is TaskCode.DEBT_ADJUSTMENT:
+        return "TASK_NOT_AUTOSTART_ENABLED"
     return None
 
 

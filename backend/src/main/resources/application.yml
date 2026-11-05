@@ -71,6 +71,9 @@ app:
     # Mock is the safe default. CLOVA must be explicitly enabled with an approved server-side credential contract.
     ocr-provider: ${APP_C02_OCR_PROVIDER:mock}
   case-port: ${APP_CASE_PORT:inmemory}
+  # Dev-only C-02 demo Cases (C02DemoSeeder); never loaded in the production profile.
+  demo-seed:
+    c02-enabled: ${APP_DEMO_SEED_C02_ENABLED:false}
   # Internal Tool endpoint only. Keep disabled until a trusted gateway and customer login are connected.
   workflow-start-enabled: ${APP_WORKFLOW_START_ENABLED:false}
   tool-gateway-token: ${APP_TOOL_GATEWAY_TOKEN:}

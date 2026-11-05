@@ -170,6 +170,20 @@ class AuthSecurityMySqlIT {
     }
 
     @Test
+    void bearerRequestsKeepTheCsrfCookieSoLogoutStillPasses() throws Exception {
+        AuthSession session = login("customer_demo", "demo1234", 1, "CUSTOMER");
+        MvcResult me = http.perform(get("/api/v1/auth/me").header("Authorization", bearer(session.accessToken())))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(me.getResponse().getHeaders("Set-Cookie"))
+                .noneMatch(value -> value.startsWith(AuthController.CSRF_COOKIE + "="));
+        http.perform(get("/api/v1/customer/security-probe").header("Authorization", bearer(session.accessToken())))
+                .andExpect(status().isOk());
+        http.perform(post("/api/v1/auth/logout").cookie(session.refresh(), session.csrf())
+                        .header("X-XSRF-TOKEN", session.csrf().getValue()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void missingTamperedRefreshAndMissingCsrfAreBlocked() throws Exception {
         AuthSession session = login("customer_demo", "demo1234", 1, "CUSTOMER");
         http.perform(post("/api/v1/auth/refresh").cookie(session.csrf())

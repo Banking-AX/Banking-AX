@@ -67,6 +67,17 @@ describe('authenticated API client', () => {
     expect(lost).toHaveBeenCalledTimes(1)
   })
 
+  it('hands a protected request with no access token back to the authentication owner', async () => {
+    const lost = vi.fn()
+    setAuthenticationLostHandler(lost)
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(envelope(null, {
+      code: 'AUTH_REQUIRED', message: 'missing bearer', retryable: false, traceId: 'trace',
+    }), { status: 401, headers: { 'Content-Type': 'application/json' } })))
+
+    await expect(apiFetch('/api/v1/customer/a01/transaction-search')).rejects.toMatchObject({ code: 'AUTH_REQUIRED' })
+    expect(lost).toHaveBeenCalledTimes(1)
+  })
+
   it('does not send the customer JWT to FastAPI agent routes', async () => {
     setAccessToken('customer-access')
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {

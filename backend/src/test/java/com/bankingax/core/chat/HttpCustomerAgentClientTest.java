@@ -18,10 +18,16 @@ class HttpCustomerAgentClientTest {
         ObjectMapper json = new ObjectMapper().findAndRegisterModules();
         AtomicReference<String> token = new AtomicReference<>();
         AtomicReference<JsonNode> body = new AtomicReference<>();
+        AtomicReference<String> protocol = new AtomicReference<>();
+        AtomicReference<String> upgrade = new AtomicReference<>();
+        AtomicReference<String> connection = new AtomicReference<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/customer-agent/messages/start", exchange -> {
             token.set(exchange.getRequestHeaders().getFirst("X-Customer-Agent-Token"));
             body.set(json.readTree(exchange.getRequestBody()));
+            protocol.set(exchange.getProtocol());
+            upgrade.set(exchange.getRequestHeaders().getFirst("Upgrade"));
+            connection.set(exchange.getRequestHeaders().getFirst("Connection"));
             byte[] response = ("{\"requestId\":\"op-1\",\"customerId\":1,"
                     + "\"outcome\":\"INFORMATION_ONLY\",\"classification\":{},"
                     + "\"workflow\":null,\"loanInquiry\":null,\"executionStatus\":null,"
@@ -47,6 +53,9 @@ class HttpCustomerAgentClientTest {
             assertThat(body.get().path("requestId").asText()).isEqualTo("op-1");
             assertThat(body.get().path("customerId").asLong()).isEqualTo(1);
             assertThat(body.get().path("chatRoomId").asLong()).isEqualTo(77);
+            assertThat(protocol.get()).isEqualTo("HTTP/1.1");
+            assertThat(upgrade.get()).isNull();
+            assertThat(connection.get()).isNull();
             assertThat(body.get().path("recentMessages").get(0).asText())
                     .isEqualTo("CUSTOMER: 이전 질문");
         } finally {

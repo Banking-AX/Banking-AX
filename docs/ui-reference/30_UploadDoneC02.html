@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>C-01 접수 완료 모달</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"><style>body{margin:0}</style></head><body><div id="root">
+
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #F6F8FB; color: #2B2B2B; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none"><div data-board="Upload" style="width: 100%; min-height: 2900px;">
+
+<div style="width: 100%; min-height: 2900px; background: #F6F8FB; color: #2B2B2B; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; display: flex; flex-direction: column">
+<div data-board="SiteHeader" style="width: 100%; min-height: 118px;">
+
+<header style="width: 100%; background: #2E70C3; color: #FFFFFF; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; position: relative; z-index: 5">
+<div style="max-width: 1040px; margin: 0 auto; padding: 0 20px; box-sizing: border-box">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; min-height: 62px; padding-top: 6px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; color: #FFFFFF; text-decoration: none">
+<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="#FFFFFF"></rect><path d="M8 22 L12.5 10 L17 22 M9.8 17.5 H15.2" stroke="#2E70C3" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19 13 L24.5 21.5 M24.5 13 L19 21.5" stroke="#C9682A" stroke-width="2.4" stroke-linecap="round"></path></svg>
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px">AX뱅크</span>
+</a>
+<span style="font-size: 11px; font-weight: 500; border: 1px solid #FFFFFF; border-radius: 999px; padding: 2px 8px; color: #FFFFFF">교육용 시연</span>
+<nav aria-label="고객 구분" style="display: flex; gap: 6px">
+<a href="Main.dc.html" aria-current="page" style="padding: 6px 14px; border-radius: 4px; background: #1F5AA6; border: 1px solid #6E9BD8; color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none">개인</a>
+<a href="#" style="padding: 6px 12px; color: #FFFFFF; font-size: 16px; text-decoration: none">기업</a>
+<a href="#" style="padding: 6px 12px; color: #FFFFFF; font-size: 16px; text-decoration: none">금융상품</a>
+</nav>
+<div style="flex: 1 1 0"></div>
+<nav aria-label="부가 메뉴" style="display: flex; gap: 18px; font-size: 15px">
+<a href="#" style="color: #FFFFFF; text-decoration: none">금융서비스</a>
+<a href="#" style="color: #FFFFFF; text-decoration: none">고객센터</a>
+<a href="#" style="color: #FFFFFF; text-decoration: none">은행소개</a>
+</nav>
+<span aria-hidden="true" style="width: 1px; height: 16px; background: #8DB2E3"></span>
+
+
+<div style="display: flex; align-items: center; gap: 12px; font-size: 15px">
+<span style="color: #FFFFFF"><strong>김민준</strong>님</span>
+<a href="MyWork.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; background: #FFFFFF; color: #1F5AA6; font-size: 14px; font-weight: 700; text-decoration: none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4h6v3H9zM9 12h6M9 16h4"></path></svg>
+업무 요청 기록</a>
+<a href="NotifyPanel.dc.html" aria-label="알림, 읽지 않은 알림 2건" style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg>
+<span aria-hidden="true" style="position: absolute; top: 4px; right: 1px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #D9381E; color: #FFFFFF; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center">2</span>
+</a>
+<a href="Login.dc.html" style="color: #FFFFFF; font-size: 14px; text-decoration: underline">로그아웃</a>
+</div>
+
+<button type="button" aria-label="통합검색" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #FFFFFF; cursor: pointer; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; min-height: 56px">
+<nav aria-label="주 메뉴" style="flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 12px">
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">조회</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">이체</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">금융상품</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">공과금/법원</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">뱅킹보안관리</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">기타금융</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">부가서비스</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">사용자관리</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">카드/증권</a>
+</nav>
+<button type="button" aria-label="전체 메뉴" style="width: 52px; height: 52px; align-self: flex-end; margin-bottom: -8px; background: #C9682A; border: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.2); padding: 0; position: relative; z-index: 2">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</button>
+</div>
+</div>
+</header>
+</div>
+
+<main style="flex: 1 1 auto; width: 100%; max-width: 960px; margin: 0 auto; padding: 28px 20px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="padding: 2px 8px; border-radius: 4px; background: #FDF0E4; color: #A3500F; font-size: 12px; font-weight: 700">C · 직원 검토</span><span style="padding: 2px 8px; border-radius: 4px; background: #FFFFFF; border: 1px solid #D1D5DB; color: #4B5563; font-size: 12px; font-weight: 700">PoC 모의 접수 · 법정 신청 접수 아님</span><span style="padding: 2px 8px; border-radius: 4px; background: #F3F4F6; color: #374151; font-size: 12px; font-weight: 700">작성 중</span></div>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.5px">채무조정 접수 <span style="font-size: 18px; font-weight: 500; color: #4B5563">방문 전 접수</span></h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<span style="font-size: 13px; color: #6B7280">마지막 활동 10.20 15:32</span>
+<a href="ChatCollect.dc.html" style="height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 16px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #374151; font-size: 14px; text-decoration: none">보류하고 채팅으로</a>
+</div>
+</div>
+
+
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 14px 18px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E5E7EB; font-size: 14px">
+<strong>접수 준비 현황</strong>
+<span>필수정보 <strong style="color: #1B6B42">7/7</strong></span>
+<span>업로드 서류 <strong style="color: #1B6B42">1/1</strong></span>
+<span style="color: #6B7280">자동 작성 서류 2 · 동의서 1 · 접수 시 서명·문자 인증</span>
+<span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: #9A4A00; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>10.23 15:32까지 진행하지 않으면 입력 내용 초기화</span>
+</div>
+
+<section aria-labelledby="s1" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="s1" style="margin: 0; font-size: 18px; font-weight: 700">1. 대상 대출 선택</h2>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">대상 대출</legend>
+
+<label style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 2px solid #2E70C3; background: #F7FAFE; cursor: pointer">
+<input type="radio" name="c1loan" checked="" style="width: 20px; height: 20px; margin: 0px; accent-color: rgb(46, 112, 195);">
+<span style="flex: 1 1 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">AX 개인 신용대출 210-***-557731</strong><span style="font-size: 13px; color: #4B5563">연체 45일 · 계좌별 대출원금 18,500,000원</span></span>
+<span style="padding: 2px 10px; border-radius: 999px; background: #E6F4EC; color: #1B6B42; font-size: 12px; font-weight: 700">요청 가능</span>
+</label>
+
+<label style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid #E5E7EB; background: #FFFFFF; cursor: pointer">
+<input type="radio" name="c1loan" style="width: 20px; height: 20px; margin: 0px; accent-color: rgb(46, 112, 195);">
+<span style="flex: 1 1 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">AX 전세자금대출 230-***-114820</strong><span style="font-size: 13px; color: #4B5563">연체 없음 · 대출원금 120,000,000원</span></span>
+<span style="padding: 2px 10px; border-radius: 999px; background: #F3F4F6; color: #4B5563; font-size: 12px; font-weight: 700">요청 대상 아님</span>
+</label>
+
+</fieldset>
+</section>
+
+<section aria-labelledby="s2" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px"><h2 id="s2" style="margin: 0; font-size: 18px; font-weight: 700">2. 요청 가능 여부</h2><span style="font-size: 12px; color: #1F5AA6">근거: C01-01 요청권 안내 – 대상자 · C01-04 – 요청 불가 사유</span></div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+
+<li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #F3FAF6; font-size: 14px"><span style="flex: 0 0 auto; width: 52px; font-size: 12px; font-weight: 700; color: #6B7280; font-family: ui-monospace, Menlo, monospace">C1-R1</span><span style="flex: 1 1 0">선택한 대출이 연체 중이에요</span><span style="font-weight: 700; color: #1B6B42">충족</span></li>
+
+<li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #F3FAF6; font-size: 14px"><span style="flex: 0 0 auto; width: 52px; font-size: 12px; font-weight: 700; color: #6B7280; font-family: ui-monospace, Menlo, monospace">C1-R2</span><span style="flex: 1 1 0">계좌별 대출원금이 3천만원 미만이에요</span><span style="font-weight: 700; color: #1B6B42">충족</span></li>
+
+<li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #F3FAF6; font-size: 14px"><span style="flex: 0 0 auto; width: 52px; font-size: 12px; font-weight: 700; color: #6B7280; font-family: ui-monospace, Menlo, monospace">C1-R3</span><span style="flex: 1 1 0">채무조정 합의 해지 후 3개월이 지나지 않은 이력이 없어요</span><span style="font-weight: 700; color: #1B6B42">충족</span></li>
+
+<li style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #F3FAF6; font-size: 14px"><span style="flex: 0 0 auto; width: 52px; font-size: 12px; font-weight: 700; color: #6B7280; font-family: ui-monospace, Menlo, monospace">C1-R4</span><span style="flex: 1 1 0">이 채권에 대해 진행 중인 소송·조정이 없어요</span><span style="font-weight: 700; color: #1B6B42">충족</span></li>
+
+</ul>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 10px; border: 1px solid #D5E3F5">
+<span style="font-size: 14px; font-weight: 700"><span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">C1-R5</span> 신용회복위원회·법원의 채무조정을 진행 중이거나 이행 중인가요?</span>
+<div style="display: flex; gap: 8px">
+<button type="button" aria-pressed="true" style="height: 42px; padding: 0 16px; border-radius: 8px; border: 2px solid #2E70C3; background: #EEF6FE; color: #1F5AA6; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer">아니요</button>
+<button type="button" aria-pressed="false" style="height: 42px; padding: 0 16px; border-radius: 8px; border: 1px solid #D1D5DB; background: #FFFFFF; color: #374151; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer">예</button>
+</div>
+<span style="font-size: 12px; color: #6B7280">답변은 고객 진술로 저장되고 직원이 확인해요.</span>
+</div>
+
+</section>
+
+<section aria-labelledby="s3" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="s3" style="margin: 0; font-size: 18px; font-weight: 700">3. 신청인 기본사항 확인</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; font-size: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="color: #6B7280; font-size: 13px">성명</dt><dd style="margin: 0; font-size: 15px">김민준</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="color: #6B7280; font-size: 13px">생년월일</dt><dd style="margin: 0; font-size: 15px">1994.05.17</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="color: #6B7280; font-size: 13px">휴대전화번호</dt><dd style="margin: 0; font-size: 15px">010-****-7742</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="color: #6B7280; font-size: 13px">주소</dt><dd style="margin: 0; font-size: 15px">서울 ○○구 ○○로 [모의 주소]</dd></div>
+</dl>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; cursor: pointer"><input type="checkbox" checked="" style="width: 20px; height: 20px; margin: 0px; accent-color: rgb(46, 112, 195);">고객 정보로 미리 채운 기본사항이 맞습니다</label>
+</section>
+
+<section aria-labelledby="s4" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="s4" style="margin: 0; font-size: 18px; font-weight: 700">4. 요청사유 <span style="font-size: 13px; font-weight: 400; color: #6B7280">복수 선택 · 채팅에서 고른 사유를 불러왔어요</span></h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1.5px solid #2E70C3; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 14px; font-weight: 700; cursor: pointer"><input type="checkbox" checked="" style="width: 18px; height: 18px; accent-color: rgb(46, 112, 195); margin: 0px;">실직</label>
+
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #2B2B2B; font-size: 14px; font-weight: 400; cursor: pointer"><input type="checkbox" style="width: 18px; height: 18px; accent-color: rgb(46, 112, 195); margin: 0px;">폐업</label>
+
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #2B2B2B; font-size: 14px; font-weight: 400; cursor: pointer"><input type="checkbox" style="width: 18px; height: 18px; accent-color: rgb(46, 112, 195); margin: 0px;">질병 및 사고</label>
+
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1.5px solid #2E70C3; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 14px; font-weight: 700; cursor: pointer"><input type="checkbox" checked="" style="width: 18px; height: 18px; accent-color: rgb(46, 112, 195); margin: 0px;">소득감소</label>
+
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #2B2B2B; font-size: 14px; font-weight: 400; cursor: pointer"><input type="checkbox" style="width: 18px; height: 18px; accent-color: rgb(46, 112, 195); margin: 0px;">기타</label>
+
+</div>
+
+</section>
+
+<section aria-labelledby="s5" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px"><h2 id="s5" style="margin: 0; font-size: 18px; font-weight: 700">5. 희망 조정 내용 (채무조정안)</h2><span style="padding: 1px 8px; border-radius: 4px; background: #F3F4F6; color: #4B5563; font-size: 12px; font-weight: 700">선택 · 작성이 어려우면 생략 가능</span></div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer"><input type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">작성하지 않을게요</label>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">만기연장</label>
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: 1.5px solid #2E70C3; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 14px; font-weight: 700"><input type="checkbox" checked="" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">분할상환 유예</label>
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">상환방식 변경</label>
+<label style="display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">금리인하</label>
+</div>
+<label for="adj-free" style="font-size: 14px; font-weight: 500">원하시는 내용 (자유 기술)</label>
+<textarea id="adj-free" rows="2" style="padding: 10px 14px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 15px; line-height: 1.6; resize: vertical;">재취업할 때까지 6개월 정도 분할상환을 미뤄 주셨으면 해요.</textarea>
+</div>
+
+</section>
+
+<section aria-labelledby="s6" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="s6" style="margin: 0; font-size: 18px; font-weight: 700">6. 변제능력 정보</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="inc" style="font-size: 14px; font-weight: 500">현재 월 소득</label><div style="display: flex; align-items: center; gap: 8px"><input id="inc" type="text" value="2,800,000" style="flex: 1 1 0px; min-width: 0px; height: 46px; padding: 0px 14px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 15px; text-align: right;"><span style="font-size: 15px">원</span></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="exp" style="font-size: 14px; font-weight: 500">매월 고정 지출 <span style="color: #6B7280; font-weight: 400">(선택)</span></label><div style="display: flex; align-items: center; gap: 8px"><input id="exp" type="text" value="1,350,000" style="flex: 1 1 0px; min-width: 0px; height: 46px; padding: 0px 14px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 15px; text-align: right;"><span style="font-size: 15px">원</span></div></div>
+</div>
+<span style="font-size: 13px; color: #6B7280">입력하신 내용은 고객 진술로 저장되고, 실제 변제능력은 직원이 서류와 함께 확인해요.</span>
+</section>
+
+<section aria-labelledby="s7" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px"><h2 id="s7" style="margin: 0; font-size: 18px; font-weight: 700">7. 필요서류</h2><span style="font-size: 12px; color: #1F5AA6">근거: C01-01 – 필요서류</span></div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid #E5E7EB"><span style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">채무조정 요청서</strong><span style="font-size: 13px; color: #6B7280">1~4번 입력값으로 자동 작성돼요</span></span><span style="padding: 1px 8px; border-radius: 4px; background: #EEF6FE; color: #1F5AA6; font-size: 12px; font-weight: 700">필수 · 자동 작성</span><button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #D1D5DB; border-radius: 6px; background: #FFFFFF; font-family: inherit; font-size: 13px; cursor: pointer">미리보기</button></li>
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid #E5E7EB"><span style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">채무조정안 (고객용)</strong><span style="font-size: 13px; color: #6B7280">5번 입력값으로 자동 작성돼요 (분할상환 유예)</span></span><span style="padding: 1px 8px; border-radius: 4px; background: #F3F4F6; color: #4B5563; font-size: 12px; font-weight: 700">선택 · 자동 작성</span></li>
+<li style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 10px; border: 1.5px solid #2E70C3">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><span style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">변제능력 자료</strong><span style="font-size: 13px; color: #6B7280">근로소득원천징수영수증, 소득금액증명원 등 · 여러 개 올릴 수 있어요</span></span><span style="padding: 1px 8px; border-radius: 4px; background: #EEF6FE; color: #1F5AA6; font-size: 12px; font-weight: 700">필수 · 업로드</span></div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #FAFBFC; border: 1px solid #E5E7EB">
+<span style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 14px; color: #2B2B2B">소득금액증명원.pdf</strong><span style="font-size: 12px; color: #6B7280">소득금액증명원 · 발급일 2026.10.14 · 1.1MB</span></span>
+<span style="padding: 2px 9px; border-radius: 999px; background: #EEF6FE; color: #1F5AA6; font-size: 12px; font-weight: 700">업로드됨</span>
+<button type="button" style="height: 34px; padding: 0 10px; border: 0; background: transparent; color: #B42318; font-family: inherit; font-size: 13px; text-decoration: underline; cursor: pointer">삭제</button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end">
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="dk" style="font-size: 13px; font-weight: 500">서류 종류</label><select id="dk" style="height: 42px; padding: 0 10px; border: 1px solid #C9D3E0; border-radius: 4px; background: #FFFFFF; font-family: inherit; font-size: 14px"><option>근로소득원천징수영수증</option><option>소득금액증명원</option><option>그 밖의 소득·폐업 관련 자료</option></select></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="di" style="font-size: 13px; font-weight: 500">발급일</label><input id="di" type="date" value="2026-10-14" style="height: 42px; box-sizing: border-box; padding: 0px 10px; border: 1px solid rgb(201, 211, 224); border-radius: 4px; font-family: inherit; font-size: 14px;"></div>
+<button type="button" style="height: 42px; border: 0; border-radius: 8px; background: #2E70C3; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer">파일 선택</button>
+</div>
+<span style="font-size: 12px; color: #6B7280">PDF · JPG · PNG, 파일당 10MB 이하 · 접수 단계에서는 파일 형식·개수만 확인하고, 문서 내용은 접수 후 직원이 확인해요.</span>
+</li>
+<li style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><strong style="flex: 1 1 260px; font-size: 15px">개인(신용)정보 조회·수집·이용·제공 동의</strong><span style="padding: 1px 8px; border-radius: 4px; background: #EEF6FE; color: #1F5AA6; font-size: 12px; font-weight: 700">필수 · 접수 시 서명·문자 인증</span></div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer"><input type="checkbox" checked="" style="width: 18px; height: 18px; margin: 0px; accent-color: rgb(46, 112, 195);">채무조정 검토를 위한 개인(신용)정보 조회·수집·이용·제공에 동의합니다 <a href="#" style="color: #1F5AA6">전문 보기</a></label>
+<span style="font-size: 12px; color: #6B7280">선택 저장됨 · 접수할 때 요청서와 함께 동의서에 서명해요</span>
+</li>
+</ul>
+</section>
+
+<section aria-labelledby="s8" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px"><h2 id="s8" style="margin: 0; font-size: 18px; font-weight: 700">8. 접수 전 안내사항</h2><span style="font-size: 12px; color: #1F5AA6">근거: C01-04 채무조정 요청서 – 안내사항</span></div>
+<ul style="margin: 0; padding: 14px 16px 14px 34px; border-radius: 8px; background: #F6F8FB; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.65">
+<li><strong>요청할 수 없는 경우</strong>: 채무조정 합의 해지 후 3개월이 지나지 않음, 채권에 대해 소송·조정 진행 중, 신용회복위원회·법원 채무조정 진행·이행 중</li>
+<li><strong>거절될 수 있는 경우</strong>: 서류 수정·보완 요청에 3회 이상 따르지 않음, 채무조정 종료 후 변제능력의 큰 변화 없이 다시 요청, 소멸시효가 완성된 대출</li>
+<li>결과는 모의 기준으로 <strong>10영업일 안에</strong> 웹 알림과 이메일로 안내해요.</li>
+<li>은행이 제시한 조정 내용에 동의하지 않으면 절차가 종료돼요.</li>
+<li>이 접수는 교육용 PoC의 모의 접수이며, 실제 법정 채무조정 신청의 접수·결정·통지를 대신하지 않아요.</li>
+</ul>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-radius: 10px; border: 2px solid #2E70C3; background: #EEF6FE; font-size: 14px; font-weight: 700; cursor: pointer"><input type="checkbox" checked="" style="width: 20px; height: 20px; margin: 0px; accent-color: rgb(46, 112, 195);">안내사항을 확인했습니다</label>
+</section>
+
+</main>
+
+<div style="position: sticky; bottom: 0; z-index: 20; background: #FFFFFF; border-top: 1px solid #E5E7EB; box-shadow: 0 -4px 12px rgba(0,0,0,0.06)">
+<div style="max-width: 960px; margin: 0 auto; padding: 14px 20px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px">
+<span style="flex: 1 1 280px; min-width: 0; font-size: 13px; line-height: 1.5; color: #4B5563">모든 항목을 확인했어요. [서명·인증하고 접수]를 누르면 요청서·채무조정안·동의서에 서명해요. 접수 후에도 직원이 검토를 시작하기 전까지는 취소할 수 있어요. 방문 예약은 접수 단계에서 하지 않아요.</span>
+<button type="button" style="height: 50px; padding: 0 20px; border: 1.5px solid #2E70C3; border-radius: 8px; background: #FFFFFF; color: #1F5AA6; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">임시저장</button>
+<a href="ESignC01.dc.html" style="height: 50px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 26px; border-radius: 8px; background: #2E70C3; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none">서명·인증하고 접수</a>
+
+</div>
+</div>
+
+
+
+</div>
+</div></div>
+
+<div aria-hidden="true" style="position: absolute; inset: 0; z-index: 50; background: rgba(17,24,39,0.56)"></div>
+
+<section role="dialog" aria-modal="true" aria-labelledby="done-title" style="position: absolute; z-index: 60; left: 440px; top: 70px; width: 560px; box-sizing: border-box; padding: 34px 34px 26px; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,0.28); display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="width: 68px; height: 68px; border-radius: 50%; background: #DDECFD; display: flex; align-items: center; justify-content: center"><span style="width: 48px; height: 48px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></span>
+<h2 id="done-title" style="margin: 0; font-size: 23px; font-weight: 700; letter-spacing: -0.5px">채무조정 접수가 등록되었습니다</h2>
+<span style="padding: 2px 10px; border-radius: 6px; background: #FFFFFF; border: 1px solid #D1D5DB; color: #4B5563; font-size: 12px; font-weight: 700">PoC 모의 접수 · 실제 법정 신청 접수를 뜻하지 않아요</span>
+</div>
+
+<dl style="margin: 0; padding: 16px 18px; border-radius: 12px; background: #F6F8FB; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px 14px; font-size: 15px">
+<dt style="color: #6B7280">업무 유형</dt><dd style="margin: 0; font-weight: 700">채무조정 접수 (방문 전 접수)</dd>
+<dt style="color: #6B7280">접수번호</dt><dd style="margin: 0; font-weight: 700; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">C-20261020-003</dd>
+<dt style="color: #6B7280">접수 일시</dt><dd style="margin: 0">2026.10.20 15:40</dd>
+<dt style="color: #6B7280">제출 내용</dt><dd style="margin: 0">필수정보 7건 · 변제능력 자료 1건 · 자동 작성 2건</dd>
+<dt style="color: #6B7280">서명·인증</dt><dd style="margin: 0">요청서·채무조정안·동의서 서명 완료</dd>
+<dt style="color: #6B7280">현재 상태</dt><dd style="margin: 0"><span style="padding: 2px 10px; border-radius: 999px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 700">접수 완료 · AI 자동 점검 중</span></dd>
+</dl>
+
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.6">
+<li style="display: flex; gap: 10px"><span style="flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">1</span><span>AI가 제출 내용을 먼저 점검해요. 확인이 필요한 내용이 있으면 같은 접수 건에서 질문드려요.</span></li>
+<li style="display: flex; gap: 10px"><span style="flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span><span>담당 직원이 원본과 내용을 검토해 결과를 확정해요.</span></li>
+<li style="display: flex; gap: 10px"><span style="flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span><span>결과를 웹 알림과 이메일로 안내해요 (모의 기준 10영업일). 방문이 필요하면 결과 안내 후 예약해요.</span></li>
+</ol>
+
+<p style="margin: 0; display: flex; gap: 8px; padding: 12px 14px; border-radius: 8px; border: 1px solid #E5E7EB; font-size: 13px; line-height: 1.6; color: #4B5563"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>직원이 검토를 시작하기 전까지는 업무 요청 기록에서 접수를 취소할 수 있어요. 검토가 시작되면 취소할 수 없어요.</p>
+
+<div style="display: flex; gap: 10px">
+<a href="ChatDone.dc.html" style="flex: 1 1 0; height: 52px; box-sizing: border-box; border: 1px solid #2E70C3; border-radius: 8px; background: #FFFFFF; color: #1F5AA6; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">채팅으로 돌아가기</a>
+<a href="Detail.dc.html" style="flex: 1 1 0; height: 52px; border-radius: 8px; background: #2E70C3; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">업무 요청 기록에서 확인</a>
+</div>
+</section>
+
+</div>
+</div></body></html>

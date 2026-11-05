@@ -4,6 +4,7 @@ import com.bankingax.core.api.DomainException;
 import com.bankingax.core.workflow.TaskCode;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,6 +41,7 @@ public class InMemoryCasePort implements CasePort {
         c.review=review; c.version++; return c.view();
     }
     @Override public synchronized ServiceCaseView get(long actorId,long caseId) { return owned(actorId,caseId).view(); }
+    @Override public synchronized Optional<ServiceCaseView> findByWorkItem(long actorId,long workItemId,TaskCode taskCode) { return cases.values().stream().filter(c -> c.workItemId==workItemId).findFirst().map(c -> { if(c.customerId!=actorId) throw new DomainException("FORBIDDEN","Case ownership does not match."); if(c.taskCode!=taskCode) throw new DomainException("INVALID_TASK","WorkItem is linked to another task."); return c.view(); }); }
     private MutableCase owned(long actorId,long id) { MutableCase c=find(id); if(c.customerId!=actorId) throw new DomainException("FORBIDDEN","Case ownership does not match."); return c; }
     private MutableCase find(long id) { MutableCase c=cases.get(id); if(c==null) throw new DomainException("NOT_FOUND","Service case was not found."); return c; }
     private DomainException stale() { return new DomainException("VERSION_CONFLICT","Case revision or version is stale.",true); }

@@ -1,0 +1,228 @@
+# Banking AX UI 시안 재현 가이드
+
+이 폴더는 claude.ai 디자인 시안(고객·직원 화면 70개)을 레포 안으로 옮긴 것이다. T1·T2가 Codex든 Claude든 **같은 화면을 만들기 위한 시각 기준**이다.
+
+| 파일 | 용도 |
+|---|---|
+| `screens/NN_이름.png` | 시안 캡처 (1440px). 화면을 만들기 전에 반드시 열어 본다 |
+| `html/NN_이름.html` | 같은 화면의 정적 HTML. 색·크기·간격 값은 여기서 그대로 가져온다 |
+| `tokens.css` | 색·글꼴·간격·모서리·그림자 변수. 새 값을 만들지 않는다 |
+| `docs/04_UI_화면목록.md` | 화면별 담당(T1/T2), 라우트, 기능 ID, 필수 문구, 상태 라벨 표 |
+
+**우선순위:** 기능명세서 v1.7.1 · DDL > `04_UI_화면목록.md` > 이 가이드 · 캡처 · 정적 HTML.
+캡처와 명세가 다르면 명세를 따르고 차이를 보고한다.
+
+## 1. 재현 규칙
+
+1. **구조와 값은 시안 그대로** 만든다. 배치, 문구, 버튼 순서, 배지 색, 글자 크기를 임의로 바꾸지 않는다.
+2. 정적 HTML은 **값을 읽는 참고용**이다. 그대로 복사해 붙이지 말고 React 컴포넌트와 `tokens.css` 변수로 다시 만든다. 인라인 스타일을 쓰지 않는다.
+3. 같은 모양은 공통 컴포넌트 하나로 만든다(§4). 화면마다 배지·버튼을 새로 만들지 않는다.
+4. 시안의 사람·계좌·접수번호는 **시연 데이터**다. 화면에 하드코딩하지 말고 API 응답이나 시드 데이터로 채운다.
+5. 아이콘은 시안처럼 **선형(stroke) 24px 그리드 아이콘**을 쓴다(선 굵기 1.8~2.4, round cap). 프로젝트에 아이콘 라이브러리가 없다면 `lucide-react`를 쓴다. 이모지는 쓰지 않는다.
+6. 기준 해상도는 PC 1440px이다. 1280px까지 깨지지 않게 하고, 모바일 대응은 이번 범위가 아니다.
+7. 접근성: 상태는 색 + 문구(필요하면 아이콘)로 표시한다. 버튼은 `<button>`, 이동은 `<a>`/`Link`, 모달은 `role="dialog" aria-modal="true"`를 쓴다. 입력 오류에는 `aria-invalid`를 쓰고 오류 문구를 연결한다.
+8. 금지:
+   - 실제 은행 로고·이름·앱 이름(예: 신한, 슈퍼SOL)을 쓰지 않는다. 은행명은 **AX뱅크**만 쓴다.
+   - `%` 진행률을 쓰지 않는다. 진행 상황은 N/M으로만 표시한다.
+   - AI 문구에 "승인됩니다" 같은 판정 표현을 쓰지 않는다.
+   - "법적 전자서명"이라는 표현을 쓰지 않는다. 서명 화면에는 "모의 서명 · 법적 전자서명 아님" 배지를 둔다.
+
+## 2. 디자인 토큰 요약 (`tokens.css` 원본)
+
+- **글꼴:** Noto Sans KR 400/500/700 (Google Fonts). 접수번호 같은 코드는 monospace로 쓴다.
+- **브랜드 색:**
+
+  | 이름 | 값 | 쓰는 곳 |
+  |---|---|---|
+  | 파랑 | `#2E70C3` | 고객 헤더, 주 버튼, 고객 말풍선 |
+  | 진파랑 | `#1F5AA6` | 활성 탭, 강조 글자 |
+  | 연파랑 | `#EEF6FE` | 안내 박스 |
+  | 강조 배경 | `#DDECFD` | 진행 중 배지 |
+  | 주황 | `#C9682A` | 업무 요청 기록 타일, 전체메뉴 버튼 |
+  | 네이비 | `#1E3A5F` | 직원 사이드바 |
+  | 빨강 | `#D9381E` | 알림 배지 |
+
+- **글자 색:** 본문 `#2B2B2B`, 보조 `#4B5563`, 캡션 `#6B7280`.
+- **선·배경:** 카드 테두리 `#E5E7EB`, 바탕 `#F6F8FB`, 입력창 테두리 `#C9D3E0`.
+- **상태 배지 7종:**
+
+  | 종류 | 배경 / 글자 | 예 |
+  |---|---|---|
+  | neutral | `#F3F4F6` / `#374151` | 대기·보류·취소 |
+  | info | `#EEF6FE` / `#1F5AA6` | 접수 완료·제출됨 |
+  | progress | `#DDECFD` / `#1A4F94` | 진행 중·검토 중 |
+  | success | `#E6F4EC` / `#1B6B42` | 진행 가능·확정 |
+  | danger | `#FDECEA` / `#B42318` | 실패·요건 미충족 |
+  | warn | `#FFF4E5` / `#9A4A00` | 추가 확인 대기·수동 배정 |
+  | caution | `#FDF0E4` / `#A3500F` | 서류 부족·보완 필요 |
+
+  상태 코드와 문구의 대응은 `04_UI_화면목록.md` §1 표를 따른다.
+- **글자 크기:**
+
+  | 용도 | 크기 / 굵기 |
+  |---|---|
+  | Display | 44 / 700 |
+  | H1 | 32 / 700 (폼 페이지 28~30) |
+  | H2 | 24 / 700 |
+  | H3 | 18 / 700 |
+  | 본문 | 16 |
+  | 본문 S | 14 (가장 많이 씀) |
+  | 메타 | 13 |
+  | 캡션 | 12 |
+
+- **간격:** 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64.
+- **모서리:** 입력창 4 · 버튼 8 · 카드 12 · 모달 16 · 배지 999.
+- **그림자:**
+
+  | 대상 | 값 |
+  |---|---|
+  | 카드 | 없음 (테두리만) |
+  | 메인 타일 | `0 6px 18px rgba(0,0,0,.12)` |
+  | 모달 | `0 24px 60px rgba(0,0,0,.28)` |
+  | 하단 고정 바 | `0 -4px 12px rgba(0,0,0,.06)` |
+
+## 3. 레이아웃
+
+### 고객 화면 (`04_SiteHeader`, `03_Main`)
+- **헤더:** 배경 `#2E70C3`, 내부 폭 1040px, 좌우 padding 20px.
+  - 1행(min-height 62px): AX 로고(32px 흰 사각형)와 "AX뱅크"(22/700), "교육용 시연" 흰 테두리 알약 배지를 둔다.
+  - 1행 이어서: 개인·기업·금융상품 탭을 둔다. 활성 탭은 배경 `#1F5AA6`, 테두리 `#6E9BD8`이다.
+  - 1행 오른쪽: 금융서비스·고객센터·은행소개 링크를 둔다.
+  - 1행 로그인 전: 흰 알약 [로그인]을 둔다.
+  - 1행 로그인 후: "{이름}님", 흰 알약 [업무 요청 기록], 알림 종(빨강 배지, 0이면 숨김, 100 이상이면 99+), 로그아웃, 검색 아이콘을 둔다.
+  - 2행: 주 메뉴 9개(17/500)와 오른쪽 끝의 주황 52px [전체 메뉴] 버튼을 둔다.
+- **본문:** 바탕은 `#F6F8FB`이다. `main`은 가운데 정렬하고 padding은 `28px 20px 40~56px`, 세로 간격은 18~20px이다. `main` 폭은 아래와 같다.
+
+  | 폭 | 화면 |
+  |---|---|
+  | 960 | B-01·C-01·C-02 입력 폼 |
+  | 1040 | B-02·서명·예약·B 상세 |
+  | 1120 | 업무 요청 기록·C 상세 |
+  | 880 | 알림 |
+  | 560 | 로그인 |
+
+- **카드:** 흰 배경, 1px `#E5E7EB` 테두리, 모서리 12, padding 20~24.
+- **화면 상단:** 브레드크럼(13px 회색) → 업무 태그 칩(예: "C · 직원 검토", "PoC 모의 접수") → 제목 순서로 둔다.
+- **입력 폼 페이지:**
+  - 제목 아래에 "접수 준비 현황 · 필수정보 N/M · 업로드 서류 N/M" 바와 초기화 예정 안내를 둔다.
+  - 섹션은 "1. … 2. …" 번호를 붙인 카드로 나눈다.
+  - 화면 하단에 흰색 **고정 바**를 둔다. 왼쪽에는 안내 문구, 오른쪽에는 [임시저장](보조)과 주 버튼을 둔다.
+- **푸터:** "교육용 프로젝트 디자인 시안 · 가상 데이터" 고지를 넣는다(12~13px 회색).
+- **AI 채팅:**
+  - 오른쪽 아래에 플로팅 버튼 "AI 금융 도우미"를 둔다.
+  - 모달은 800×740, 모서리 16이다. 헤더는 파랑이고 오른쪽에 [대화 기록]·확대·닫기를 둔다.
+  - 본문 바탕은 `#F6F8FB`이다. 봇 말풍선은 흰색에 모서리 `4 16 16 16`, 고객 말풍선은 파랑에 모서리 `16 4 16 16`이다.
+  - 하단 입력창 옆에 전송 버튼을 두고, 아래에 근거 안내 캡션을 둔다.
+
+### 직원 화면 (`60_StaffTopbar`, `61_StaffSidebar`, `62_StaffDashboard`)
+- **상단바:** 높이 64, 흰 배경, 아래 테두리 1px.
+  - 왼쪽: 파란 AX 로고, "AX뱅크", 구분선, "사전접수 업무 시스템"(네이비 16/700), 주황 "직원 전용" 자물쇠 배지를 둔다.
+  - 오른쪽: "교육용 시연", 이니셜 아바타, "{이름} 님 / {역할} · {지점}"을 둔다.
+- **사이드바:** 폭 240, 배경 `#1E3A5F`.
+  - 메뉴는 높이 48, 모서리 8이고, 활성 메뉴는 파랑 배경에 700 굵기다.
+  - 메뉴 순서: 대시보드 / 사전검토 업무함 / {지점} 예약 업무함. 맨 아래에 로그아웃을 둔다.
+- **본문:** 바탕은 `#F6F8FB`, padding은 `24~28px 32px 48px`이다.
+- **3단 화면** (`67_StaffReview`):
+
+  | 영역 | 내용 |
+  |---|---|
+  | 왼쪽 | 서류 목록 |
+  | 가운데 | 원문 미리보기 (회색 바탕) |
+  | 오른쪽 | 판단 패널, 하단 버튼 고정 |
+
+## 4. 공통 컴포넌트 (만들 것 · 담당)
+
+| 컴포넌트 | 시안 보드 | 담당 |
+|---|---|---|
+| `SiteHeader`, `Footer`, `ChatFab` | SiteHeader, Main | T1 |
+| `StaffTopbar`, `StaffSidebar`, `StaffLayout` | StaffTopbar, StaffSidebar | T1 |
+| `Button`: primary(파랑·흰 글자), secondary(흰 바탕·파랑 1.5px 테두리), ghost(회색 테두리), danger-outline(빨강 1.5px), disabled(`#E5E7EB`). 높이 52/44 | DesignSystem | T1 |
+| `StatusBadge`(7종 tone, 알약), `FlagChip`(모서리 6, 테두리 있음: 추가 확인 필요 · 잠정 불참 점선 · OCR 미적용 · 근거 칩 · PoC 모의 접수) | DesignSystem | T1 |
+| `TextField`, `Select`, `Textarea`(높이 48, 테두리 `#C9D3E0`, 오류 시 1.5px 빨강 + 아이콘 문구), `ChoiceChip`(체크 칩 높이 40), `Radio` | DesignSystem | T1 |
+| `StepProgress`(원 36px, 완료는 체크, 현재는 파랑 테두리) | DesignSystem, ESignC01~ESignC01Done | T1 |
+| `InfoBox`(연파랑 안내), `Card`, `SectionCard`, `BottomActionBar` | 여러 화면 | T1 |
+| `ChatModal`, `ChatBubble`, `TaskCard`(A/B/C 태그) | Chat* | T1 |
+| `MockSignature` 4단계(문서 확인 → 손글씨 → 휴대폰 인증 → 완료) | ESign* | T1 |
+| `DocumentUploadList`(필수/선택 · 업로드 상태 · 파일 교체 · 형식 오류) | Upload, C02Page | T2 |
+| `NotificationList`(탭 전체/읽지 않음 · 모두 읽음 · 빈 상태) | Notify* | T2 |
+| `VisitBooking`(지점 · 날짜 · 시간 슬롯 · 잔여 인원 · 요약), `ReservationCard` | VisitBook*, VisitDetail* | T2 |
+| `ReviewReportPanel`(AI 사전점검 결과서 5분류 탭 · 근거) | StaffDetail, StaffDetail003 | T2 |
+
+T2 컴포넌트도 T1 공통 컴포넌트(Button, StatusBadge, Card 등)를 **가져다 쓰고** 새로 만들지 않는다.
+
+## 5. 화면 목록 (캡처 · 정적 HTML 파일명)
+
+화면별 담당·라우트·필수 문구는 `docs/04_UI_화면목록.md` §2·§3을 본다.
+
+| 번호 · 파일 | 시안 보드 | 내용 |
+|---|---|---|
+| `01_DesignSystem` | `DesignSystem` | 디자인 시스템 · 상태 표시 체계 v1.7 |
+| `02_ScreenMap` | `ScreenMap` | 전체 화면 구조 v1.7 |
+| `03_Main` | `Main` | 개인뱅킹 메인 |
+| `04_SiteHeader` | `SiteHeader` | 공통 · 개인뱅킹 헤더 (배지 0 숨김 · 99+) |
+| `05_Login` | `Login` | 로그인 |
+| `06_LoginError` | `LoginError` | 로그인 · 오류 |
+| `07_LoginFromChat` | `LoginFromChat` | 로그인 · 채팅에서 진입 |
+| `08_LoginExpired` | `LoginExpired` | 로그인 · 인증 만료 (AUTH-05) |
+| `09_ChatModal` | `ChatModal` | AI 채팅 · 6개 업무 · 입력 잠금 |
+| `10_ChatSystem` | `ChatSystem` | AI 채팅 · RAG 설명 · 미지원 · 근거 없음 · 오류 |
+| `11_ChatLookup` | `ChatLookup` | AI 채팅 · A-01/A-02 결과 · 없음 · 조건 오류 |
+| `12_ChatMulti` | `ChatMulti` | AI 채팅 · 복합 요청 · CHAT-16/17 (phase) |
+| `13_ChatExpanded` | `ChatExpanded` | AI 채팅 확대 · 채팅방 목록 · 보류 재진입 |
+| `14_ChatConsent` | `ChatConsent` | B-01 안내 → 전용 페이지 이동 |
+| `15_ChatBReturn` | `ChatBReturn` | B-01 완료 후 복귀 · 다음 업무 질문 |
+| `16_ChatCollect` | `ChatCollect` | C-01 정보 수집 · 서류 안내 |
+| `17_ChatInherit` | `ChatInherit` | C-02 정보 수집 (“형은 해외”) |
+| `18_ChatDone` | `ChatDone` | C-01 접수 완료 · Workflow 완료 |
+| `19_ChatDoneC02` | `ChatDoneC02` | C-02 접수 완료 |
+| `20_B01Page` | `B01Page` | B-01 충당순서 변경 페이지 |
+| `21_B01Done` | `B01Done` | B-01 변경 완료 (서명·인증 후) |
+| `22_B02Page` | `B02Page` | B-02 청약통장 해지 페이지 (step · tax) |
+| `23_B02Done` | `B02Done` | B-02 해지 완료 (서명·인증 후) |
+| `24_BDetail` | `BDetail` | 업무 요청 기록 상세 · B-01 결과 |
+| `25_BDetailManual` | `BDetailManual` | 업무 요청 기록 상세 · B-02 영업점 상담 (B2-R5) |
+| `26_Upload` | `Upload` | C-01 채무조정 접수 페이지 |
+| `27_UploadReapply` | `UploadReapply` | C-01 재신청 (이전 Case 복사) |
+| `28_UploadDone` | `UploadDone` | C-01 접수 완료 모달 |
+| `29_C02Page` | `C02Page` | C-02 상속예금 사전접수 페이지 |
+| `30_UploadDoneC02` | `UploadDoneC02` | C-02 사전검토 요청 완료 모달 |
+| `31_ESignC01` | `ESignC01` | C-01 ① 서명할 문서 확인 |
+| `32_ESignC01Sign` | `ESignC01Sign` | C-01 ② 손글씨 서명 |
+| `33_ESignC01Otp` | `ESignC01Otp` | C-01 ③ 휴대폰 인증 |
+| `34_ESignC01Done` | `ESignC01Done` | C-01 ④ 서명 완료 영수증 |
+| `35_ESignC02` | `ESignC02` | C-02 신청인 서명 (방문 상속인은 영업점) |
+| `36_ESignB01` | `ESignB01` | B-01 신청서 서명 |
+| `37_ESignB02` | `ESignB02` | B-02 해지 신청서 서명 |
+| `38_ESignB02Base` | `ESignB02Base` | B-02 해지 신청서 + 우대 포기 동의서 |
+| `39_MyWork` | `MyWork` | 업무 요청 기록 · 진행 중 |
+| `40_MyWorkReview` | `MyWorkReview` | 업무 요청 기록 · 검토 중 탭 |
+| `41_Detail` | `Detail` | C-01 상세 · 접수 · AI 점검 중 (취소 가능) |
+| `42_DetailClarify` | `DetailClarify` | C-01 상세 · AI 추가 확인 응답 |
+| `43_DetailStaffwait` | `DetailStaffwait` | C-01 상세 · 추가 확인 답변 후 직원 검토 대기 |
+| `44_DetailReviewing` | `DetailReviewing` | C-01 상세 · 직원 검토 중 |
+| `45_DetailOk` | `DetailOk` | C-01 상세 · 진행 가능 |
+| `46_DetailUnmet` | `DetailUnmet` | C-01 상세 · 요건 미충족 |
+| `47_DetailSupplement` | `DetailSupplement` | C-01 상세 · 서류 부족 (이전 Case 014) |
+| `48_VisitDetailWait` | `VisitDetailWait` | C-02 상세 · 결과 대기 |
+| `49_VisitDetail` | `VisitDetail` | C-02 상세 · 진행 가능 · 예약 전 |
+| `50_VisitBook` | `VisitBook` | 방문 영업점·시간 예약 |
+| `51_VisitBookChange` | `VisitBookChange` | 방문 예약 변경 |
+| `52_VisitDetailConfirmed` | `VisitDetailConfirmed` | C-02 상세 · 예약 확정 |
+| `53_VisitDetailManual` | `VisitDetailManual` | C-02 상세 · 수동 배정 대기 |
+| `54_VisitDetailLocked` | `VisitDetailLocked` | C-02 상세 · 24시간 이내 변경 잠금 |
+| `55_NotifyPanel` | `NotifyPanel` | 알림 · 김민준 |
+| `56_NotifySeoyeon` | `NotifySeoyeon` | 알림 · 이서연 (예약 알림) |
+| `57_NotifyEmpty` | `NotifyEmpty` | 알림 · 빈 상태 |
+| `58_StaffLogin` | `StaffLogin` | 직원 로그인 |
+| `59_StaffLoginError` | `StaffLoginError` | 직원 로그인 · 오류 |
+| `60_StaffTopbar` | `StaffTopbar` | 공통 · 직원 상단바 |
+| `61_StaffSidebar` | `StaffSidebar` | 공통 · 직원 사이드바 |
+| `62_StaffDashboard` | `StaffDashboard` | 직원 대시보드 (10.21 09:35) |
+| `63_StaffList` | `StaffList` | 사전검토 업무함 |
+| `64_StaffBranch` | `StaffBranch` | 여의도지점 예약 업무함 · AI 담당자 추천 (13:10) |
+| `65_StaffDetail` | `StaffDetail` | C-02 Case 상세 · 결과서 (검토 중) |
+| `66_StaffDetail003` | `StaffDetail003` | C-01 Case 상세 · [검토 시작] 전 |
+| `67_StaffReview` | `StaffReview` | C-01 제출서류 확인 · 공식 양식 파서 |
+| `68_StaffReview002` | `StaffReview002` | C-02 제출서류 확인 · OCR 미적용 |
+| `69_StaffFinal` | `StaffFinal` | C-01 검토 결과 등록 · 조정 내용 |
+| `70_StaffFinal002` | `StaffFinal002` | C-02 검토 결과 등록 · 방문 준비물 |

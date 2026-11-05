@@ -53,7 +53,7 @@
 
 body { margin: 0; font-family: var(--font-family-base); }
 
-:root { font-family: system-ui, sans-serif; color: #14213d; background: #f5f7fb; } body { margin: 0; } .app-shell { max-width: 1024px; margin: auto; padding: 1.5rem; } header { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; } header a { color: #003b7a; font-weight: 700; text-decoration: none; } nav { margin-left: auto; display: flex; gap: .75rem; } section { background: white; padding: 2rem; margin-top: 1.5rem; border-radius: .75rem; } .placeholder { padding: 1rem; border: 1px dashed #7d8ca3; border-radius: .5rem; color: #40526b; }
+:root { font-family: system-ui, sans-serif; color: #14213d; background: #f5f7fb; } body { margin: 0; } .app-shell--staff { max-width: 1024px; margin: auto; padding: 1.5rem; } .task-shell { min-height: 100vh; background: #f6f8fb; } .placeholder { padding: 1rem; border: 1px dashed #7d8ca3; border-radius: .5rem; color: #40526b; }
 
 /* Site header (docs/design-ref/SiteHeader.dc.html).
    Element rules above (header, header a, nav) are overridden here by class selectors. */

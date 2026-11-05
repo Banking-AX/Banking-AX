@@ -5,6 +5,7 @@ import com.bankingax.core.caseport.CreateCaseCommand;
 import com.bankingax.core.caseport.ServiceCaseView;
 import com.bankingax.core.caseport.ReviewStatus;
 import com.bankingax.core.api.DomainException;
+import com.bankingax.core.notification.NotificationWriter;
 import com.bankingax.core.verification.*;
 import com.bankingax.core.workflow.TaskCode;
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ public final class C02IntakeService {
     private final C02StaffDecisionPersistence decisionPersistence;
     private final C02HeirDocumentProvisioningService documentProvisioning;
     private final OcrPersistence ocrPersistence;
+    private final NotificationWriter notificationWriter;
     private final Map<String, PreparedRequest> preparedRequests = new HashMap<>();
     private final Map<Long, Draft> drafts = new HashMap<>();
     private final Map<String, SubmittedRequest> submissions = new HashMap<>();
@@ -40,20 +42,23 @@ public final class C02IntakeService {
     private final Map<Long, StaffDecisionResult> staffDecisionsByCase = new HashMap<>();
     private final Map<Long, List<CustomerNotification>> notificationsByCustomer = new HashMap<>();
 
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null, (C02AgentReviewPersistence)null, null, null, null); }
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null, (C02AgentReviewPersistence)null, null, null, null); }
-    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this(casePort, verification, staffAgent, documents, files, (C02AgentReviewPersistence)null, null, null, null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent) { this(casePort, verification, staffAgent, new InMemoryDocumentPort(), null, (C02AgentReviewPersistence)null, null, null, null, null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents) { this(casePort, verification, staffAgent, documents, null, (C02AgentReviewPersistence)null, null, null, null, null); }
+    public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files) { this(casePort, verification, staffAgent, documents, files, (C02AgentReviewPersistence)null, null, null, null, null); }
     @Autowired public C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files,
             org.springframework.beans.factory.ObjectProvider<C02AgentReviewPersistence> reviewPersistence,
             org.springframework.beans.factory.ObjectProvider<C02StaffDecisionPersistence> decisionPersistence,
             org.springframework.beans.factory.ObjectProvider<C02HeirDocumentProvisioningService> documentProvisioning,
-            org.springframework.beans.factory.ObjectProvider<OcrPersistence> ocrPersistence) {
-        this(casePort,verification,staffAgent,documents,files,reviewPersistence.getIfAvailable(),decisionPersistence.getIfAvailable(),documentProvisioning.getIfAvailable(),ocrPersistence.getIfAvailable());
+            org.springframework.beans.factory.ObjectProvider<OcrPersistence> ocrPersistence,
+            org.springframework.beans.factory.ObjectProvider<NotificationWriter> notificationWriter) {
+        this(casePort,verification,staffAgent,documents,files,reviewPersistence.getIfAvailable(),decisionPersistence.getIfAvailable(),documentProvisioning.getIfAvailable(),ocrPersistence.getIfAvailable(),notificationWriter.getIfAvailable());
     }
     private C02IntakeService(CasePort casePort, VerificationPort verification, StaffAgentPort staffAgent, DocumentPort documents, C02FileStorage files,
-            C02AgentReviewPersistence reviewPersistence, C02StaffDecisionPersistence decisionPersistence, C02HeirDocumentProvisioningService documentProvisioning, OcrPersistence ocrPersistence) {
+            C02AgentReviewPersistence reviewPersistence, C02StaffDecisionPersistence decisionPersistence, C02HeirDocumentProvisioningService documentProvisioning, OcrPersistence ocrPersistence,
+            NotificationWriter notificationWriter) {
         this.casePort = casePort; this.verification=verification; this.staffAgent=staffAgent; this.documents=documents; this.files=files;
         this.reviewPersistence=reviewPersistence; this.decisionPersistence=decisionPersistence; this.documentProvisioning=documentProvisioning; this.ocrPersistence=ocrPersistence;
+        this.notificationWriter=notificationWriter;
     }
 
     public Validation validate(Intake intake) {
@@ -110,6 +115,15 @@ public final class C02IntakeService {
     public ServiceCaseView createDraft(long customerId, long workItemId, Intake intake) {
         return casePort.create(new CreateCaseCommand(customerId, workItemId, TaskCode.INHERITANCE_DEPOSIT, null, Map.of("c02", intake), null, true));
     }
+    /** Reopens an owned C-02 draft without invoking create(), preserving its stored application and revision. */
+    public synchronized Prepared resume(long customerId, long workItemId) {
+        ServiceCaseView view=casePort.findByWorkItem(customerId,workItemId,TaskCode.INHERITANCE_DEPOSIT)
+            .orElseThrow(() -> new DomainException("NOT_FOUND","No C-02 case is linked to this work item."));
+        if (view.caseStatus()!=com.bankingax.core.caseport.CaseStatus.DRAFT)
+            throw new DomainException("INVALID_STATE","Only a draft C-02 case can be resumed.");
+        Draft draft=owned(customerId,view.caseId());
+        return new Prepared(view,requiredDocuments(draft.intake),assessSubmission(draft.intake,documentStatuses(draft)));
+    }
     public synchronized Prepared prepare(long customerId, long workItemId, String requestId, Intake intake, Map<String, DocumentStatus> statuses) { return prepare(customerId,workItemId,requestId,intake,statuses,null); }
     public synchronized Prepared prepare(long customerId, long workItemId, String requestId, Intake intake, Map<String, DocumentStatus> statuses, String registeredPhone) {
         Fingerprint fingerprint = new Fingerprint(customerId, workItemId, intake, statuses);
@@ -118,6 +132,8 @@ public final class C02IntakeService {
             if (!existing.fingerprint().equals(fingerprint)) throw new com.bankingax.core.api.DomainException("DUPLICATE_REQUEST_CONFLICT", "requestId was reused for another C-02 preparation.");
             return existing.prepared();
         }
+        if (casePort.findByWorkItem(customerId,workItemId,TaskCode.INHERITANCE_DEPOSIT).isPresent())
+            throw new DomainException("C02_CASE_ALREADY_EXISTS","A C-02 case already exists for this work item. Resume or revise the draft instead.");
         Submission submission = assessSubmission(intake, statuses);
         ServiceCaseView view = submission.outOfScope().isEmpty() ? createDraft(customerId, workItemId, intake) : null;
         if(view != null) {
@@ -140,12 +156,34 @@ public final class C02IntakeService {
     public synchronized SubmissionResult submit(C02SubmitCommand command) {
         SubmittedRequest previous=submissions.get(command.requestId());
         if(previous!=null) { if(!previous.command().equals(command)) throw new DomainException("DUPLICATE_REQUEST_CONFLICT","requestId was reused for another C-02 submission."); return previous.result(); }
+        Draft draft=submittableDraft(command);
+        verification.consume(new VerificationConsumeCommand(command.bindingId(),command.customerId(),draft.view.workItemId(),VerificationAction.C02_SUBMIT,command.expectedRevision()));
+        return completeSubmission(command,draft);
+    }
+    /**
+     * Dev demo-seed entry (C02DemoSeeder only, never in the production profile): the same input,
+     * document, consent and revision checks and the same post-submit path as {@link #submit},
+     * without the SMS binding that the SOLAPI module will provide.
+     */
+    synchronized SubmissionResult submitForDemoSeed(long customerId,long caseId,int revision,String requestId) {
+        C02SubmitCommand command=new C02SubmitCommand(customerId,caseId,revision,requestId,DEMO_SEED_BINDING);
+        SubmittedRequest previous=submissions.get(requestId);
+        if(previous!=null) return previous.result();
+        return completeSubmission(command,submittableDraft(command));
+    }
+    static final String DEMO_SEED_BINDING="DEMO_SEED_WITHOUT_SMS";
+    private Draft submittableDraft(C02SubmitCommand command) {
         Draft draft=owned(command.customerId(),command.caseId()); requireRevision(draft,command.expectedRevision());
         Submission assessment=assessSubmission(draft.intake,documentStatuses(draft));
         if(!assessment.submittable()) throw new DomainException("C02_SUBMISSION_BLOCKED","C-02 input, scope, or required document slots are incomplete.");
         if(!draft.consented||!draft.mockSignatureCompleted) throw new DomainException("CONSENT_OR_SIGNATURE_REQUIRED","필수 동의와 모의 서명이 필요합니다.");
-        verification.consume(new VerificationConsumeCommand(command.bindingId(),command.customerId(),draft.view.workItemId(),VerificationAction.C02_SUBMIT,command.expectedRevision()));
+        return draft;
+    }
+    /** Everything after the verification binding is consumed: Case SUBMITTED, receipt notice, staff Agent precheck. */
+    private SubmissionResult completeSubmission(C02SubmitCommand command,Draft draft) {
         ServiceCaseView submitted=casePort.submit(command.customerId(),command.caseId(),command.expectedRevision(),command.requestId()); draft.view=submitted;
+        if (decisionPersistence != null) decisionPersistence.markSubmittedAt(submitted.caseId());
+        notifyReceived(command.customerId(),submitted);
         StaffAgentPort.StaffAgentResponse report;
         try { report=dispatchStaffCheck(draft,command.requestId());
         } catch (DomainException exception) {
@@ -199,7 +237,42 @@ public final class C02IntakeService {
     public synchronized FileDownload staffDocument(long caseId,long documentId) { return download(staffDraft(caseId),documentId); }
     private FileDownload download(Draft draft,long documentId) { DocumentPort.DocumentMetadata meta=documents.findById(documentId).orElseThrow(()->new DomainException("DOCUMENT_NOT_FOUND","Document metadata was not found.")); if(meta.caseId()!=draft.view.caseId())throw new DomainException("FORBIDDEN","Document does not belong to this C-02 case."); if(files==null)throw new DomainException("DOCUMENT_STORAGE_UNAVAILABLE","Local document storage is not configured.",true); return new FileDownload(meta,files.open(meta.storageReference())); }
     public synchronized List<DocumentPort.DocumentMetadata> documents(long customerId,long caseId) { owned(customerId,caseId); return documents.findByCase(caseId); }
+    /** Returns the live case revision only after verifying the requesting customer's ownership. */
+    public synchronized int currentRevisionForCustomer(long customerId,long caseId) {
+        Draft draft=owned(customerId,caseId); ServiceCaseView latest=casePort.get(customerId,caseId);
+        draft.view=latest; return latest.revision();
+    }
+    /** Staff boundary uses the same current Case revision as staff-case and final decision. */
+    public synchronized int currentRevisionForStaff(long caseId) {
+        Draft draft=staffDraft(caseId); ServiceCaseView latest=casePort.get(draft.customerId,caseId);
+        draft.view=latest; return latest.revision();
+    }
     public synchronized StaffPrecheckResult customerReview(long customerId,long caseId) { return reviewFor(owned(customerId,caseId)); }
+    /** Customer-owned durable state used to restore a C-02 Case after browser memory is lost. */
+    public synchronized CustomerCaseSnapshot customerCaseSnapshot(long customerId,long caseId) {
+        Draft draft=owned(customerId,caseId); ServiceCaseView latest=casePort.get(customerId,caseId);
+        if(draft.view.revision()!=latest.revision()) draft=restore(customerId,caseId);
+        draft.view=latest;
+        C02StaffDecisionPersistence.Timeline timeline=decisionPersistence==null?null:decisionPersistence.timeline(caseId);
+        return new CustomerCaseSnapshot(latest.caseId(),latest.workItemId(),latest.revision(),latest.caseStatus().name(),
+            latest.reviewStatus()==null?null:latest.reviewStatus().name(),latest.visitRequired(),requiredDocuments(draft.intake),
+            documents.findByCase(caseId),reviewFor(draft),intakeView(draft.intake),timeline,customerDecision(caseId,timeline));
+    }
+    /** Display-only echo of what the customer entered; heir birth dates are not returned. */
+    private static CaseIntakeView intakeView(Intake intake) {
+        return new CaseIntakeView(intake.decedent().name(),intake.decedent().birthDate(),intake.decedent().deathDate(),
+            intake.heirs().stream().map(h -> new HeirView(h.personRef(),h.name(),h.relationship(),h.applicant(),h.visitStatus().name(),h.delegationMethod().name())).toList());
+    }
+    /** A staff outcome is shown to the customer only after the result notification was recorded. */
+    private CustomerDecision customerDecision(long caseId,C02StaffDecisionPersistence.Timeline timeline) {
+        if (decisionPersistence != null) {
+            if (timeline == null || timeline.resultNotifiedAt() == null) return null;
+            C02StaffDecisionPersistence.StoredDecision stored=decisionPersistence.finalDecision(caseId);
+            return stored == null ? null : new CustomerDecision(stored.outcome(),stored.message());
+        }
+        StaffDecisionResult inMemory=staffDecisionsByCase.get(caseId);
+        return inMemory == null ? null : new CustomerDecision(inMemory.outcome().name(),inMemory.customerMessage());
+    }
     /** The controller enforces STAFF role; this never records a final staff decision. */
     public synchronized StaffPrecheckResult staffReview(long caseId) { return reviewFor(staffDraft(caseId)); }
     /** Staff-only caller obtains the same current revision snapshot used for a final manual decision. */
@@ -241,7 +314,7 @@ public final class C02IntakeService {
         Draft draft=staffDraft(command.caseId());
         ServiceCaseView latest=casePort.get(draft.customerId,command.caseId()); requireRevision(draft,command.expectedRevision());
         if(latest.revision()!=command.expectedRevision()) throw new DomainException("VERSION_CONFLICT","Case revision is stale.",true);
-        if(latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only a submitted C-02 case can receive a staff decision.");
+        if(latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED && latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.IN_REVIEW) throw new DomainException("INVALID_STATE","Only a submitted C-02 case can receive a staff decision.");
         StaffPrecheckResult precheck=reviewResults.get(new ReviewKey(command.caseId(),command.expectedRevision()));
         if((precheck==null || precheck.finalStaffDecision()) && (decisionPersistence==null || !decisionPersistence.hasCurrentPrecheck(command.caseId(),command.expectedRevision())))
             throw new DomainException("STAFF_PRECHECK_REQUIRED","A current C-02 staff precheck is required before final review.");
@@ -332,7 +405,7 @@ public final class C02IntakeService {
     }
     private Draft owned(long customerId,long caseId) {
         Draft draft=drafts.get(caseId);
-        if (draft == null && decisionPersistence != null) draft=restore(customerId,caseId);
+        if (draft == null) draft=restore(customerId,caseId);
         if(draft==null) throw new DomainException("NOT_FOUND","C-02 draft was not found.");
         if(draft.customerId!=customerId) throw new DomainException("FORBIDDEN","Case ownership does not match.");
         return draft;
@@ -350,6 +423,7 @@ public final class C02IntakeService {
     private Draft restore(long customerId,long caseId) {
         ServiceCaseView view=casePort.get(customerId,caseId);
         Object value=view.application().get("c02");
+        if (value instanceof Intake intake) { Draft restored=new Draft(customerId,view,intake,Map.of(),null); drafts.put(caseId,restored); return restored; }
         if (!(value instanceof Map<?,?> raw)) throw new DomainException("CASE_SNAPSHOT_INVALID","C-02 application snapshot is unavailable.");
         Map<String,Object> c02=(Map<String,Object>)raw;
         Object decedentValue=c02.get("decedent"); Object heirsValue=c02.get("heirs");
@@ -375,7 +449,20 @@ public final class C02IntakeService {
     private static boolean bool(Map<String,Object> value,String key) { Object item=value.get(key); return item instanceof Boolean b?b:Boolean.parseBoolean(String.valueOf(item)); }
     private static LocalDate date(Map<String,Object> value,String key) { Object item=value.get(key); return item==null?null:LocalDate.parse(String.valueOf(item)); }
     private static int revisionFromDedup(String key) { int dash=key.lastIndexOf('-'); return dash<0?0:Integer.parseInt(key.substring(dash+1)); }
-    private static String outcomeFromType(String type) { String prefix="C02_STAFF_REVIEW_"; return type!=null&&type.startsWith(prefix)?type.substring(prefix.length()):type; }
+    private static String outcomeFromType(String type) { return C02StaffDecisionPersistence.outcomeOf(type); }
+    /**
+     * NOTI CASE_RECEIVED (spec 11-3). The Case is already committed as SUBMITTED, so a notification
+     * failure is logged instead of reporting the submission as failed; the dedup key keeps replays to one row.
+     */
+    private void notifyReceived(long customerId,ServiceCaseView submitted) {
+        if(notificationWriter==null) return;
+        try {
+            notificationWriter.store(customerId,submitted.caseId(),submitted.workItemId(),"CASE_RECEIVED","상속예금 사전접수가 완료됐어요",
+                "직원이 제출 서류를 검토한 뒤 결과를 알려 드려요. 방문 예약은 직원 검토 결과가 진행 가능일 때 열려요.","c02-received-"+submitted.caseId());
+        } catch (RuntimeException exception) {
+            System.getLogger(C02IntakeService.class.getName()).log(System.Logger.Level.WARNING,"C-02 CASE_RECEIVED notification was not stored for case "+submitted.caseId(),exception);
+        }
+    }
     private static StaffDecisionResult fromStoredDecision(C02StaffDecisionPersistence.StoredDecision stored) {
         StaffOutcome outcome=StaffOutcome.valueOf(stored.outcome());
         CustomerNotification notification=new CustomerNotification(stored.notificationId(),stored.caseId(),stored.revision(),stored.outcome(),stored.message(),false);
@@ -399,6 +486,12 @@ public final class C02IntakeService {
     /** This is an Agent precheck result, never a staff_review final decision. */
     public record StaffPrecheckResult(long caseId,long workItemId,int revision,String agentRunStatus,String reviewStatus,List<Map<String,Object>> reviewItems,Map<String,Object> error,boolean finalStaffDecision) {}
     public record StaffCaseOverview(ServiceCaseView caseView,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,StaffPrecheckResult precheck,StaffDecisionResult finalDecision) {}
+    public record CustomerCaseSnapshot(long caseId,long workItemId,int revision,String caseStatus,String reviewStatus,
+            boolean visitRequired,List<DocumentSlot> requiredDocuments,List<DocumentPort.DocumentMetadata> documents,
+            StaffPrecheckResult precheck,CaseIntakeView intake,C02StaffDecisionPersistence.Timeline timeline,CustomerDecision finalDecision) {}
+    public record CaseIntakeView(String decedentName,LocalDate decedentBirthDate,LocalDate deathDate,List<HeirView> heirs) {}
+    public record HeirView(String personRef,String name,String relationship,boolean applicant,String visitStatus,String delegationMethod) {}
+    public record CustomerDecision(String outcome,String customerMessage) {}
     public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) {}
     /** The final status is persisted when C-02 review persistence is enabled; otherwise this is the in-memory fallback proposal. */
     public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}

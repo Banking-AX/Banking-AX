@@ -1,0 +1,37 @@
+/* Task-matching card for the customer chat (mentoring 11/4: show which bank task and why). */
+.tg-card{display:flex;flex-direction:column;gap:12px;max-width:560px;padding:16px 18px;border:1px solid #c9ddf5;border-radius:14px;background:#fff;color:#2b2b2b;font-size:14px;line-height:1.6}
+.tg-steps{list-style:none;margin:0;padding:10px 12px;border-radius:10px;background:#f5f9ff;display:flex;flex-direction:column;gap:6px}
+.tg-steps li{display:flex;align-items:center;gap:8px;font-size:13px;color:#1e3a5f;animation:tg-in .25s ease-out}
+.tg-steps li span{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;background:#2e70c3}
+.tg-steps li.is-warn span{background:#c9682a}
+.tg-steps li em{margin-left:auto;font-style:normal;font-size:12px;color:#6b7280}
+.tg-steps li.is-running span{border:2px solid #2e70c3;border-top-color:transparent;background:transparent;animation:tg-spin .8s linear infinite}
+.tg-body{display:flex;flex-direction:column;gap:10px;animation:tg-in .3s ease-out}
+.tg-row b{display:block;font-size:13px;color:#4b5563}
+.tg-row p{margin:2px 0 0}
+.tg-row ul{margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.tg-row cite{display:block;font-style:normal;font-size:11px;color:#1f5aa6}
+.tg-row small{display:block;margin-top:4px;font-size:11px;color:#6b7280}
+.tg-task{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.tg-task strong{font-size:16px;color:#1e3a5f}
+.tg-task span{padding:1px 8px;border-radius:4px;background:#fdf0e4;color:#a3500f;font-size:12px;font-weight:700}
+.tg-actions{display:flex;flex-wrap:wrap;gap:8px}
+.tg-primary,.tg-secondary{height:40px;padding:0 16px;border-radius:8px;font:inherit;font-weight:700;cursor:pointer}
+.tg-primary{border:0;background:#2e70c3;color:#fff}
+.tg-secondary{border:1.5px solid #2e70c3;background:#fff;color:#1f5aa6}
+.tg-note,.tg-clarify{margin:0;font-size:12px;color:#6b7280}
+.tg-clarify{font-size:14px;color:#2b2b2b}
+@keyframes tg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes tg-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tg-steps li,.tg-body{animation:none}.tg-steps li.is-running span{animation:none}}
+
+/* DEV preview page only */
+.tg-preview{max-width:760px;margin:0 auto;padding:28px 20px 48px;display:flex;flex-direction:column;gap:14px}
+.tg-preview h1{margin:0;font-size:24px}
+.tg-bubble{align-self:flex-end;max-width:80%;padding:10px 14px;border-radius:14px 14px 4px 14px;background:#2e70c3;color:#fff}
+.tg-form{display:flex;gap:8px}
+.tg-form input{flex:1;height:46px;padding:0 14px;border:1px solid #c9d3e0;border-radius:8px;font:inherit}
+.tg-form button{height:46px;padding:0 18px;border:0;border-radius:8px;background:#2e70c3;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.tg-form button:disabled{background:#e5e7eb;color:#6b7280}
+.tg-examples{display:flex;flex-wrap:wrap;gap:6px}
+.tg-examples button{padding:6px 10px;border:1px solid #d1d5db;border-radius:999px;background:#fff;font:inherit;font-size:13px;cursor:pointer}

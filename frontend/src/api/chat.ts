@@ -42,6 +42,7 @@ export type ChatReply =
   | { kind: 'unsupported'; reason: string }
   | { kind: 'composite'; answer?: string }
   | { kind: 'notStartable'; taskCode?: TaskCode; answer?: string }
+  | { kind: 'started'; taskCode: TaskCode; workItemId: number; answer: string }
   | { kind: 'taskAction'; answer: string; action: ChatTaskAction }
   | { kind: 'loans'; loans: LoanSummary[]; answer: string }
 
@@ -119,6 +120,11 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   const loans = run.agentResult.loanInquiry?.loans
   if (loans) return { kind: 'loans', loans, answer }
   if (run.agentResult.taskAction) return { kind: 'taskAction', answer, action: run.agentResult.taskAction }
+  if (run.agentResult.outcome === 'STARTED' && run.agentResult.workflow
+      && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY') {
+    return { kind: 'started', taskCode: run.agentResult.workflow.taskCode,
+      workItemId: run.agentResult.workflow.workItemId, answer }
+  }
   switch (run.agentResult.outcome) {
     case 'CLARIFICATION_REQUIRED': return { kind: 'clarify', question: answer }
     case 'UNSUPPORTED': return { kind: 'unsupported', reason: answer }

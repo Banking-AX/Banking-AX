@@ -5,8 +5,6 @@ import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** JWT customer boundary for reservation create/list/cancel. Spring keeps all eligibility checks. */
 @RestController
 @RequestMapping("/api/v1/customer/reservations")
-@ConditionalOnBean(JdbcTemplate.class)
+@com.bankingax.core.persistence.ConditionalOnDataSource
 public class CustomerReservationBffController {
     private final VisitReservationController internal;
     private final TaskBffPrincipal principals;

@@ -99,6 +99,9 @@ class NaturalWorkflowStartTests(unittest.TestCase):
                 (TaskCode.LOAN_INQUIRY, RequestKind.ACTION, True),
                 (TaskCode.TRANSACTION_SEARCH, RequestKind.ACTION, True)),
             "채무조정 신청해줘": classified((TaskCode.DEBT_ADJUSTMENT, RequestKind.ACTION, True)),
+            "거래내역 조회해줘": classified((TaskCode.TRANSACTION_SEARCH, RequestKind.ACTION, True)),
+            "청약통장 해지해줘": classified((TaskCode.HOUSING_SAVINGS_CLOSE, RequestKind.ACTION, True)),
+            "상속예금 접수해줘": classified((TaskCode.INHERITANCE_DEPOSIT, RequestKind.ACTION, True)),
             "충당순서 바꿔줘": classified((TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.ACTION, True)),
         }
         self.gateway = RecordingWorkflowGateway()
@@ -160,6 +163,20 @@ class NaturalWorkflowStartTests(unittest.TestCase):
                         "actionRequestId": response.json()["requestId"],
                     }, response.json()["taskAction"])
         self.assertEqual([], self.gateway.requests)
+        self.assertEqual([], self.gateway.loan_requests)
+
+    def test_non_loan_actions_start_only_their_screen_workflow(self) -> None:
+        for message, task_code in [
+                ("거래내역 조회해줘", "TRANSACTION_SEARCH"),
+                ("청약통장 해지해줘", "HOUSING_SAVINGS_CLOSE"),
+                ("상속예금 접수해줘", "INHERITANCE_DEPOSIT")]:
+            with self.subTest(message=message):
+                response = self.post(message, f"screen-{task_code}")
+                self.assertEqual(200, response.status_code)
+                self.assertEqual("STARTED", response.json()["outcome"])
+                self.assertEqual(task_code, response.json()["workflow"]["taskCode"])
+                self.assertEqual("ACTIVE", response.json()["workflow"]["status"])
+                self.assertIsNone(response.json()["executionStatus"])
         self.assertEqual([], self.gateway.loan_requests)
 
     def test_retry_forwards_the_original_request_id_and_returns_the_same_result(self) -> None:

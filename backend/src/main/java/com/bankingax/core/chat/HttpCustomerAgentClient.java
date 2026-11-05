@@ -31,7 +31,10 @@ class HttpCustomerAgentClient implements CustomerAgentClient {
         this.token = token == null ? "" : token.strip();
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
         this.json = json;
-        this.http = HttpClient.newBuilder().connectTimeout(this.timeout).build();
+        this.http = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(this.timeout)
+                .build();
     }
 
     @Override
@@ -43,6 +46,7 @@ class HttpCustomerAgentClient implements CustomerAgentClient {
         HttpRequest outbound;
         try {
             outbound = HttpRequest.newBuilder(URI.create(baseUrl + PATH))
+                    .version(HttpClient.Version.HTTP_1_1)
                     .timeout(timeout)
                     .header("Content-Type", "application/json")
                     .header("X-Customer-Agent-Token", token)

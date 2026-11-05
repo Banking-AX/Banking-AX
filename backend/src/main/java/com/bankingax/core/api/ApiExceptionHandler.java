@@ -12,7 +12,10 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiEnvelope<Void>> handleDomain(DomainException ex) {
         HttpStatus status = switch (ex.code()) {
             case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
-            case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            // A document row can remain after its locally stored bytes have been removed.
+            // Do not turn that condition into a successful, fabricated document response.
+            case "NOT_FOUND", "CASE_NOT_FOUND", "DOCUMENT_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "DOCUMENT_STORAGE_UNAVAILABLE" -> HttpStatus.SERVICE_UNAVAILABLE;
             default -> HttpStatus.BAD_REQUEST;
         };
         String traceId = UUID.randomUUID().toString();

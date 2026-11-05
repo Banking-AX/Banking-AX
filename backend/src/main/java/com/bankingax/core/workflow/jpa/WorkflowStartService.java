@@ -10,7 +10,6 @@ import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 
@@ -35,23 +34,12 @@ public class WorkflowStartService {
         this.entityManager = entityManager;
     }
 
-    @Transactional
     public StartResult startOrReconnect(StartCommand command) {
         validate(command);
         if (command.chatRoomId() == null) {
             throw new DomainException("INVALID_REQUEST", "A chatRoomId is required for a chat task action.");
         }
-        lockOwnedChatRoom(command.customerId(), command.chatRoomId());
-        StartResult replay = findReplay(command);
-        if (replay != null) {
-            return replay;
-        }
-        var linked = workItemRepository.findLatestLinkedUnfinished(
-                command.customerId(), command.chatRoomId(), command.taskCode().name());
-        if (linked.isPresent()) {
-            return result(linked.get());
-        }
-        return createAndStart(command);
+        return executeWithRecovery(command, true);
     }
 
     private void lockOwnedChatRoom(long customerId, long chatRoomId) {
@@ -68,13 +56,13 @@ public class WorkflowStartService {
 
     public StartResult start(StartCommand command) {
         validate(command);
-        StartResult replay = findReplay(command);
-        if (replay != null) {
-            return replay;
-        }
+        return executeWithRecovery(command, false);
+    }
 
+    private StartResult executeWithRecovery(StartCommand command, boolean reconnectChatTask) {
         try {
-            return Objects.requireNonNull(transactions.execute(status -> createAndStart(command)));
+            return Objects.requireNonNull(transactions.execute(
+                    status -> resumeOrCreate(command, reconnectChatTask)));
         } catch (DomainException exception) {
             if (!"DUPLICATE_REQUEST_CONFLICT".equals(exception.code())) {
                 throw exception;
@@ -87,7 +75,31 @@ public class WorkflowStartService {
         }
     }
 
-    private StartResult createAndStart(StartCommand command) {
+    private StartResult resumeOrCreate(StartCommand command, boolean reconnectChatTask) {
+        // Locking the customer row serializes distinct requestIds from rapid
+        // repeated card clicks before looking up an ACTIVE item. This is always
+        // acquired before the chat-room lock, preventing inverse lock ordering.
+        workflowRepository.lockActiveCustomerById(command.customerId())
+                .orElseThrow(() -> new DomainException("FORBIDDEN", "Customer is not active."));
+        if (reconnectChatTask) {
+            lockOwnedChatRoom(command.customerId(), command.chatRoomId());
+        }
+        StartResult replay = findReplay(command);
+        if (replay != null) {
+            return replay;
+        }
+        if (reconnectChatTask) {
+            var linked = workItemRepository.findLatestLinkedUnfinished(
+                    command.customerId(), command.chatRoomId(), command.taskCode().name());
+            if (linked.isPresent()) {
+                return result(linked.get());
+            }
+        }
+        var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
+                command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
+        if (!active.isEmpty()) {
+            return result(active.get(0));
+        }
         WorkflowService.WorkflowView workflow = workflows.create(
                 new WorkflowService.CreateWorkflowCommand(command.customerId(), command.chatRoomId()));
         WorkItemView workItem = tasks.start(new StartTaskCommand(
@@ -115,10 +127,8 @@ public class WorkflowStartService {
         return new StartResult(workItem.workflowId(), workItem.workItemId(), workItem.taskCode(), workItem.status());
     }
 
-    private StartResult result(WorkItemEntity workItem) {
-        WorkflowEntity workflow = workflowRepository.findById(workItem.workflowId)
-                .orElseThrow(() -> new DomainException("NOT_FOUND", "Workflow was not found."));
-        return new StartResult(workflow.id, workItem.id, workItem.taskCode, workItem.status);
+    private static StartResult result(WorkItemEntity item) {
+        return new StartResult(item.workflowId, item.id, item.taskCode, item.status);
     }
 
     private static void validate(StartCommand command) {

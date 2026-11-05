@@ -30,6 +30,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -52,6 +53,10 @@ public class AuthSecurityConfiguration {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        // Stateless sessions make SessionManagementFilter treat every Bearer request as a new
+                        // authentication; the default CSRF strategy would then delete XSRF-TOKEN on each API call
+                        // and break the cookie-based refresh/logout below.
+                        .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         .requireCsrfProtectionMatcher(new OrRequestMatcher(
                                 new AntPathRequestMatcher("/api/v1/auth/refresh", "POST"),
                                 new AntPathRequestMatcher("/api/v1/auth/logout", "POST"))))

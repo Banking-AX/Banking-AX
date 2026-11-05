@@ -35,11 +35,26 @@ public class C02StaffBffController {
         return internal.staffCase(caseId, ActorRole.STAFF, gatewayToken, requestId);
     }
 
+    @GetMapping("/{caseId}/ocr")
+    public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication, @PathVariable long caseId,
+            @RequestParam int revision, @RequestParam String requestId) {
+        principals.staff(authentication);
+        return internal.staffOcr(caseId, ActorRole.STAFF, gatewayToken, revision, requestId);
+    }
+
     @GetMapping("/{caseId}/staff-review")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> staffReview(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {
         principals.staff(authentication);
         return internal.staffReview(caseId, ActorRole.STAFF, gatewayToken, requestId);
+    }
+
+    /** Staff must read the original file themselves; Agent/OCR output never replaces it. */
+    @GetMapping("/{caseId}/documents/{documentId}/content")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.InputStreamResource> document(
+            JwtAuthenticationToken authentication, @PathVariable long caseId, @PathVariable long documentId) {
+        long staffId = principals.staff(authentication);
+        return internal.download(caseId, documentId, staffId, ActorRole.STAFF, gatewayToken, null);
     }
 
     @PostMapping("/{caseId}/staff-precheck")

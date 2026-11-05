@@ -76,6 +76,15 @@ def build_staff_check_graph(case_port: FakeCasePort, registry: CheckRegistry, ra
             items.append(_manual_item('RAG_NO_EVIDENCE', '업무 규정 근거를 찾지 못해 직원 확인이 필요합니다.'))
         elif any(not row.verified for row in evidence):
             items.append(_manual_item('RAG_UNVERIFIED', '검수되지 않은 근거가 반환되어 직원 확인이 필요합니다.'))
+        # Spring persists review items only, so verified policy evidence is carried as reference items
+        # (basis_doc_id + section). They inform the staff member and never pass a Case.
+        for row in evidence:
+            if row.verified:
+                items.append(ReviewItem(
+                    source='AGENT_SEMANTIC', category='POLICY_EVIDENCE', result='REFERENCE',
+                    message=f'업무 근거: {row.title} – {row.section}', basis_doc_id=row.doc_id,
+                    evidence={'policySection': row.section, 'sourcePages': row.source_pages},
+                ))
         return {'review_items': items, 'policy_evidence': evidence}
 
     # Keep actual LangGraph wiring explicit.  The graph has no node that writes
