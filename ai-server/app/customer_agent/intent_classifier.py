@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import os
+import logging
 from enum import Enum
 from typing import Any, Callable, Protocol, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+
+log = logging.getLogger(__name__)
 
 
 class TaskCode(str, Enum):
@@ -170,6 +174,9 @@ class OpenAiIntentClient:
                 },
             )
         except Exception as exc:
+            # Keep credentials, prompts, and provider response bodies out of logs.
+            log.warning("Customer intent LLM request failed: type=%s, status=%s",
+                        type(exc).__name__, getattr(exc, "status_code", "none"))
             raise IntentProviderError("INTENT_LLM_REQUEST_FAILED") from exc
         content = completion.choices[0].message.content
         if not content:

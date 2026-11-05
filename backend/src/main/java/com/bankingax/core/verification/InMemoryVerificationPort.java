@@ -7,23 +7,39 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class InMemoryVerificationPort implements VerificationPort {
     private final OtpSender sender; private final Cache<String, Challenge> challenges; private final Cache<String, VerificationBinding> bindings;
-    private final int maxAttempts;
+    private final int maxAttempts; private final RegisteredPhoneResolver phones;
+    public InMemoryVerificationPort(OtpSender sender, long ttl, int maxAttempts) { this(sender, ttl, maxAttempts, (RegisteredPhoneResolver) null); }
+    @Autowired
     public InMemoryVerificationPort(OtpSender sender, @Value("${app.sms.otp-ttl-seconds:180}") long ttl,
-                                   @Value("${app.sms.max-attempts:5}") int maxAttempts) {
-        this.sender=sender; this.maxAttempts=maxAttempts;
+                                   @Value("${app.sms.max-attempts:5}") int maxAttempts, ObjectProvider<RegisteredPhoneResolver> phones) {
+        this(sender, ttl, maxAttempts, phones.getIfAvailable());
+    }
+    InMemoryVerificationPort(OtpSender sender, long ttl, int maxAttempts, RegisteredPhoneResolver phones) {
+        this.sender=sender; this.maxAttempts=maxAttempts; this.phones=phones;
         this.challenges=Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(ttl)).build();
         this.bindings=Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(ttl)).build();
     }
     @Override public VerificationIssue issue(VerificationIssueCommand command) {
+        // With a database the recipient is always the registered user.phone, never a phone sent by the caller.
+        String phone=phones==null ? command.registeredPhone() : phones.phone(command.customerId())
+            .orElseThrow(() -> new DomainException("REGISTERED_PHONE_NOT_AVAILABLE","A registered phone number is required."));
         String id=UUID.randomUUID().toString(); String otp="%06d".formatted(new SecureRandom().nextInt(1_000_000)); Instant expires=Instant.now().plusSeconds(180);
-        challenges.put(id,new Challenge(command,otp,0,expires)); sender.send(command.registeredPhone(),otp);
-        return new VerificationIssue(id, mask(command.registeredPhone()),expires);
+        challenges.put(id,new Challenge(command,otp,0,expires));
+        try { sender.send(phone,otp); }
+        catch (RuntimeException exception) {
+            // T-20: a failed send leaves no usable challenge, so the task cannot proceed on this request.
+            challenges.invalidate(id);
+            throw new DomainException("SMS_SEND_FAILED","The verification SMS could not be sent.",true);
+        }
+        return new VerificationIssue(id, mask(phone),expires);
     }
     @Override public VerificationBinding verify(VerificationVerifyCommand command) {
         Challenge challenge=challenges.getIfPresent(command.challengeId());

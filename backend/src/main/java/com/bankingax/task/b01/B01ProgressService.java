@@ -47,15 +47,27 @@ public class B01ProgressService {
     @Transactional
     public B01EligibilityService.ValidationResult validateAndSave(long customerId, long workItemId,
             long loanId, String requestedRepaymentOrder) {
-        B01EligibilityService.ValidationResult result = eligibility.validate(
-                customerId, workItemId, loanId, requestedRepaymentOrder);
         LockedWorkItem locked = lock(customerId, workItemId, false, true);
         ObjectNode draft = draft(locked.draft());
-        if (!Objects.equals(positiveLong(draft, "documentFileId"), result.ocr().documentFileId())) {
+        Long selectedLoanId = positiveLong(draft, "selectedLoanId");
+        String selectedOrder = text(draft, "requestedRepaymentOrder");
+        Long documentFileId = positiveLong(draft, "documentFileId");
+        // Selection is a separate, persisted step. Do not let a stale client
+        // validation request silently switch the loan after OCR was uploaded.
+        if (!Objects.equals(selectedLoanId, loanId) || !Objects.equals(selectedOrder, requestedRepaymentOrder)) {
+            throw new DomainException("B01_SELECTION_NOT_CURRENT",
+                    "Validate the loan and repayment order currently selected for this application.");
+        }
+        if (documentFileId == null) {
             throw new DomainException("B01_APPLICATION_NOT_CURRENT",
                     "Upload an application for the current loan selection before validation.");
         }
-        applySelection(draft, loanId, requestedRepaymentOrder);
+        B01EligibilityService.ValidationResult result = eligibility.validate(
+                customerId, workItemId, loanId, requestedRepaymentOrder, documentFileId);
+        if (!Objects.equals(documentFileId, result.ocr().documentFileId())) {
+            throw new DomainException("B01_APPLICATION_NOT_CURRENT",
+                    "Upload an application for the current loan selection before validation.");
+        }
         draft.set("lastEligibility", json.valueToTree(result));
         draft.put("lastEligibilityAt", Instant.now().toString());
         draft.put("currentStep", result.ocr().matched() ? "ELIGIBILITY_CHECKED" : "APPLICATION_REVIEW_REQUIRED");

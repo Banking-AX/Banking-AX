@@ -66,6 +66,8 @@ const MESSAGES: Record<string, string> = {
   INVALID_SIGNATURE_FILE: '서명 이미지를 처리하지 못했어요. 다시 서명해 주세요.',
   SIGNATURE_STORAGE_FAILED: '서명을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
   NOTICE_VERSION_INVALID: '안내 문서가 바뀌었어요. 처음부터 다시 진행해 주세요.',
+  B01_NOT_READY_TO_EXECUTE: '동의, 서명, 문자 인증을 먼저 완료해 주세요.',
+  B01_REVALIDATION_FAILED: '대출 상태가 바뀌어 변경할 수 없어요. 영업점에 문의해 주세요.',
   B01_APPLICATION_CHANGED: '신청 내용이 바뀌었어요. 처음부터 다시 진행해 주세요.',
   LOAN_NOT_AVAILABLE: '선택한 대출을 확인할 수 없어요. 목록을 새로 불러와 주세요.',
   INVALID_REPAYMENT_ORDER: '변경할 충당순서가 올바르지 않아요.',

@@ -1,0 +1,11 @@
+
+> banking-ax-frontend@0.0.1 dev
+> vite --host 127.0.0.1 --port 5175
+
+
+  VITE v8.3.5  ready in 219 ms
+
+  ➜  Local:   http://127.0.0.1:5175/
+오후 3:00:11 [vite] (client) hmr update /src/auth/AuthContext.tsx, /src/pages/LoginPage.tsx, /src/pages/WorkRecordDetailPage.tsx, /src/pages/C02CaseListPage.tsx, /src/pages/C02IntakePage.tsx, /src/pages/C02StaffReviewPage.tsx, /src/features/staff/StaffPages.tsx, /src/pages/C02SignPage.tsx, /src/pages/VisitReservationPage.tsx, /src/features/a01/TransactionSearchPage.tsx, /src/pages/C02CaseDetailPage.tsx, /src/features/notifications/NotificationsPage.tsx, /src/features/b02/HousingSavingsClosePage.tsx, /src/pages/WorkRecordsPage.tsx and 7 more
+오후 3:00:11 [vite] (client) hmr update /src/auth/AuthContext.tsx, /src/pages/LoginPage.tsx, /src/pages/WorkRecordDetailPage.tsx, /src/pages/C02CaseListPage.tsx, /src/pages/C02IntakePage.tsx, /src/pages/C02StaffReviewPage.tsx, /src/features/staff/StaffPages.tsx, /src/pages/C02SignPage.tsx, /src/pages/VisitReservationPage.tsx, /src/features/a01/TransactionSearchPage.tsx, /src/pages/C02CaseDetailPage.tsx, /src/features/notifications/NotificationsPage.tsx, /src/features/b02/HousingSavingsClosePage.tsx, /src/pages/WorkRecordsPage.tsx and 7 more
+오후 3:10:21 [vite] (client) hmr update /src/features/chat/ChatModal.tsx

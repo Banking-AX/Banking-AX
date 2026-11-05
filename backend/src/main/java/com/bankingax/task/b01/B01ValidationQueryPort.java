@@ -10,6 +10,7 @@ interface B01ValidationQueryPort {
     Optional<LoanRecord> ownedLoan(long customerId, long loanId);
     List<LoanListRecord> ownedLoans(long customerId);
     Optional<ExtractionRecord> latestExtraction(long workItemId);
+    Optional<ExtractionRecord> extractionForDocument(long workItemId, long documentFileId);
 
     record LoanRecord(long id, String loanNo, BigDecimal balance, boolean accelerationDeclared,
                       LocalDate accelerationDate, boolean outsourced, boolean agreementLoan,

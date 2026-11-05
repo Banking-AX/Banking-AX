@@ -176,7 +176,7 @@ public class B01VerificationService {
 
     private B01EligibilityService.ValidationResult validateApplication(long customerId, long workItemId,
             long loanId, String requestedOrder, long documentFileId) {
-        var result = eligibility.validate(customerId, workItemId, loanId, requestedOrder);
+        var result = eligibility.validate(customerId, workItemId, loanId, requestedOrder, documentFileId);
         if (!result.loanRuleEligible() || !result.ocr().matched()
                 || !Objects.equals(result.ocr().documentFileId(), documentFileId))
             throw new DomainException("B01_APPLICATION_NOT_VALIDATABLE", "The selected loan and application do not match.");

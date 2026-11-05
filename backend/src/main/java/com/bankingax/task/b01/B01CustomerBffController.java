@@ -24,15 +24,17 @@ public class B01CustomerBffController {
     private final B01ProgressService progress;
     private final B01VerificationService verification;
     private final B01LoanListService loans;
+    private final B01ExecutionService execution;
 
     B01CustomerBffController(TaskBffPrincipal principals, B01DocumentService documents,
                              B01ProgressService progress, B01VerificationService verification,
-                             B01LoanListService loans) {
+                             B01LoanListService loans, B01ExecutionService execution) {
         this.principals = principals;
         this.documents = documents;
         this.progress = progress;
         this.verification = verification;
         this.loans = loans;
+        this.execution = execution;
     }
 
     @GetMapping("/work-items/{workItemId}/loans")
@@ -128,6 +130,14 @@ public class B01CustomerBffController {
         long customerId = customer(authentication);
         return ApiEnvelope.success(null, "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
                 verification.status(customerId, workItemId));
+    }
+
+    @PostMapping(value = "/work-items/{workItemId}/execute", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiEnvelope<B01ExecutionService.ExecutionResult> execute(JwtAuthenticationToken authentication,
+            @PathVariable long workItemId, @RequestBody RequestOnly body) {
+        long customerId = customer(authentication);
+        return ApiEnvelope.success(body.requestId(), "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
+                execution.execute(customerId, workItemId, body.requestId()));
     }
 
     private long customer(JwtAuthenticationToken authentication) {

@@ -64,5 +64,7 @@ const realAuthApi: AuthApi = {
   },
 }
 
-export const usesMockAuth = import.meta.env.VITE_API_MOCK_AUTH !== 'false'
+// A connected Banking-AX app must never silently fall back to a browser-only
+// mock token.  Mock auth is available only when a developer explicitly opts in.
+export const usesMockAuth = import.meta.env.VITE_API_MOCK_AUTH === 'true'
 export const authApi: AuthApi = usesMockAuth ? authMock : realAuthApi

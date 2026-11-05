@@ -19,6 +19,16 @@ public class B01EligibilityService {
 
     public ValidationResult validate(long customerId, long workItemId, long loanId,
                                      String requestedRepaymentOrder) {
+        return validate(customerId, workItemId, loanId, requestedRepaymentOrder, null);
+    }
+
+    /**
+     * Validation reached through the B-01 customer flow must be bound to the
+     * exact current application file, never merely the most recent extraction
+     * for a work item.
+     */
+    public ValidationResult validate(long customerId, long workItemId, long loanId,
+                                     String requestedRepaymentOrder, Long documentFileId) {
         requirePort();
         RequestedOrder requested = requestedOrder(requestedRepaymentOrder);
         String workItemStatus = queries.ownedWorkItemStatus(customerId, workItemId)
@@ -29,7 +39,10 @@ public class B01EligibilityService {
         B01ValidationQueryPort.LoanRecord loan = queries.ownedLoan(customerId, loanId)
                 .orElseThrow(() -> new DomainException("LOAN_NOT_AVAILABLE", "The selected loan is not available."));
         RuleCode ruleCode = rule(loan, requested);
-        OcrEvaluation evaluation = checkOcr(queries.latestExtraction(workItemId).orElse(null), loan, requested);
+        B01ValidationQueryPort.ExtractionRecord extraction = documentFileId == null
+                ? queries.latestExtraction(workItemId).orElse(null)
+                : queries.extractionForDocument(workItemId, documentFileId).orElse(null);
+        OcrEvaluation evaluation = checkOcr(extraction, loan, requested);
         OcrCheck ocr = evaluation.check();
         ImageCheck image = checkImage(evaluation.result(), requested);
         VerificationState verification = verification(evaluation.result(), loan.thirdPartyProvider());

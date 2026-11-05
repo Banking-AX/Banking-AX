@@ -152,7 +152,10 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
         }
         const reply = replyFromAgentRun(run)
         mergeMessages([run.customerMessage, run.agentMessage], new Map([[run.agentMessage.id, reply]]))
-        setEntries(list => list.filter(entry => entry.kind === 'message' || entry.request.operationRequestId !== request.operationRequestId))
+        // Errors are transient UI state, not persisted chat messages. Keeping a
+        // previous failure after a later successful reply makes it render below
+        // the new task-action button and falsely imply that reply failed.
+        setEntries(list => list.filter(entry => entry.kind === 'message'))
         setAnnouncement({ id: nextAnnouncementId.current++, text: `${replyLabel(reply)}: ${replyText(reply)}` })
       })
       .catch(async (error: unknown) => {

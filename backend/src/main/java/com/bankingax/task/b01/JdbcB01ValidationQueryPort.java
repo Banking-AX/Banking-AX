@@ -70,4 +70,19 @@ class JdbcB01ValidationQueryPort implements B01ValidationQueryPort {
                 """, rs -> rs.next() ? Optional.of(new ExtractionRecord(rs.getLong(1), rs.getString(2),
                         rs.getString(3))) : Optional.empty(), workItemId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ExtractionRecord> extractionForDocument(long workItemId, long documentFileId) {
+        return jdbc.query("""
+                select e.document_file_id,e.status,e.extracted
+                  from required_document rd
+                  join document_file df on df.required_document_id=rd.id
+                  join document_extraction e on e.document_file_id=df.id
+                 where rd.work_item_id=? and rd.document_type_code='B01_REPAYMENT_ORDER_APPLICATION'
+                   and df.id=? and df.is_latest=true and df.deleted_at is null
+                 order by e.id desc limit 1
+                """, rs -> rs.next() ? Optional.of(new ExtractionRecord(rs.getLong(1), rs.getString(2),
+                        rs.getString(3))) : Optional.empty(), workItemId, documentFileId);
+    }
 }

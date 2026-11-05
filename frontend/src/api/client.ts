@@ -71,7 +71,9 @@ async function request<T>(path: string, init: RequestInit, attachAccessToken: bo
   const body = await readJson(response)
   const error = toApiError(response, body)
   if (error) {
-    if (allowRefresh && error.status === 401 && accessToken && refreshAccessTokenHandler) {
+    if (allowRefresh && error.status === 401) {
+      // The access token lives only in memory, so a missing one is recoverable like an expired one:
+      // the HttpOnly refresh cookie decides whether the session is really over.
       try {
         const replacement = await refreshOnce()
         if (replacement) {
@@ -81,11 +83,6 @@ async function request<T>(path: string, init: RequestInit, attachAccessToken: bo
       } catch {
         // The shared handler below clears authentication once for every waiting request.
       }
-      setAccessToken(null)
-      authenticationLostHandler?.(error)
-    } else if (allowRefresh && error.status === 401) {
-      // A protected request without an access token is never a business-result
-      // condition. Let the auth owner send an authenticated UI back to login.
       setAccessToken(null)
       authenticationLostHandler?.(error)
     }
@@ -99,7 +96,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   const send = () => fetch(`${baseUrl}${path}`, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} })
     .catch(() => { throw new ApiError('NETWORK_ERROR', 0, 'Network request failed.') })
   let response = await send()
-  if (response.status === 401 && accessToken && refreshAccessTokenHandler) {
+  if (response.status === 401) {
     const replacement = await refreshOnce().catch(() => null)
     if (replacement) { setAccessToken(replacement); response = await send() }
   }
