@@ -126,6 +126,10 @@ SYSTEM_PROMPT = """
 - "채무조정 신청해 줘" -> DEBT_ADJUSTMENT, ACTION
 - "대출 상품에 대해 일반적으로 설명해 줘" -> 특정 지원 업무가 아니므로 unsupported=true
 - "대출 관련 업무 좀 처리하고 싶어" -> 업무를 확정하지 말고 requiresClarification=true와 clarificationQuestion을 설정
+- "대출금 갚는 순서를 바꾸고 싶어" -> REPAYMENT_ORDER_CHANGE, ACTION
+- "이자보다 원금부터 갚는 방식으로 바꿀 수 있어?" -> REPAYMENT_ORDER_CHANGE, ACTION
+- "채무조정 신청" -> DEBT_ADJUSTMENT, ACTION. REPAYMENT_ORDER_CHANGE로 분류하지 않는다.
+- "채무조정변경신청"처럼 두 업무의 의미가 섞여 확정할 수 없으면 requiresClarification=true로 설정한다.
 """.strip()
 
 

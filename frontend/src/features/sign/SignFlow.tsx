@@ -23,6 +23,10 @@ export type SignFlowProps = {
   doneLabel: string
   storesSignature: boolean
   demoPath: string
+  /** Keep sample signatures on design/demo routes, but require handwriting on real task routes. */
+  allowDemoSignature?: boolean
+  /** Resume an already persisted task at the signature or OTP step. */
+  initialStep?: 'doc' | 'sign' | 'otp'
 }
 
 type Step = 'doc' | 'sign' | 'otp' | 'done'
@@ -35,6 +39,10 @@ const MIN_POINTS = 12
 const DEMO_POINTS = 99
 const EXPIRED_TEXT = '인증번호 입력 시간이 지났어요. 새 번호를 받아 주세요.'
 
+export function completedSignaturePreview(path: string): string | null {
+  return path || null
+}
+
 const pad2 = (value: number) => String(value).padStart(2, '0')
 const formatClock = (sec: number) => `${pad2(Math.floor(sec / 60))}:${pad2(sec % 60)}`
 const formatStamp = (date: Date) => `${date.getFullYear()}.${pad2(date.getMonth() + 1)}.${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
@@ -45,8 +53,10 @@ function formatDuration(sec: number): string {
   return minutes ? `${minutes}분` : `${seconds}초`
 }
 
-export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, onDone, doneLabel, storesSignature, demoPath }: SignFlowProps) {
-  const [step, setStep] = useState<Step>('doc')
+export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, onDone, doneLabel, storesSignature, demoPath, allowDemoSignature = true, initialStep = 'doc' }: SignFlowProps) {
+  const [step, setStep] = useState<Step>(initialStep)
+  // This changes only what is displayed. The persisted execution step remains OTP.
+  const [reviewingPrevious, setReviewingPrevious] = useState(false)
 
   const [read, setRead] = useState<boolean[]>(() => docs.map(() => false))
   const [cur, setCur] = useState(0)
@@ -57,7 +67,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
   const [tooShort, setTooShort] = useState(false)
   const [savingSignature, setSavingSignature] = useState(false)
   const [signatureError, setSignatureError] = useState<string | null>(null)
-  const [signatureLocked, setSignatureLocked] = useState(false)
+  const [signatureLocked, setSignatureLocked] = useState(initialStep === 'otp')
 
   const [issue, setIssue] = useState<CodeIssue | null>(null)
   const [ttlSec, setTtlSec] = useState<number | null>(null)
@@ -215,7 +225,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
       ? (pointCount >= MIN_POINTS ? (agree ? '서명과 동의가 준비됐어요.' : '서명 동의에 체크해 주세요.') : '서명 칸에 서명해 주세요.')
       : '등록된 휴대폰으로 받은 인증번호를 입력해 주세요.'
   const nextLabel = step === 'otp' ? '인증하고 서명하기' : step === 'sign' && savingSignature ? '서명 저장 중…' : '다음'
-  const showBar = step !== 'done' && verification === null
+  const showBar = step !== 'done' && verification === null && !reviewingPrevious
 
   const otpStatusText = otpMessage?.text
     ?? (expired ? EXPIRED_TEXT : issue && ttlSec !== null ? `${issue.maskedPhone}로 인증번호를 보냈어요. ${formatDuration(ttlSec)} 안에 입력해 주세요.` : '')
@@ -250,13 +260,13 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
         })}
       </ol>
 
-      {step === 'doc' && <div className="sign-doc-layout">
+      {(step === 'doc' || reviewingPrevious) && <div className="sign-doc-layout">
         <nav aria-label="서명할 문서" className="sign-doc-list">
-          <span className="sign-doc-list__title">서명할 문서 {n}건 · 확인 {readN}/{n}</span>
+          <span className="sign-doc-list__title">{reviewingPrevious ? `이전 신청 문서 ${n}건 · 읽기 전용` : `서명할 문서 ${n}건 · 확인 ${readN}/${n}`}</span>
           {docs.map((item, index) => <button key={item.name} type="button" onClick={() => setCur(index)} aria-pressed={index === cur} className={`sign-doc-item${index === cur ? ' sign-doc-item--current' : ''}`}>
             <strong className="sign-doc-item__name">{item.name}</strong>
             <span className="sign-doc-item__ref">{item.ref}</span>
-            <span className={`sign-doc-item__state${read[index] ? ' sign-doc-item__state--read' : ''}`}>{read[index] ? '확인 완료' : '확인 전'}</span>
+            <span className={`sign-doc-item__state${read[index] || reviewingPrevious ? ' sign-doc-item__state--read' : ''}`}>{reviewingPrevious ? '저장된 내용' : read[index] ? '확인 완료' : '확인 전'}</span>
           </button>)}
           {note && <p className="sign-doc-note">{note}</p>}
         </nav>
@@ -279,9 +289,20 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
               <p className="sign-paper__text">{currentDoc.body}</p>
               <div className="sign-paper__sign">신청인 {signer} <span className="sign-paper__sign-box">(서명)</span></div>
             </div>
-            <label className={`sign-check${read[cur] ? ' sign-check--on' : ''}`}>
-              <input type="checkbox" checked={!!read[cur]} onChange={toggleRead} className="sign-check__input" />이 문서의 내용을 끝까지 확인했어요
-            </label>
+            {reviewingPrevious
+              ? <div role="status" className="sign-alert">이전 신청 내용을 읽기 전용으로 확인하고 있어요. 저장된 동의·서명·SMS 상태는 변경되지 않아요.</div>
+              : <label className={`sign-check${read[cur] ? ' sign-check--on' : ''}`}>
+                <input type="checkbox" checked={!!read[cur]} onChange={toggleRead} className="sign-check__input" />이 문서의 내용을 끝까지 확인했어요
+              </label>}
+            {reviewingPrevious && (path
+              ? <div className="sign-done__image">
+                <span className="sign-done__image-label">이번 화면에서 작성한 서명</span>
+                <svg viewBox="0 0 600 220" role="img" aria-label="이번 화면에서 작성한 서명" className="sign-done__svg"><path d={path} fill="none" stroke="#1E3A5F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+              </div>
+              : initialStep === 'otp' && <div className="sign-done__image">
+                <span className="sign-done__image-label">모의서명</span>
+                <p className="sign-done__note">모의서명 이미지 저장 완료 · 보안상 이 화면에서는 저장 이미지를 다시 표시하지 않아요.</p>
+              </div>)}
           </div>
         </section>
       </div>}
@@ -294,7 +315,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
         <SignaturePad strokes={strokes} onChange={onStrokes} disabled={signatureLocked || savingSignature} overridePath={demo ? demoPath : undefined} />
         <div className="sign-actions">
           <button type="button" onClick={clearSignature} disabled={signatureLocked || savingSignature} className="sign-button sign-button--plain">다시 쓰기</button>
-          <button type="button" onClick={demoSignature} disabled={signatureLocked || savingSignature} className="sign-button sign-button--outline">예시 서명 넣기 (시연)</button>
+          {allowDemoSignature && <button type="button" onClick={demoSignature} disabled={signatureLocked || savingSignature} className="sign-button sign-button--outline">예시 서명 넣기 (시연)</button>}
         </div>
         {tooShort && pointCount < MIN_POINTS && <span role="alert" className="sign-error-text">서명이 너무 짧아요. 이름이 알아볼 수 있게 다시 써 주세요.</span>}
         <label className={`sign-check${agree ? ' sign-check--on' : ''}`}>
@@ -303,7 +324,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
         {signatureError && <div role="alert" className="sign-alert">{signatureError}</div>}
       </section>}
 
-      {step === 'otp' && !working && !completeFailed && <section aria-labelledby="sign-otp-title" className="sign-card sign-card--narrow">
+      {step === 'otp' && !reviewingPrevious && !working && !completeFailed && <section aria-labelledby="sign-otp-title" className="sign-card sign-card--narrow">
         <h2 id="sign-otp-title" ref={headingRef} tabIndex={-1} className="sign-card__title">휴대폰 본인 확인</h2>
         <dl className="sign-info">
           <dt className="sign-info__key">이름</dt><dd className="sign-info__value">{signer}</dd>
@@ -327,6 +348,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
           인증번호는 서버가 만들어 등록된 휴대폰으로 문자(SOLAPI)를 보내요. {ttlSec !== null ? `${formatDuration(ttlSec)} 안에 입력해 주세요.` : '받은 인증번호는 정해진 시간 안에 입력해 주세요.'} {SMS_MAX_ATTEMPTS}회 틀리면 새 번호를 받아야 하고, 다시 받기는 {SMS_RESEND_COOLDOWN_SEC}초 뒤에 할 수 있어요.
           {adapter.devHint && <span className="sign-otp__dev">{adapter.devHint}</span>}
         </p>
+        <button type="button" onClick={() => setReviewingPrevious(true)} className="sign-button sign-button--plain">이전 내용 확인</button>
       </section>}
 
       {working && <section role="status" className="sign-working">
@@ -357,10 +379,15 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
             <dt className="sign-info__key">서명 시각</dt><dd className="sign-info__value">{signedAt ? formatStamp(signedAt) : ''}</dd>
             <dt className="sign-info__key">방식</dt><dd className="sign-info__plain">모의 서명(화면) + SMS 인증번호 (서버 검증)</dd>
           </dl>
-          <div className="sign-done__image">
-            <span className="sign-done__image-label">서명 이미지</span>
-            <svg viewBox="0 0 600 220" role="img" aria-label="서명 이미지" className="sign-done__svg"><path d={path || demoPath} fill="none" stroke="#1E3A5F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-          </div>
+          {completedSignaturePreview(path)
+            ? <div className="sign-done__image">
+              <span className="sign-done__image-label">이번 화면에서 작성한 서명</span>
+              <svg viewBox="0 0 600 220" role="img" aria-label="이번 화면에서 작성한 서명" className="sign-done__svg"><path d={path} fill="none" stroke="#1E3A5F" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            </div>
+            : <div className="sign-done__image">
+              <span className="sign-done__image-label">모의서명</span>
+              <p className="sign-done__note">모의서명 이미지 저장 완료 · 보안상 이 화면에서는 저장 이미지를 다시 표시하지 않아요.</p>
+            </div>}
         </div>
         <p className="sign-done__note">{storesSignature ? '서명 이미지는 모의 서명 기록으로 서버에 저장돼요.' : '서명 이미지는 서버에 저장하지 않아요.'} 서버는 동의 기록과 SMS 인증 결과를 다시 확인한 뒤에만 {doneLabel} 단계로 넘겨요.</p>
         <div className="sign-done__actions">{onDone
@@ -373,6 +400,11 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
         <Link to={backHref} className="sign-button sign-button--plain sign-button--link sign-bar__button">서명 취소</Link>
         {step === 'sign' && <button type="button" onClick={() => setStep('doc')} disabled={savingSignature} className="sign-button sign-button--plain sign-bar__button">이전</button>}
         <button type="button" onClick={next} disabled={!canNext} className="sign-button sign-button--primary sign-bar__button">{nextLabel}</button>
+      </div>}
+
+      {reviewingPrevious && <div className="sign-bar">
+        <span aria-live="polite" className="sign-bar__hint">조회만으로 서버의 진행 단계나 인증 상태는 변경되지 않아요.</span>
+        <button type="button" onClick={() => setReviewingPrevious(false)} className="sign-button sign-button--primary sign-bar__button">인증 계속하기</button>
       </div>}
 
       <p className="sign-footnote">교육용 시연 화면이에요. 서명은 화면에서만 동작하는 모의 서명이고, SMS 인증은 휴대폰 소지 확인이에요. 실제 실명확인·법적 전자서명이 아니에요. 서명과 SMS 인증을 마치지 않으면 서버가 실행·제출을 거부해요.</p>

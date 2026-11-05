@@ -102,7 +102,7 @@ class NaturalWorkflowStartTests(unittest.TestCase):
             "거래내역 조회해줘": classified((TaskCode.TRANSACTION_SEARCH, RequestKind.ACTION, True)),
             "청약통장 해지해줘": classified((TaskCode.HOUSING_SAVINGS_CLOSE, RequestKind.ACTION, True)),
             "상속예금 접수해줘": classified((TaskCode.INHERITANCE_DEPOSIT, RequestKind.ACTION, True)),
-            "충당순서 바꿔줘": classified((TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.ACTION, False)),
+            "충당순서 바꿔줘": classified((TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.ACTION, True)),
         }
         self.gateway = RecordingWorkflowGateway()
         app = FastAPI()
@@ -146,7 +146,7 @@ class NaturalWorkflowStartTests(unittest.TestCase):
             "적금 가입해줘": "UNSUPPORTED",
             "대출과 거래내역 조회해줘": "COMPOSITE_NOT_SUPPORTED",
             "채무조정 신청해줘": "TASK_NOT_AUTOSTART_ENABLED",
-            "충당순서 바꿔줘": "NO_EXECUTABLE_TASK",
+            "충당순서 바꿔줘": "TASK_ACTION_AVAILABLE",
         }
         for message, outcome in expected.items():
             with self.subTest(message=message):
@@ -156,6 +156,12 @@ class NaturalWorkflowStartTests(unittest.TestCase):
                 self.assertIsNone(response.json()["workflow"])
                 self.assertIsNone(response.json()["loanInquiry"])
                 self.assertIsNotNone(response.json()["answer"])
+                if message == "충당순서 바꿔줘":
+                    self.assertEqual({
+                        "taskCode": "REPAYMENT_ORDER_CHANGE",
+                        "label": "신청 화면으로 이동",
+                        "actionRequestId": response.json()["requestId"],
+                    }, response.json()["taskAction"])
         self.assertEqual([], self.gateway.requests)
         self.assertEqual([], self.gateway.loan_requests)
 

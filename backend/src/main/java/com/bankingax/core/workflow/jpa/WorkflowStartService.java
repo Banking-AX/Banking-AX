@@ -10,6 +10,8 @@ import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 
 @Service
 @ConditionalOnProperty(name = "app.case-port", havingValue = "jpa")
@@ -19,26 +21,48 @@ public class WorkflowStartService {
     private final WorkflowRepository workflowRepository;
     private final WorkItemRepository workItemRepository;
     private final TransactionTemplate transactions;
+    private final EntityManager entityManager;
 
     public WorkflowStartService(WorkflowService workflows, TaskHandler tasks,
                                 WorkflowRepository workflowRepository, WorkItemRepository workItemRepository,
-                                TransactionTemplate transactions) {
+                                TransactionTemplate transactions, EntityManager entityManager) {
         this.workflows = workflows;
         this.tasks = tasks;
         this.workflowRepository = workflowRepository;
         this.workItemRepository = workItemRepository;
         this.transactions = transactions;
+        this.entityManager = entityManager;
+    }
+
+    public StartResult startOrReconnect(StartCommand command) {
+        validate(command);
+        if (command.chatRoomId() == null) {
+            throw new DomainException("INVALID_REQUEST", "A chatRoomId is required for a chat task action.");
+        }
+        return executeWithRecovery(command, true);
+    }
+
+    private void lockOwnedChatRoom(long customerId, long chatRoomId) {
+        try {
+            entityManager.createNativeQuery(
+                    "select id from chat_room where id=:roomId and customer_id=:customerId for update")
+                    .setParameter("roomId", chatRoomId)
+                    .setParameter("customerId", customerId)
+                    .getSingleResult();
+        } catch (NoResultException exception) {
+            throw new DomainException("CHAT_ROOM_NOT_AVAILABLE", "Chat room is not available.");
+        }
     }
 
     public StartResult start(StartCommand command) {
         validate(command);
-        StartResult replay = findReplay(command);
-        if (replay != null) {
-            return replay;
-        }
+        return executeWithRecovery(command, false);
+    }
 
+    private StartResult executeWithRecovery(StartCommand command, boolean reconnectChatTask) {
         try {
-            return Objects.requireNonNull(transactions.execute(status -> resumeOrCreate(command)));
+            return Objects.requireNonNull(transactions.execute(
+                    status -> resumeOrCreate(command, reconnectChatTask)));
         } catch (DomainException exception) {
             if (!"DUPLICATE_REQUEST_CONFLICT".equals(exception.code())) {
                 throw exception;
@@ -51,11 +75,26 @@ public class WorkflowStartService {
         }
     }
 
-    private StartResult resumeOrCreate(StartCommand command) {
+    private StartResult resumeOrCreate(StartCommand command, boolean reconnectChatTask) {
         // Locking the customer row serializes distinct requestIds from rapid
-        // repeated card clicks before looking up an ACTIVE item.
+        // repeated card clicks before looking up an ACTIVE item. This is always
+        // acquired before the chat-room lock, preventing inverse lock ordering.
         workflowRepository.lockActiveCustomerById(command.customerId())
                 .orElseThrow(() -> new DomainException("FORBIDDEN", "Customer is not active."));
+        if (reconnectChatTask) {
+            lockOwnedChatRoom(command.customerId(), command.chatRoomId());
+        }
+        StartResult replay = findReplay(command);
+        if (replay != null) {
+            return replay;
+        }
+        if (reconnectChatTask) {
+            var linked = workItemRepository.findLatestLinkedUnfinished(
+                    command.customerId(), command.chatRoomId(), command.taskCode().name());
+            if (linked.isPresent()) {
+                return result(linked.get());
+            }
+        }
         var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
                 command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
         if (!active.isEmpty()) {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { chatApi, replyFromAgentRun, type AgentRun, type ChatMessage, type ChatRoom } from './chat'
+import { chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRun, type ChatMessage, type ChatRoom } from './chat'
 import { setAccessToken } from './client'
 
 const room: ChatRoom = {
@@ -58,6 +58,7 @@ describe('Spring chat BFF client', () => {
         workflow: { workflowId: 20, workItemId: 21, taskCode: 'LOAN_INQUIRY', status: 'COMPLETED' },
         loanInquiry: { loans: [{ loanId: 1, loanNoMasked: '210-***-000001', loanName: '대출', balance: '1000', interestRate: '4.1', overdueDays: 0, accelerationDeclared: false, repaymentOrder: 'INTEREST_FIRST' }] },
         executionStatus: { workflowId: 20, workItemId: 21, taskCode: 'LOAN_INQUIRY', workItemStatus: 'DONE', workflowStatus: 'COMPLETED' },
+        taskAction: null,
         answer: '대출계좌 3건을 조회했어요.', answerStatus: 'GENERATED',
       },
       financialOperationCompleted: true, agentMessageSaved: true,
@@ -74,6 +75,34 @@ describe('Spring chat BFF client', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).not.toHaveProperty('customerId')
     expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe('Bearer customer-token')
     expect(replyFromAgentRun(result)).toMatchObject({ kind: 'loans', answer: run.agentMessage?.content })
+  })
+
+  it('starts a persisted B01 action with no client-provided customer id', async () => {
+    setAccessToken('customer-token')
+    const action = { taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'op-b01' } as const
+    const result = { workflowId: 31, workItemId: 41, taskCode: 'REPAYMENT_ORDER_CHANGE', status: 'ACTIVE' }
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(envelope(result), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(chatApi.startTaskAction(7, action)).resolves.toEqual(result)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/customer/chat/rooms/7/task-actions')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      actionRequestId: 'op-b01', taskCode: 'REPAYMENT_ORDER_CHANGE',
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).not.toHaveProperty('customerId')
+  })
+
+  it('restores a structured B01 action from the persisted agent message', () => {
+    const agent = message(12, 2, 'AGENT', '채무변제충당순서 변경 신청을 도와드리겠습니다.')
+    agent.citations = JSON.stringify({ taskAction: {
+      taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'stable-action',
+    } })
+
+    expect(replyFromChatMessage(agent)).toEqual({
+      kind: 'taskAction', answer: agent.content,
+      action: { taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'stable-action' },
+    })
   })
 
   it('restores messages in server sequence order', async () => {
@@ -94,7 +123,8 @@ describe('Spring chat BFF client', () => {
       agentResult: {
         requestId: 'op-a01', customerId: 1, outcome: 'STARTED', classification: {},
         workflow: { workflowId: 20, workItemId: 21, taskCode: 'TRANSACTION_SEARCH', status: 'ACTIVE' },
-        loanInquiry: null, executionStatus: null, answer: '업무를 준비했습니다.', answerStatus: 'GENERATED',
+        loanInquiry: null, executionStatus: null, taskAction: null,
+        answer: '업무를 준비했습니다.', answerStatus: 'GENERATED',
       },
       financialOperationCompleted: false, agentMessageSaved: true,
     }

@@ -1,19 +1,18 @@
 import { useMemo } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { createMockB01Adapter } from '../api/mock/b01Mock'
+import { createRealB01Adapter } from '../api/b01'
 import { useAuth } from '../auth/AuthContext'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { B01Flow } from '../features/b01/B01Flow'
 
-// Mock wiring. The real task screen will pass a server-backed B01Adapter to B01Flow.
 export function B01Page() {
   const { workItemId } = useParams()
   const location = useLocation()
   const { user } = useAuth()
-  const adapter = useMemo(() => createMockB01Adapter(), [])
+  const adapter = useMemo(() => workItemId ? createRealB01Adapter(workItemId) : null, [workItemId])
 
-  if (!workItemId) {
+  if (!workItemId || !adapter) {
     return <div className="b01-page">
       <SiteHeader />
       <main className="b01-main">

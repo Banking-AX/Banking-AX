@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ApiError } from '../../api/client'
 import { toUserMessage } from '../../api/errorMessages'
-import { chatApi, replyFromAgentRun, type AgentRunRequest, type ChatMessage, type ChatReply } from '../../api/chat'
+import { chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRunRequest, type ChatMessage, type ChatReply, type ChatTaskAction } from '../../api/chat'
 import { BotAvatar, BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
+import { useNavigate } from 'react-router-dom'
 
 type Entry =
   | { key: string; kind: 'message'; message: ChatMessage; reply?: ChatReply }
@@ -29,6 +30,7 @@ const formatServerTime = (value: string) => new Date(value).toLocaleTimeString('
 const formatDate = (date: Date) => date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
 export function ChatModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate()
   const [openedAt, setOpenedAt] = useState<Date | null>(null)
   const [entries, setEntries] = useState<Entry[]>([])
   const [draft, setDraft] = useState('')
@@ -39,6 +41,8 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [roomError, setRoomError] = useState('')
   const [roomLoadAttempt, setRoomLoadAttempt] = useState(0)
   const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
+  const [actionPending, setActionPending] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
 
   const dialogRef = useRef<HTMLElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -187,6 +191,22 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
     dispatch(entry.request)
   }
 
+  const startTaskAction = async (action: ChatTaskAction) => {
+    if (roomId === null || actionPending) return
+    setActionPending(action.actionRequestId)
+    setActionError('')
+    try {
+      const result = await chatApi.startTaskAction(roomId, action)
+      if (result.taskCode !== 'REPAYMENT_ORDER_CHANGE') throw new ApiError('INVALID_RESPONSE', 502)
+      onClose()
+      navigate(`/tasks/b01/${result.workItemId}`, { state: { chatRoomId: roomId } })
+    } catch (error) {
+      setActionError(toUserMessage(error))
+    } finally {
+      setActionPending(null)
+    }
+  }
+
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     // keyCode 229: IME composition in browsers that do not set isComposing on keydown.
     if (event.key !== 'Enter' || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return
@@ -243,8 +263,10 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
               <div className="chat-bubble chat-bubble--user">{entry.message.content}</div>
               <span className="chat-time">{formatServerTime(entry.message.sentAt)}</span>
             </div>
-            const reply = entry.reply ?? { kind: 'message', answer: entry.message.content } as const
-            return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)} />
+            const reply = entry.reply ?? replyFromChatMessage(entry.message)
+            return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)}
+              actionPending={reply.kind === 'taskAction' && actionPending === reply.action.actionRequestId}
+              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} />
           }
           return <div key={entry.key} className="chat-error">
             <span className="chat-spacer" aria-hidden="true"></span>
@@ -255,6 +277,8 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
           </div>
         })}
+
+        {actionError && <div role="alert" className="chat-error__box"><span className="chat-error__text">{actionError}</span></div>}
 
         {(pending || roomLoading) && <div className="chat-typing">
           <BotAvatar />

@@ -62,6 +62,11 @@ CASES = {
     "대출금 얼마나 남았어?": json_output([action(1, "LOAN_INQUIRY")]),
     "내 대출 전부 보여줘": json_output([action(1, "LOAN_INQUIRY")]),
     "이자보다 원금부터 갚고 싶어": json_output([action(1, "REPAYMENT_ORDER_CHANGE")]),
+    "채무변제충당순서 변경하고 싶어": json_output([action(1, "REPAYMENT_ORDER_CHANGE")]),
+    "채무변제 충당순서 변경 신청할래": json_output([action(1, "REPAYMENT_ORDER_CHANGE")]),
+    "대출금 갚는 순서를 바꾸고 싶어": json_output([action(1, "REPAYMENT_ORDER_CHANGE")]),
+    "이자보다 원금부터 갚는 방식으로 바꿀 수 있어?": json_output([action(1, "REPAYMENT_ORDER_CHANGE")]),
+    "채무조정변경신청": json_output(clarification="채무조정 신청과 충당순서 변경 중 어떤 업무를 원하시나요?"),
     "채무조정 신청하고 싶어": json_output([action(1, "DEBT_ADJUSTMENT")]),
     "채무조정이 뭔지 설명해 줘": json_output([information(1, "DEBT_ADJUSTMENT")]),
     "대출 조회하고 거래내역도 보여줘": json_output([
@@ -108,7 +113,9 @@ class IntentClassifierTests(unittest.TestCase):
         self.assertEqual([TaskCode.DEBT_ADJUSTMENT], results["채무조정 신청해 줘"].executionTargets)
         self.assertEqual([TaskCode.LOAN_INQUIRY], results["내 대출이 어떤 상태인지 알려줘"].executionTargets)
         self.assertTrue(results["대출 상품에 대해 일반적으로 설명해 줘"].unsupported)
-        self.assertEqual(14, len(self.client.calls))
+        self.assertTrue(results["채무조정변경신청"].requiresClarification)
+        self.assertEqual(TaskCode.DEBT_ADJUSTMENT, results["채무조정 신청하고 싶어"].tasks[0].taskCode)
+        self.assertEqual(19, len(self.client.calls))
 
     def test_rejects_unknown_code_duplicate_code_broken_order_and_malformed_json(self) -> None:
         invalid_outputs = [

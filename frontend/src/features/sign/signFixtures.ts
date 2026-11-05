@@ -31,6 +31,7 @@ export function getSignSetup(docKey: SignDocKey, signerName: string): SignSetup 
   switch (docKey) {
     case 'b01': return {
       taskName: '채무변제 충당순서 변경', afterText: '서명 직후 최신 대출 조건을 다시 확인하고 충당순서를 변경해요',
+      note: '화면의 문서는 서명 내용 확인을 위해 재구성한 교육용 모형이며, 고객이 업로드한 PDF 원문 이미지가 아니에요.',
       signer: signerName, backHref: '/tasks/b01/demo', doneHref: DONE_HREF, doneLabel: '변경 결과 보기',
       // B-01 uploads the signature PNG and the backend stores it as the mock signature record.
       storesSignature: true, demoPath: DEMO_M,
