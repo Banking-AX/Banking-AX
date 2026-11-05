@@ -7,7 +7,6 @@ import { isStaffPath, postLoginPath } from '../auth/roleHome'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 
-type Tab = 'id' | 'cert'
 type FormError = { kind: 'empty' } | { kind: 'credentials'; message: string } | { kind: 'server'; message: string }
 
 const EMPTY_MESSAGE = '이용자 ID와 비밀번호를 모두 입력해 주세요.'
@@ -26,7 +25,6 @@ export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const [tab, setTab] = useState<Tab>('id')
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -60,9 +58,6 @@ export function LoginPage() {
     }
   }
 
-  const pickId = () => setTab('id')
-  const pickCert = () => { setTab('cert'); setSuccessName(null) }
-
   return <div className="login-page">
     <SiteHeader />
 
@@ -83,13 +78,10 @@ export function LoginPage() {
       </div>}
 
       <section aria-label="로그인" className="login-card">
-        <div role="tablist" aria-label="로그인 방식" className="login-tabs">
-          <button type="button" role="tab" aria-selected={tab === 'id'} onClick={pickId} className={`login-tab${tab === 'id' ? ' login-tab--active' : ''}`}>이용자 ID 로그인</button>
-          <button type="button" role="tab" aria-selected={tab === 'cert'} onClick={pickCert} className={`login-tab${tab === 'cert' ? ' login-tab--active' : ''}`}>인증서 로그인</button>
-        </div>
+        <h2 className="login-card__title">이용자 ID 로그인</h2>
 
         <div className="login-card__body">
-          {tab === 'id' && !successName && <form onSubmit={onSubmit} noValidate className="login-form">
+          {!successName && <form onSubmit={onSubmit} noValidate className="login-form">
             <div className="login-field">
               <label htmlFor="login-id" className="login-label">이용자 ID</label>
               <input id="login-id" type="text" autoComplete="username" value={loginId} onChange={e => setLoginId(e.target.value)} aria-invalid={idInvalid} placeholder="이용자 ID를 입력해 주세요" className={`login-input${idInvalid ? ' login-input--invalid' : ''}`} />
@@ -107,17 +99,7 @@ export function LoginPage() {
             <a className="login-staff-link" aria-disabled="true">직원이신가요? 직원 로그인</a>
           </form>}
 
-          {tab === 'cert' && <div className="login-cert">
-            <div aria-hidden="true" className="login-cert__preview">
-              <div className="login-cert__item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="5" width="16" height="12" rx="2"></rect><path d="M8 21l4-4 4 4"></path></svg><span className="login-cert__name">[인증서 이름]</span><span className="login-cert__expiry">만료일 [YYYY.MM.DD]</span></div>
-              <div className="login-cert__field"></div>
-            </div>
-            <p className="login-cert__notice"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="login-cert__notice-icon"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>인증서 로그인은 화면 참고용이에요. 이 시연에서는 이용자 ID 로그인만 사용할 수 있어요.</p>
-            <button type="button" disabled className="login-cert__submit">인증서로 로그인</button>
-            <button type="button" onClick={pickId} className="login-cert__switch">이용자 ID로 로그인하기</button>
-          </div>}
-
-          {tab === 'id' && successName && <div role="status" className="login-success">
+          {successName && <div role="status" className="login-success">
             <span className="login-success__icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
             <strong className="login-success__title">{successName}님, 로그인되었어요</strong>
             <span className="login-success__message">{isStaffPath(successPath) ? '직원 업무 화면으로 이동합니다.' : fromChat ? '보던 AI 대화로 돌아가 요청한 업무를 이어서 진행해요.' : '개인뱅킹 메인으로 이동합니다.'}</span>

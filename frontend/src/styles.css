@@ -810,3 +810,11 @@ body { margin: 0; font-family: var(--font-family-base); }
   .chat-rooms-preview__side { flex: 0 0 auto; height: 640px; border-right: 0; border-bottom: 1px solid var(--color-line); }
   .chat-rooms-preview__main { min-height: 160px; }
 }
+
+/* Header spot mode (docs/design-ref/SiteHeader.dc.html "spot"): dims everything except the account area and the login link. */
+.site-header__spot { position: absolute; inset: 0; z-index: 2; background: rgba(17, 24, 39, 0.55); }
+.site-header--spot .site-header__account,
+.site-header--spot .site-header__login { position: relative; z-index: 3; }
+
+/* Login card heading (the design replaced the ID/certificate tabs with a single title). */
+.login-card__title { margin: 0; height: 56px; display: flex; align-items: center; justify-content: center; border-bottom: 3px solid var(--color-primary); background: #FFFFFF; color: var(--color-primary-dark); font-size: 16px; font-weight: var(--font-weight-bold); }
