@@ -54,7 +54,7 @@ export async function apiFetchWithoutAuthRetry<T>(path: string, init: RequestIni
 async function request<T>(path: string, init: RequestInit, attachAccessToken: boolean,
   allowRefresh: boolean): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers)
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (!headers.has('Content-Type') && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (attachAccessToken && accessToken && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${accessToken}`)
   }

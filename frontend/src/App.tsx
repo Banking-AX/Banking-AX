@@ -23,7 +23,7 @@ export function App() {
     <Route path="/" element={<MainPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/sign/:docKey" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><SignPage /></RequireAuth>} />
-    <Route path="/tasks/b01/:workItemId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><B01Page /></RequireAuth>} />
+    <Route path="/tasks/b01/:workItemId" element={<RequireAuth roles={['CUSTOMER']}><B01Page /></RequireAuth>} />
     <Route path="/work" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordsPage /></RequireAuth>} />
     <Route path="/work/:recordId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordDetailPage /></RequireAuth>} />
     {import.meta.env.DEV && <Route path="/preview/chat-b" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatBPreviewPage /></RequireAuth>} />}

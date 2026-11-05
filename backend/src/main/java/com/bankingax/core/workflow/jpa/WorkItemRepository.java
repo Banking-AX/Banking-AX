@@ -12,6 +12,15 @@ import org.springframework.data.repository.query.Param;
 interface WorkItemRepository extends JpaRepository<WorkItemEntity, Long> {
     Optional<WorkItemEntity> findByRequestId(String requestId);
 
+    @Query(value = "select wi.* from work_item wi join workflow wf on wf.id=wi.workflow_id "
+            + "where wf.customer_id=:customerId and wf.chat_room_id=:chatRoomId "
+            + "and wi.task_code=:taskCode and wi.status in ('ACTIVE','ON_HOLD') "
+            + "order by wi.id desc limit 1", nativeQuery = true)
+    Optional<WorkItemEntity> findLatestLinkedUnfinished(
+            @Param("customerId") long customerId,
+            @Param("chatRoomId") long chatRoomId,
+            @Param("taskCode") String taskCode);
+
     @Query("select w.workflowId from WorkItemEntity w where w.id = :id")
     Optional<Long> findWorkflowIdById(@Param("id") long id);
 

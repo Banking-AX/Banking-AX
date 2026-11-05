@@ -156,6 +156,36 @@ class B01EligibilityMySqlIT {
         assertThat(jdbc.queryForObject("select version from loan where id=?", Integer.class, loanId)).isZero();
     }
 
+    @Test
+    void combinesTextAndFailClosedImageChecksWithoutEnablingAutomaticExecution() throws Exception {
+        long loanId = loanId("MOCK-B01-T01");
+        LoanFixture loan = loan("MOCK-B01-T01");
+        B01OcrPort.VisualChecks matched = visual("ALIGNED", "CHECKED", "UNCHECKED",
+                "PRINCIPAL_FIRST", "TRACE_PRESENT", false, null);
+        storeExtractionWithVisual(loan, matched);
+        var success = service.validate(1, 100, loanId, "PRINCIPAL_FIRST");
+        assertThat(success.ocr().matched()).isTrue();
+        assertThat(success.image().matched()).isTrue();
+        assertThat(success.image().status()).isEqualTo(B01EligibilityService.ImageStatus.MATCHED);
+        assertThat(success.automaticProcessingAllowed()).isFalse();
+
+        assertImageFailure(loan, visual("ALIGNED", "UNCHECKED", "UNCHECKED", "NONE",
+                "TRACE_PRESENT", false, null), B01EligibilityService.ImageMismatchCode.CHECKBOX_NOT_SELECTED);
+        assertImageFailure(loan, visual("ALIGNED", "CHECKED", "CHECKED", "MULTIPLE",
+                "TRACE_PRESENT", false, null), B01EligibilityService.ImageMismatchCode.MULTIPLE_CHECKBOXES);
+        assertImageFailure(loan, visual("ALIGNED", "UNCERTAIN", "UNCHECKED", "UNCERTAIN",
+                "TRACE_PRESENT", true, null), B01EligibilityService.ImageMismatchCode.IMAGE_ANALYSIS_UNCERTAIN);
+        assertImageFailure(loan, visual("ALIGNED", "UNCHECKED", "CHECKED", "INTEREST_FIRST",
+                "TRACE_PRESENT", false, null), B01EligibilityService.ImageMismatchCode.REQUESTED_ORDER_MISMATCH);
+        assertImageFailure(loan, visual("ALIGNED", "CHECKED", "UNCHECKED", "PRINCIPAL_FIRST",
+                "TRACE_ABSENT", false, null), B01EligibilityService.ImageMismatchCode.DEBTOR_SIGNATURE_TRACE_NOT_FOUND);
+        assertImageFailure(loan, visual("ALIGNMENT_FAILED", "UNCERTAIN", "UNCERTAIN", "UNCERTAIN",
+                "UNCERTAIN", true, null), B01EligibilityService.ImageMismatchCode.ALIGNMENT_FAILED);
+        assertImageFailure(loan, visual("ALIGNMENT_FAILED", "UNCERTAIN", "UNCERTAIN", "UNCERTAIN",
+                "UNCERTAIN", true, "IMAGE_ANALYSIS_TIMEOUT"),
+                B01EligibilityService.ImageMismatchCode.IMAGE_ANALYSIS_UNAVAILABLE);
+    }
+
     private void assertResult(String loanNo, String requested, B01EligibilityService.RuleCode expected,
                               boolean confirmation) throws Exception {
         resetDocument();
@@ -181,6 +211,17 @@ class B01EligibilityMySqlIT {
     }
 
     private void storeExtraction(List<B01OcrPort.LoanField> loans, String requested, String status) throws Exception {
+        storeExtraction(loans, requested, status, null);
+    }
+
+    private void storeExtractionWithVisual(LoanFixture loan, B01OcrPort.VisualChecks visual) throws Exception {
+        resetDocument();
+        storeExtraction(List.of(new B01OcrPort.LoanField(loan.loanNo(), loan.balance(), loan.accelerationDate())),
+                null, "SUCCEEDED", visual);
+    }
+
+    private void storeExtraction(List<B01OcrPort.LoanField> loans, String requested, String status,
+                                 B01OcrPort.VisualChecks visual) throws Exception {
         jdbc.update("insert into required_document(id,work_item_id,document_type_code,requirement,status) "
                 + "values(800,100,'B01_REPAYMENT_ORDER_APPLICATION','REQUIRED','UPLOADED')");
         jdbc.update("""
@@ -193,10 +234,26 @@ class B01EligibilityMySqlIT {
                 "B01_REPAYMENT_ORDER_APPLICATION", "MOCK", status,
                 new B01OcrPort.Fields(loans, requested),
                 new B01OcrPort.SignatureChecks("NOT_VERIFIED", "NOT_VERIFIED"), false, true,
-                "SUCCEEDED".equals(status) ? null : "MOCK_FIXTURE_NOT_REGISTERED");
+                "SUCCEEDED".equals(status) ? null : "MOCK_FIXTURE_NOT_REGISTERED", visual);
         jdbc.update("insert into document_extraction(document_file_id,case_id,revision,method,status,extracted,failure_reason) "
                         + "values(900,null,null,'MOCK',?,cast(? as json),?)",
                 status, json.writeValueAsString(result), result.failureReason());
+    }
+
+    private void assertImageFailure(LoanFixture loan, B01OcrPort.VisualChecks visual,
+                                    B01EligibilityService.ImageMismatchCode mismatch) throws Exception {
+        storeExtractionWithVisual(loan, visual);
+        var result = service.validate(1, 100, loanId(loan.loanNo()), "PRINCIPAL_FIRST");
+        assertThat(result.ocr().matched()).isTrue();
+        assertThat(result.image().matched()).isFalse();
+        assertThat(result.image().mismatchCodes()).contains(mismatch);
+        assertThat(result.automaticProcessingAllowed()).isFalse();
+    }
+
+    private static B01OcrPort.VisualChecks visual(String alignment, String first, String second,
+            String order, String signature, boolean uncertain, String failure) {
+        return new B01OcrPort.VisualChecks(alignment, first, second, order, signature,
+                uncertain, true, failure);
     }
 
     private void resetDocument() {

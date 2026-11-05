@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,15 +21,43 @@ import org.springframework.web.multipart.MultipartFile;
 public class B01CustomerBffController {
     private final TaskBffPrincipal principals;
     private final B01DocumentService documents;
-    private final B01EligibilityService eligibility;
+    private final B01ProgressService progress;
     private final B01VerificationService verification;
+    private final B01LoanListService loans;
 
     B01CustomerBffController(TaskBffPrincipal principals, B01DocumentService documents,
-                             B01EligibilityService eligibility, B01VerificationService verification) {
+                             B01ProgressService progress, B01VerificationService verification,
+                             B01LoanListService loans) {
         this.principals = principals;
         this.documents = documents;
-        this.eligibility = eligibility;
+        this.progress = progress;
         this.verification = verification;
+        this.loans = loans;
+    }
+
+    @GetMapping("/work-items/{workItemId}/loans")
+    public ApiEnvelope<java.util.List<B01LoanListService.LoanListItem>> loans(
+            JwtAuthenticationToken authentication, @PathVariable long workItemId) {
+        long customerId = customer(authentication);
+        return ApiEnvelope.success(null, "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
+                loans.findOwnedLoans(customerId, workItemId));
+    }
+
+    @GetMapping("/work-items/{workItemId}/context")
+    public ApiEnvelope<B01ProgressService.ProgressContext> context(
+            JwtAuthenticationToken authentication, @PathVariable long workItemId) {
+        long customerId = customer(authentication);
+        return ApiEnvelope.success(null, "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
+                progress.context(customerId, workItemId));
+    }
+
+    @PutMapping(value = "/work-items/{workItemId}/context", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiEnvelope<B01ProgressService.ProgressContext> saveContext(
+            JwtAuthenticationToken authentication, @PathVariable long workItemId,
+            @RequestBody B01ProgressService.SelectionCommand body) {
+        long customerId = customer(authentication);
+        return ApiEnvelope.success(body.requestId(), "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
+                progress.saveSelection(customerId, workItemId, body));
     }
 
     @PostMapping(value = "/work-items/{workItemId}/documents/application",
@@ -38,11 +67,11 @@ public class B01CustomerBffController {
             @RequestPart("file") MultipartFile file) {
         if (!"CUSTOMER".equals(authentication.getToken().getClaimAsString("role")))
             throw new DomainException("FORBIDDEN", "Only an authenticated customer can upload a B-01 document.");
-        if (requestId == null || requestId.isBlank() || requestId.length() > 90)
-            throw new DomainException("INVALID_REQUEST_ID", "A requestId of at most 90 characters is required.");
+        if (requestId == null || requestId.isBlank() || requestId.length() > 64)
+            throw new DomainException("INVALID_REQUEST_ID", "A requestId of at most 64 characters is required.");
         long customerId = principals.customer(authentication);
         return ApiEnvelope.success(requestId, "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
-                documents.upload(customerId, workItemId, file));
+                documents.upload(customerId, workItemId, requestId, file));
     }
 
     @PostMapping(value = "/work-items/{workItemId}/eligibility", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -54,7 +83,7 @@ public class B01CustomerBffController {
             throw new DomainException("INVALID_REQUEST_ID", "A requestId of at most 90 characters is required.");
         long customerId = principals.customer(authentication);
         return ApiEnvelope.success(body.requestId(), "REPAYMENT_ORDER_CHANGE", workItemId, null, null,
-                eligibility.validate(customerId, workItemId, body.loanId(), body.requestedRepaymentOrder()));
+                progress.validateAndSave(customerId, workItemId, body.loanId(), body.requestedRepaymentOrder()));
     }
 
     public record ValidateRequest(String requestId, long loanId, String requestedRepaymentOrder) { }

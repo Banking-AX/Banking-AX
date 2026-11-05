@@ -8,10 +8,12 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /** Resolves reviewed synthetic fixtures by SHA-256; filenames and client fields are never trusted. */
 @Component
+@ConditionalOnProperty(name = "app.b01.ocr-provider", havingValue = "mock", matchIfMissing = true)
 final class B01MockOcrAdapter implements B01OcrPort {
     static final String DOCUMENT_TYPE = "B01_REPAYMENT_ORDER_APPLICATION";
     private final Map<String, Fields> fixtures;
@@ -31,9 +33,14 @@ final class B01MockOcrAdapter implements B01OcrPort {
                     new Fields(List.of(), null), signatures, false, true,
                     "MOCK_FIXTURE_NOT_REGISTERED");
         }
+        VisualChecks visual = new VisualChecks("ALIGNED", "CHECKED", "UNCHECKED",
+                "PRINCIPAL_FIRST", "TRACE_PRESENT", false, true, null);
         return new OcrResult(DOCUMENT_TYPE, DOCUMENT_TYPE, "MOCK", "SUCCEEDED", fields,
-                signatures, false, true, null);
+                signatures, false, true, null, visual);
     }
+
+    @Override
+    public String method() { return "MOCK"; }
 
     private static String checksum(String classpathLocation) {
         try (InputStream input = new ClassPathResource(classpathLocation).getInputStream()) {

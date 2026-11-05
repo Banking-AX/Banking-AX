@@ -8,7 +8,8 @@ import org.springframework.context.annotation.Profile;
 @Profile("!production")
 @ConditionalOnProperty(name = "app.sms.provider", havingValue = "mock", matchIfMissing = true)
 final class B01MockSmsSender implements B01SmsSender {
-    @Override public void send(String phone, String text) {
+    @Override public SendReceipt send(String phone, String text) {
         // Intentionally no logging: the message contains an OTP. Tests use a dedicated sender bean.
+        return SendReceipt.accepted("MOCK");
     }
 }

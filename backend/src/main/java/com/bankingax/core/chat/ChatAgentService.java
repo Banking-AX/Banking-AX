@@ -6,6 +6,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,10 +17,12 @@ public class ChatAgentService {
 
     private final ChatService chats;
     private final CustomerAgentClient agent;
+    private final ObjectMapper json;
 
-    public ChatAgentService(ChatService chats, CustomerAgentClient agent) {
+    public ChatAgentService(ChatService chats, CustomerAgentClient agent, ObjectMapper json) {
         this.chats = chats;
         this.agent = agent;
+        this.json = json;
     }
 
     public AgentRunView run(
@@ -39,13 +44,26 @@ public class ChatAgentService {
         ChatService.ChatMessageView agentMessage = null;
         if (result.answer() != null && !result.answer().isBlank()) {
             agentMessage = chats.saveAgentMessage(
-                    customerId, chatRoomId, agentMessageRequestId(operationRequestId), result.answer(), null);
+                    customerId, chatRoomId, agentMessageRequestId(operationRequestId), result.answer(),
+                    actionMetadata(result));
         }
         boolean completed = result.executionStatus() != null
                 && "DONE".equals(result.executionStatus().workItemStatus())
                 && "COMPLETED".equals(result.executionStatus().workflowStatus());
         return new AgentRunView(
                 customerMessage, agentMessage, result, completed, agentMessage != null);
+    }
+
+    private String actionMetadata(CustomerAgentClient.AgentResponse result) {
+        if (result.taskAction() == null || result.taskAction().isNull()) {
+            return null;
+        }
+        try {
+            return json.writeValueAsString(Map.of("taskAction", result.taskAction()));
+        } catch (JsonProcessingException exception) {
+            throw new DomainException(
+                    "CUSTOMER_AGENT_INVALID_RESPONSE", "Customer Agent action could not be stored.");
+        }
     }
 
     private static List<String> recentMessages(

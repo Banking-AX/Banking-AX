@@ -36,15 +36,29 @@ export function replyText(reply: ChatReply): string {
     case 'unsupported': return reply.reason
     case 'composite': return reply.answer ?? '한 번에 한 가지 업무만 도와드릴 수 있어요. 하나씩 말씀해 주세요.'
     case 'notStartable': return reply.answer ?? '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
+    case 'taskAction': return reply.answer
     case 'loans': return reply.answer
   }
 }
 
-export function ChatReplyView({ reply, time }: { reply: ChatReply; time: string }) {
+export function ChatReplyView({ reply, time, onTaskAction, actionPending = false }: {
+  reply: ChatReply
+  time: string
+  onTaskAction?: () => void
+  actionPending?: boolean
+}) {
   if (reply.kind === 'loans' && reply.loans.length > 0) {
     return <BotMessage label={replyLabel(reply)} time={time} wide note="조회만 했어요.">
       <div className="chat-loan-summary">{reply.answer}</div>
       <LoanTable loans={reply.loans} />
+    </BotMessage>
+  }
+  if (reply.kind === 'taskAction') {
+    return <BotMessage label={replyLabel(reply)} time={time}>
+      <p>{reply.answer}</p>
+      <button type="button" className="chat-error__retry" disabled={actionPending} onClick={onTaskAction}>
+        {actionPending ? '신청 화면을 준비하고 있어요' : reply.action.label}
+      </button>
     </BotMessage>
   }
   return <BotMessage label={replyLabel(reply)} time={time}>{replyText(reply)}</BotMessage>

@@ -31,13 +31,14 @@ public class B01EligibilityService {
         RuleCode ruleCode = rule(loan, requested);
         OcrEvaluation evaluation = checkOcr(queries.latestExtraction(workItemId).orElse(null), loan, requested);
         OcrCheck ocr = evaluation.check();
+        ImageCheck image = checkImage(evaluation.result(), requested);
         VerificationState verification = verification(evaluation.result(), loan.thirdPartyProvider());
         boolean eligible = ruleCode == RuleCode.ELIGIBLE;
-        boolean automaticProcessingAllowed = eligible && ocr.matched()
+        boolean automaticProcessingAllowed = eligible && ocr.matched() && image.matched()
                 && verification.signaturesVerified() && verification.authenticityVerified()
                 && !verification.manualVerificationRequired();
         return new ValidationResult(workItemId, loan.id(), requested.name(), ruleCode, eligible,
-                loan.thirdPartyProvider(), loan.thirdPartyProvider(), ocr, verification,
+                loan.thirdPartyProvider(), loan.thirdPartyProvider(), ocr, image, verification,
                 automaticProcessingAllowed, "NOT_AVAILABLE_IN_SCHEMA");
     }
 
@@ -66,10 +67,40 @@ public class B01EligibilityService {
             if (!java.util.Objects.equals(loan.accelerationDate(), field.accelerationDate()))
                 mismatches.add(MismatchCode.ACCELERATION_DATE_MISMATCH);
         }
-        if (result.fields() == null || !requested.name().equals(result.fields().requestedRepaymentOrder()))
+        if (result.visualChecks() == null
+                && (result.fields() == null || !requested.name().equals(result.fields().requestedRepaymentOrder())))
             mismatches.add(MismatchCode.REQUESTED_ORDER_MISMATCH);
         return new OcrEvaluation(new OcrCheck(mismatches.isEmpty(), List.copyOf(mismatches),
                 extraction.documentFileId()), result);
+    }
+
+    private static ImageCheck checkImage(B01OcrPort.OcrResult result, RequestedOrder requested) {
+        if (result == null || result.visualChecks() == null)
+            return new ImageCheck(false, ImageStatus.NOT_AVAILABLE,
+                    List.of(ImageMismatchCode.IMAGE_ANALYSIS_NOT_AVAILABLE));
+        B01OcrPort.VisualChecks checks = result.visualChecks();
+        List<ImageMismatchCode> mismatches = new ArrayList<>();
+        if (checks.failureReason() != null) mismatches.add(ImageMismatchCode.IMAGE_ANALYSIS_UNAVAILABLE);
+        if (!"ALIGNED".equals(checks.alignmentStatus())) mismatches.add(ImageMismatchCode.ALIGNMENT_FAILED);
+        if (checks.uncertain() || "UNCERTAIN".equals(checks.firstBox())
+                || "UNCERTAIN".equals(checks.secondBox())
+                || "UNCERTAIN".equals(checks.selectedOrder()))
+            mismatches.add(ImageMismatchCode.IMAGE_ANALYSIS_UNCERTAIN);
+        boolean first = "CHECKED".equals(checks.firstBox());
+        boolean second = "CHECKED".equals(checks.secondBox());
+        if (first == second) mismatches.add(first ? ImageMismatchCode.MULTIPLE_CHECKBOXES
+                : ImageMismatchCode.CHECKBOX_NOT_SELECTED);
+        if (!requested.name().equals(checks.selectedOrder()))
+            mismatches.add(ImageMismatchCode.REQUESTED_ORDER_MISMATCH);
+        if (!"TRACE_PRESENT".equals(checks.debtorSignatureTrace()))
+            mismatches.add(ImageMismatchCode.DEBTOR_SIGNATURE_TRACE_NOT_FOUND);
+        List<ImageMismatchCode> distinct = mismatches.stream().distinct().toList();
+        ImageStatus status = distinct.isEmpty() ? ImageStatus.MATCHED
+                : distinct.contains(ImageMismatchCode.IMAGE_ANALYSIS_UNAVAILABLE)
+                ? ImageStatus.UNAVAILABLE
+                : distinct.contains(ImageMismatchCode.IMAGE_ANALYSIS_UNCERTAIN)
+                ? ImageStatus.UNCERTAIN : ImageStatus.REQUIRES_RESUBMISSION;
+        return new ImageCheck(distinct.isEmpty(), status, distinct);
     }
 
     private static VerificationState verification(B01OcrPort.OcrResult result, boolean thirdPartyProvider) {
@@ -112,14 +143,20 @@ public class B01EligibilityService {
     public enum MismatchCode { OCR_NOT_AVAILABLE, OCR_NOT_SUCCEEDED, OCR_RESULT_INVALID,
         OCR_LOAN_COUNT_INVALID, ACCOUNT_NUMBER_MISMATCH, BALANCE_MISMATCH,
         ACCELERATION_DATE_MISMATCH, REQUESTED_ORDER_MISMATCH }
+    public enum ImageStatus { MATCHED, REQUIRES_RESUBMISSION, UNCERTAIN, UNAVAILABLE, NOT_AVAILABLE }
+    public enum ImageMismatchCode { IMAGE_ANALYSIS_NOT_AVAILABLE, IMAGE_ANALYSIS_UNAVAILABLE,
+        ALIGNMENT_FAILED, IMAGE_ANALYSIS_UNCERTAIN, CHECKBOX_NOT_SELECTED, MULTIPLE_CHECKBOXES,
+        REQUESTED_ORDER_MISMATCH, DEBTOR_SIGNATURE_TRACE_NOT_FOUND }
 
     public record OcrCheck(boolean matched, List<MismatchCode> mismatchCodes, Long documentFileId) { }
+    public record ImageCheck(boolean matched, ImageStatus status,
+                             List<ImageMismatchCode> mismatchCodes) { }
     public record VerificationState(boolean signaturesVerified, boolean authenticityVerified,
                                     boolean manualVerificationRequired) { }
     public record ValidationResult(long workItemId, long loanId, String requestedRepaymentOrder,
                                    RuleCode ruleCode, boolean loanRuleEligible,
                                    boolean thirdPartyProvider, boolean additionalConfirmationRequired,
-                                   OcrCheck ocr, VerificationState verification,
+                                   OcrCheck ocr, ImageCheck image, VerificationState verification,
                                    boolean automaticProcessingAllowed,
                                    String householdLoanClassification) { }
     private record OcrEvaluation(OcrCheck check, B01OcrPort.OcrResult result) { }
