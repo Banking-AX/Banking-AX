@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import type { AuthRole } from '../api/auth'
+import { homeFor } from './roleHome'
 
 export function RequireAuth({ from, roles, children }:
   { from?: 'chat'; roles?: AuthRole[]; children: ReactNode }) {
@@ -13,6 +14,6 @@ export function RequireAuth({ from, roles, children }:
     const returnTo = encodeURIComponent(`${location.pathname}${location.search}`)
     return <Navigate to={`/login?${from ? `from=${from}&` : ''}returnTo=${returnTo}`} replace />
   }
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/" replace />
+  if (roles && user && !roles.includes(user.role)) return <Navigate to={homeFor(user.role)} replace />
   return <>{children}</>
 }

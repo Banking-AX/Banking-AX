@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>전체 화면 구조 v1.7</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"><style>body{margin:0}</style></head><body><div id="root">
+
+<div style="width: 1440px; min-height: 2400px; box-sizing: border-box; padding: 64px 72px 80px; background: #FFFFFF; color: #2B2B2B; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 14px; font-weight: 700; color: #1F5AA6">Banking AX Workflow Agent · 기능명세서 v1.7.1 기준</span>
+<h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -1px">전체 화면 구조</h1>
+<p style="margin: 0; max-width: 980px; font-size: 17px; line-height: 1.7; color: #4B5563">고객 화면 13개 영역과 직원 화면 7개 영역으로 나눴어요. 각 영역의 보드 이름과 관련 기능 ID를 함께 적었어요. 상태 변형(wrapper) 보드는 같은 컴포넌트에 상태값만 바꿔 넣은 화면이에요.</p>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">핵심 흐름</h2>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid #E5E7EB; border-radius: 12px">
+<strong style="font-size: 16px">김민준 · 복합 요청 A-01 → B-01 → C-01 (10.20)</strong>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+<span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">채팅 3개 업무 요청</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">A-01 거래내역 결과</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">CHAT-16 다음 업무 질문 [예]</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">B-01 전용 페이지 · 유의사항 확인</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">신청서 서명 · SMS 인증</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #E6F4EC; color: #1B6B42; font-size: 13px; font-weight: 500">B-01 완료 · 이메일</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">C-01 접수 페이지</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">요청서·동의서 서명 · SMS 인증</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #E6F4EC; color: #1B6B42; font-size: 13px; font-weight: 500">접수 완료 · 검토 전 취소 가능</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid #E5E7EB; border-radius: 12px">
+<strong style="font-size: 16px">C-01 사전점검 → 직원 결과</strong>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+<span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">AI 점검 · 소득 불일치 후보</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">고객 추가 확인 답변</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">재점검 READY_FOR_STAFF</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #FFF4E5; color: #7A3B0B; font-size: 13px; font-weight: 500">직원 [검토 시작] IN_REVIEW</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #FFF4E5; color: #7A3B0B; font-size: 13px; font-weight: 500">서류 확인 완료/보완 필요</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #FFF4E5; color: #7A3B0B; font-size: 13px; font-weight: 500">결과 등록 진행 가능</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #E6F4EC; color: #1B6B42; font-size: 13px; font-weight: 500">웹 알림·이메일 · 비대면</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid #E5E7EB; border-radius: 12px">
+<strong style="font-size: 16px">이서연 · C-02 상속예금 → 방문 예약</strong>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+<span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">C-02 사전접수 (“형은 해외” ↔ 전원 방문)</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">신청인 서명 · SMS 인증</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">확인 질문 미응답 → 잠정 불참</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #FFF4E5; color: #7A3B0B; font-size: 13px; font-weight: 500">직원 검토 · 진행 가능 + 준비물</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">지점·날짜·시간 선택 SELECTED</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">슬롯 확보 PENDING_ASSIGNMENT</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #1E3A5F; color: #FFFFFF; font-size: 13px; font-weight: 500">업무코드·업무량 추천 → Spring 재검증</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #E6F4EC; color: #1B6B42; font-size: 13px; font-weight: 500">CONFIRMED · 24시간 전까지 변경</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border: 1px solid #E5E7EB; border-radius: 12px">
+<strong style="font-size: 16px">보류·초기화·끼어들기</strong>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+<span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">CHAT-17 진행 중 다른 업무 요청</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">[보류하고 다음 업무로] / [계속 진행]</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">ON_HOLD · 3일 뒤 미제출 입력 초기화</span><span aria-hidden="true" style="color: #9CA3AF">→</span><span style="padding: 5px 10px; border-radius: 8px; background: #EEF6FE; color: #1F5AA6; font-size: 13px; font-weight: 500">채팅방 재진입 이어하기</span>
+</div>
+</div>
+
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #2E70C3"></span><h2 style="margin: 0; font-size: 24px; font-weight: 700">고객 화면</h2></div>
+<ol style="margin: 0; padding: 0; list-style: none; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden">
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">개인뱅킹 메인 · 공통 헤더</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">AUTH-04 · NOTI-04/11</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">로그인 여부별 헤더, 업무 요청 기록 메뉴, 알림 배지(0건 숨김·99+).</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">Main · SiteHeader</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">로그인</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">AUTH-01~05</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">사전 등록 계정만 · 찾기/가입 미제공 · 채팅에서 진입 · 인증 만료 안내.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">Login · LoginError · LoginFromChat · LoginExpired</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">AI 채팅</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">CHAT-01~21 · RAG-04</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">6개 업무 카드, 응답 중 입력 잠금, RAG 출처, 미지원·근거 없음·오류 재시도.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">ChatModal · ChatSystem · ChatExpanded</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">복합 요청·다음 업무·끼어들기</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">CHAT-16/17 · FLOW</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">다음 업무 자동 실행 금지, [예][다른 업무 선택][나중에 하기], 고정 문장 보류 안내.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">ChatMulti · ChatConsent · ChatBReturn</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">C 정보 수집·접수 완료 대화</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">C-01-01 · C-02-01 · CHAT-07</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">C-01 사유·서류 안내, C-02 진술 수집, 접수 완료 후 다음 안내.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">ChatCollect · ChatInherit · ChatDone · ChatDoneC02</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">B-01 충당순서 변경 페이지</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">B-01-01~12</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">대출별 규칙 결과·근거, 연대보증 주의, 유의사항 4항목 확인 후 처리.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">B01Page</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">B-02 청약통장 해지 페이지</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">B-02-01~12 · B2-R1~R6</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">이율 선택, 과세증명서(OCR 미적용), 우대 포기 동의, B2-R5 영업점 상담 종료.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">B02Page</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">C-01 채무조정 접수 · C-02 상속예금 사전접수</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">C-01-01~12 · C-02-01~12 · DOC</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">N/M 진행, 형식 오류, 임시저장, 상속인별 방문 방식·제출자별 서류.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">Upload · UploadReapply · C02Page</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">모의 서명 · SMS 인증</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">SIGN-01~03 · SMS-01~09 · SYS-23/24</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">B 실행·C 최초 제출 직전: 문서 확인 → 모의 서명(서버 저장 없음) → SOLAPI 인증번호(서버 검증·3분·5회·60초) → 완료. 서버가 인증 없이 실행·제출 거부.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">ESignC01(+3) · ESignB01 · ESignB02 · ESignB02Base · ESignC02</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">접수 완료 모달</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">C-COM · REQ-19</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">모의 접수 안내, 검토 전 취소 가능, 제출 시 예약 없음.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">UploadDone · UploadDoneC02</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">업무 요청 기록 목록·상세</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">REQ-01~19</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">[진행 중/검토 중/완료/종료] 탭, A 포함, C 상세 타임라인·추가 확인 응답·취소·결과 원문.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">MyWork · MyWorkReview · Detail(+5) · BDetail · BDetailManual</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">방문 예약·상세·변경</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">VISIT-01~13 · REQ-17/18</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">진행 가능 이후에만 예약, 배정 대기/확정/수동 배정/24시간 잠금/취소.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">VisitDetail(+4) · VisitBook · VisitBookChange</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">알림 페이지</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">NOTI-03~06 · 11~23</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">[전체/읽지 않음], 모두 읽음, 더보기, 빈 상태, 열 수 없는 Case 안내.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">NotifyPanel · NotifySeoyeon · NotifyEmpty</span>
+</li>
+
+</ol>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #1E3A5F"></span><h2 style="margin: 0; font-size: 24px; font-weight: 700">직원 화면</h2></div>
+<ol style="margin: 0; padding: 0; list-style: none; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden">
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">직원 로그인</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">AUTH-01/04</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">직원 전용 · 고객 계정 차단.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffLogin · StaffLoginError</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">공통 상단바·사이드바</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">VISIT-11</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">대시보드 / 사전검토 업무함 / 소속 지점 예약 업무함 분리.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffTopbar · StaffSidebar</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">대시보드</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-01/15 · VISIT-09</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">처리 상태·AI 점검 상태 분리 집계, 플래그, 우선 확인, 지점 예약 요약, 캘린더.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffDashboard</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">사전검토 업무함</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-01/11/15 · SYS-22</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">예약 전 Case · 처리/AI 상태·확인 항목·C-01 경과 영업일·고객 취소.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffList</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">Case 상세 · AI 사전점검 결과서</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-02~05/13/14/17~22 · HIST-11</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">[검토 시작], 직원 확인 항목, 5분류 결과서(근거·버전·규칙), 추가 확인 이력, 진술 스냅샷.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffDetail · StaffDetail003</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">제출서류 확인</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-06/14 · DOC-14~22</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">공식 양식 파서 추출값 대조 vs OCR 미적용 원문 확인, 확인 완료/보완 필요.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffReview · StaffReview002</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">검토 결과 등록</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-07/08/10/12/16/20</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">진행 가능/요건 미충족/서류 부족, 의견 초안, 조정 내용·방문 준비물, 고객 안내 미리보기.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffFinal · StaffFinal002</span>
+</li>
+
+<li style="display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-bottom: 1px solid #E5E7EB">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><strong style="font-size: 16px">지점 예약 업무함</strong><span style="font-size: 12px; color: #1F5AA6; font-family: ui-monospace, Menlo, monospace">STAFF-09 · VISIT-06~14</span></div>
+<span style="font-size: 13px; line-height: 1.6; color: #4B5563">예약 상태별 목록, AI 추천(업무코드·업무량), Spring 재검증, 수동 배정·만료, 감사 이력.</span>
+<span style="font-size: 12px; color: #6B7280; font-family: ui-monospace, Menlo, monospace">StaffBranch</span>
+</li>
+
+</ol>
+</div>
+
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 24px; font-weight: 700">시연 데이터 기준</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+
+<div style="padding: 16px 18px; border-radius: 12px; background: #F6F8FB; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 15px">김민준 (C-01 · B-01 · B-02)</strong><span style="font-size: 13px; line-height: 1.7; color: #374151; white-space: pre-line">C-20261020-003 접수 10.20 15:40
+추가 확인 16:10 → 답변 16:25
+검토 시작 10.21 09:40 → 진행 가능 11:05
+이전 C-20260912-014 서류 부족
+B-02 보류 · 10.24 09:20 초기화 예정</span></div>
+
+<div style="padding: 16px 18px; border-radius: 12px; background: #F6F8FB; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 15px">이서연 (C-02)</strong><span style="font-size: 13px; line-height: 1.7; color: #374151; white-space: pre-line">C-20261020-002 접수 10.20 10:42
+피상속인 이정호 · 예금 합계 6,800,000원
+이도현 잠정 불참 · 검토 09:30 → 진행 가능 10:20
+여의도지점 10.23(금) 14:00 · 박하준
+변경 기한 10.22(목) 14:00</span></div>
+
+<div style="padding: 16px 18px; border-radius: 12px; background: #F6F8FB; display: flex; flex-direction: column; gap: 6px"><strong style="font-size: 15px">직원·지점</strong><span style="font-size: 13px; line-height: 1.7; color: #374151; white-space: pre-line">김신한 사전검토 담당 · 여의도지점
+지점 직원: 박하준(C-02), 최유나(C-01·C-02),
+윤지호(C-01), 정다은(C-02)
+수동 배정 예시: 오지환 10.23 10:00
+OCR 실패 예시: 정하늘 C-20261021-003</span></div>
+
+</div>
+<p style="margin: 0; font-size: 13px; color: #6B7280">모든 이름·계좌·금액·서류·영업점은 가상 데이터예요. 은행명은 가상의 ‘AX뱅크’를 써요. 명세서의 ‘신한은행 공식 양식’은 화면에서 ‘AX뱅크 공식 양식’으로 표기했어요.</p>
+</section>
+
+</div>
+</div></body></html>

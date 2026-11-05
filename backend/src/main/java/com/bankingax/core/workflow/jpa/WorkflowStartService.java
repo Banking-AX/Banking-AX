@@ -38,7 +38,7 @@ public class WorkflowStartService {
         }
 
         try {
-            return Objects.requireNonNull(transactions.execute(status -> createAndStart(command)));
+            return Objects.requireNonNull(transactions.execute(status -> resumeOrCreate(command)));
         } catch (DomainException exception) {
             if (!"DUPLICATE_REQUEST_CONFLICT".equals(exception.code())) {
                 throw exception;
@@ -51,7 +51,16 @@ public class WorkflowStartService {
         }
     }
 
-    private StartResult createAndStart(StartCommand command) {
+    private StartResult resumeOrCreate(StartCommand command) {
+        // Locking the customer row serializes distinct requestIds from rapid
+        // repeated card clicks before looking up an ACTIVE item.
+        workflowRepository.lockActiveCustomerById(command.customerId())
+                .orElseThrow(() -> new DomainException("FORBIDDEN", "Customer is not active."));
+        var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
+                command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
+        if (!active.isEmpty()) {
+            return result(active.get(0));
+        }
         WorkflowService.WorkflowView workflow = workflows.create(
                 new WorkflowService.CreateWorkflowCommand(command.customerId(), command.chatRoomId()));
         WorkItemView workItem = tasks.start(new StartTaskCommand(
@@ -77,6 +86,10 @@ public class WorkflowStartService {
 
     private static StartResult result(WorkItemView workItem) {
         return new StartResult(workItem.workflowId(), workItem.workItemId(), workItem.taskCode(), workItem.status());
+    }
+
+    private static StartResult result(WorkItemEntity item) {
+        return new StartResult(item.workflowId, item.id, item.taskCode, item.status);
     }
 
     private static void validate(StartCommand command) {

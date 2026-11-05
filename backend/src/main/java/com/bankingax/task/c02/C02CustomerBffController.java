@@ -43,6 +43,11 @@ public class C02CustomerBffController {
                 new C02Controller.PrepareBody(customerId, body.workItemId(), body.requestId(), body.registeredPhone(),
                         body.decedent(), body.heirs(), body.documentStatuses()));
     }
+    @GetMapping("/work-items/{workItemId}/resume")
+    public ApiEnvelope<C02IntakeService.Prepared> resume(JwtAuthenticationToken authentication,@PathVariable long workItemId,@RequestParam String requestId) {
+        long customerId=principals.customer(authentication);
+        return internal.resume(workItemId,customerId,ActorRole.CUSTOMER,gatewayToken,customerId,requestId);
+    }
 
     @PostMapping("/{caseId}/consent")
     public ApiEnvelope<C02IntakeService.C02Draft> consent(JwtAuthenticationToken authentication,
@@ -91,11 +96,25 @@ public class C02CustomerBffController {
         return internal.documents(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
 
+    @GetMapping("/{caseId}/ocr")
+    public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication, @PathVariable long caseId,
+            @RequestParam int revision, @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.customerOcr(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, revision, requestId);
+    }
+
     @GetMapping("/{caseId}/review")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> review(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {
         long customerId = principals.customer(authentication);
         return internal.customerReview(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
+    }
+
+    @GetMapping("/{caseId}/snapshot")
+    public ApiEnvelope<C02IntakeService.CustomerCaseSnapshot> snapshot(JwtAuthenticationToken authentication, @PathVariable long caseId,
+            @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.customerSnapshot(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
 
     public record Prepare(long workItemId, String requestId, String registeredPhone,

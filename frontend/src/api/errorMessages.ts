@@ -10,7 +10,7 @@ const MESSAGES: Record<string, string> = {
   // Auth (contract agreed ahead of the backend implementation)
   AUTH_INVALID_CREDENTIALS: '아이디 또는 비밀번호를 다시 확인해 주세요.',
   AUTH_EXPIRED: '로그인 시간이 만료되어 자동으로 로그아웃되었어요.',
-  AUTH_REQUIRED: '로그인이 필요해요.',
+  AUTH_REQUIRED: '로그인 정보가 확인되지 않습니다. 다시 로그인해 주세요.',
   AUTH_REFRESH_INVALID: '로그인 시간이 만료되어 다시 로그인해야 해요.',
   AUTH_CSRF_MISSING: '인증 보호 정보를 확인할 수 없어요. 다시 로그인해 주세요.',
   AUTH_FORBIDDEN: '이 화면에 접근할 권한이 없어요.',
@@ -79,7 +79,7 @@ const MESSAGES: Record<string, string> = {
 
   // Documents
   REQUIRED_DOCUMENT_MISSING: '필수 서류가 아직 제출되지 않았어요.',
-  DOCUMENT_NOT_FOUND: '서류를 찾을 수 없어요.',
+  DOCUMENT_NOT_FOUND: '원본 파일을 확인할 수 없습니다. 고객에게 다시 제출을 요청하거나 문서 기록을 확인해 주세요.',
   DOCUMENT_SLOT_UNKNOWN: '제출할 서류 항목을 확인할 수 없어요.',
   DOCUMENT_SLOT_AMBIGUOUS: '제출할 서류 항목을 확인할 수 없어요.',
   DOCUMENT_TYPE_UNAVAILABLE: '제출할 수 없는 서류 종류예요.',
@@ -90,9 +90,9 @@ const MESSAGES: Record<string, string> = {
   INVALID_DOCUMENT_STATUS: '서류 상태를 확인할 수 없어요. 화면을 새로고침해 주세요.',
   INVALID_DOCUMENT_METADATA: '서류 정보를 다시 확인해 주세요.',
   DOCUMENT_STORAGE_FAILED: '서류를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
-  DOCUMENT_STORAGE_UNAVAILABLE: '서류를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  DOCUMENT_STORAGE_UNAVAILABLE: '원본 파일 저장소에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.',
   DOCUMENT_METADATA_STORE_FAILED: '서류 정보를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.',
-  INVALID_STORAGE_KEY: '서류를 불러오지 못했어요.',
+  INVALID_STORAGE_KEY: '원본 파일 정보를 확인할 수 없습니다. 문서 기록을 확인해 주세요.',
   FILE_TOO_LARGE: '파일 크기는 10MB 이하로 올려 주세요.',
   EMPTY_FILE: '빈 파일은 올릴 수 없어요.',
   UNSUPPORTED_MIME: 'PDF, JPG, PNG 파일만 올릴 수 있어요.',
@@ -102,6 +102,12 @@ const MESSAGES: Record<string, string> = {
 
   // Staff review
   STAFF_PRECHECK_REQUIRED: 'AI 사전점검이 아직 완료되지 않았어요.',
+  C02_SUBMISSION_BLOCKED: '아직 올리지 않은 필수 서류가 있거나 입력 내용이 접수 범위를 벗어나요. 서류 목록을 확인해 주세요.',
+  CASE_CANCEL_NOT_ALLOWED: '직원이 검토를 시작해 접수를 취소할 수 없어요. 결과 안내를 기다려 주세요.',
+  RESERVATION_NOT_ALLOWED: '직원 검토 결과가 ‘진행 가능’으로 안내된 접수만 예약할 수 있어요.',
+  RESERVATION_CONFLICT: '이미 예약이 있거나 그 시간에 담당 직원이 배정돼 있어요. 다른 시간을 골라 주세요.',
+  RESERVATION_CHANGE_LOCKED: '방문 24시간 전부터는 예약을 변경하거나 취소할 수 없어요. 영업점에 문의해 주세요.',
+  NEEDS_MANUAL_ASSIGNMENT: '이 지점에 배정할 수 있는 직원이 없어요. 다른 지점을 골라 주세요.',
   STAFF_DECISION_ALREADY_RECORDED: '이미 검토 결과가 등록되었어요.',
   STAFF_REVIEW_STALE_OR_INVALID_CASE: '접수 내용이 바뀌었어요. 화면을 새로고침해 주세요.',
   STAFF_AGENT_UNAVAILABLE: 'AI 사전점검을 지금 실행할 수 없어요. 잠시 후 다시 시도해 주세요.',
@@ -137,4 +143,9 @@ const MESSAGES: Record<string, string> = {
 export function toUserMessage(error: unknown): string {
   if (error instanceof ApiError) return MESSAGES[error.code] ?? DEFAULT_MESSAGE
   return DEFAULT_MESSAGE
+}
+
+/** Presentation code must not render server exception text. */
+export function toUserMessageOr(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? (MESSAGES[error.code] ?? DEFAULT_MESSAGE) : fallback
 }

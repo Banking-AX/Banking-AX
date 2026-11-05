@@ -11,7 +11,7 @@ documents:
   source_pages:
   - 1
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -33,7 +33,7 @@ documents:
   - 13
   - 14
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -49,7 +49,7 @@ documents:
   - 13
   - 14
   source_verified: false
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -107,7 +107,7 @@ documents:
   - 9
   - 10
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: PDF_DERIVED_EXPLANATION
@@ -123,7 +123,7 @@ documents:
   - 5
   - 6
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: PDF_DERIVED_EXPLANATION
@@ -133,11 +133,11 @@ documents:
   task_codes:
   - DEBT_ADJUSTMENT
   audience: CUSTOMER_AND_STAFF
-  trust_level: UNCONFIRMED_CAPTURE
+  trust_level: OFFICIAL_SHINHAN
   source_file: knowledge/sources/C01-01_debt_adjustment_rights_part1.png
   source_pages: []
-  source_verified: false
-  verified: false
+  source_verified: true
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_CAPTURE
@@ -161,11 +161,11 @@ documents:
   task_codes:
   - DEBT_ADJUSTMENT
   audience: STAFF_ONLY
-  trust_level: UNCONFIRMED_CAPTURE
+  trust_level: OFFICIAL_SHINHAN
   source_file: knowledge/sources/C01-03_termination_guidance_unconfirmed.png
   source_pages: []
-  source_verified: false
-  verified: false
+  source_verified: true
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_CAPTURE
@@ -181,7 +181,7 @@ documents:
   - 1
   - 2
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -197,7 +197,7 @@ documents:
   - 1
   - 2
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -221,11 +221,11 @@ documents:
   task_codes:
   - INHERITANCE_DEPOSIT
   audience: CUSTOMER_AND_STAFF
-  trust_level: UNCONFIRMED_CAPTURE
+  trust_level: OFFICIAL_SHINHAN
   source_file: knowledge/sources/C02-01_inheritance_faq_unconfirmed.png
   source_pages: []
-  source_verified: false
-  verified: false
+  source_verified: true
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_CAPTURE
@@ -240,7 +240,7 @@ documents:
   source_pages:
   - 1
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF
@@ -260,7 +260,7 @@ documents:
   - 21
   - 22
   source_verified: true
-  verified: false
+  verified: true
   retrieval_enabled_dev: true
   retrieval_enabled_prod: false
   origin: USER_PDF

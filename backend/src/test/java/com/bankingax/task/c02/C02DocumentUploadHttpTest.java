@@ -36,7 +36,8 @@ class C02DocumentUploadHttpTest {
 
     @Test void customer_uploads_downloads_and_retries_a_synthetic_pdf_without_exposing_storage_path() throws Exception {
         C02FileStorage storage=new C02FileStorage(temp.toString(),1024);
-        C02IntakeService service=new C02IntakeService(new InMemoryCasePort(),verification(),staff(),new LocalFileDocumentPort(temp.toString(),new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules()),storage);
+        LocalFileDocumentPort documents=new LocalFileDocumentPort(temp.toString(),new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules());
+        C02IntakeService service=new C02IntakeService(new InMemoryCasePort(),verification(),staff(),documents,storage);
         long caseId=prepare(service);
         MockMvc http=MockMvcBuilders.standaloneSetup(new C02Controller(service,new InternalGatewayAuthenticator("upload-token"))).setControllerAdvice(new ApiExceptionHandler()).build();
         byte[] bytes="%PDF-1.4\nsynthetic inheritance fixture".getBytes();
@@ -50,6 +51,15 @@ class C02DocumentUploadHttpTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1));
         http.perform(get("/api/v1/c02/{caseId}/documents/{documentId}/content",caseId,documentId).param("customerId","1").header("X-Actor-Id",2).header("X-Actor-Role","CUSTOMER").header("X-Tool-Gateway-Token","upload-token"))
             .andExpect(status().isForbidden());
+
+        long differentCase=prepare(service,7502);
+        DomainException otherCaseDocument=assertThrows(DomainException.class,()->service.staffDocument(differentCase,documentId));
+        assertEquals("FORBIDDEN",otherCaseDocument.code());
+
+        // Metadata alone must never make an unavailable original look downloadable.
+        storage.deleteQuietly(documents.findById(documentId).orElseThrow().storageReference());
+        http.perform(get("/api/v1/c02/{caseId}/documents/{documentId}/content",caseId,documentId).param("customerId","1").header("X-Actor-Id",1).header("X-Actor-Role","CUSTOMER").header("X-Tool-Gateway-Token","upload-token"))
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.error.code").value("DOCUMENT_NOT_FOUND"));
     }
 
     @Test void removes_file_and_metadata_when_case_revision_cannot_be_saved() throws Exception {
@@ -61,6 +71,7 @@ class C02DocumentUploadHttpTest {
             public ServiceCaseView cancel(long actorId,long caseId,int revision) { return delegate.cancel(actorId,caseId,revision); }
             public ServiceCaseView recordCheckResult(long caseId,int revision,ReviewStatus status) { return delegate.recordCheckResult(caseId,revision,status); }
             public ServiceCaseView get(long actorId,long caseId) { return delegate.get(actorId,caseId); }
+            public java.util.Optional<ServiceCaseView> findByWorkItem(long actorId,long workItemId,com.bankingax.core.workflow.TaskCode taskCode) { return delegate.findByWorkItem(actorId,workItemId,taskCode); }
         };
         InMemoryDocumentPort documents=new InMemoryDocumentPort();
         C02IntakeService service=new C02IntakeService(failingRevisionPort,verification(),staff(),documents,new C02FileStorage(temp.toString(),1024));
@@ -70,9 +81,10 @@ class C02DocumentUploadHttpTest {
         try(var saved=java.nio.file.Files.list(temp.resolve("files"))) { assertEquals(0,saved.count()); }
     }
 
-    private static long prepare(C02IntakeService service) {
+    private static long prepare(C02IntakeService service) { return prepare(service,7501); }
+    private static long prepare(C02IntakeService service,long workItemId) {
         var intake=new C02IntakeService.Intake(new C02IntakeService.DecedentInput("synthetic",null,LocalDate.of(2020,1,1),0),List.of(new C02IntakeService.HeirInput("h1","synthetic heir",LocalDate.of(1980,1,1),"child",true,false,C02IntakeService.VisitStatus.ATTENDING,C02IntakeService.DelegationMethod.NONE,null)));
-        return service.prepare(1,7501,"upload-prepare",intake,Map.of(),"010").caseView().caseId();
+        return service.prepare(1,workItemId,"upload-prepare-"+workItemId,intake,Map.of(),"010").caseView().caseId();
     }
     private static VerificationPort verification() { return new VerificationPort() {
         public VerificationIssue issue(VerificationIssueCommand command) { return new VerificationIssue("x","010",Instant.now()); }

@@ -33,6 +33,11 @@ public class C02Controller {
         Long caseId=data.caseView()==null ? null : data.caseView().caseId(); Integer revision=data.caseView()==null ? null : data.caseView().revision();
         return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",body.workItemId(),caseId,revision,data);
     }
+    @GetMapping("/work-items/{workItemId}/resume") public ApiEnvelope<C02IntakeService.Prepared> resume(@PathVariable long workItemId,@RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); var data=service.resume(customerId,workItemId);
+        return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",workItemId,data.caseView().caseId(),data.caseView().revision(),data);
+    }
     @PostMapping("/{caseId}/consent") public ApiEnvelope<C02IntakeService.C02Draft> consent(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody ConsentBody body) {
         authenticateCustomer(actorId,role,token,body.customerId()); var data=service.recordConsentAndMockSignature(body.customerId(),caseId,body.revision(),body.consented(),body.mockSignatureCompleted()); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
@@ -62,9 +67,18 @@ public class C02Controller {
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
         authenticateCustomer(actorId,role,token,customerId); var data=service.documents(customerId,caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,caseId,null,data);
     }
+    @GetMapping("/{caseId}/customer-ocr") public ApiEnvelope<OcrPersistence.Snapshot> customerOcr(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,@RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam int revision,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); if(ocr==null) throw new DomainException("OCR_QUERY_UNAVAILABLE","Persisted OCR results are unavailable.",true);
+        int current=service.currentRevisionForCustomer(customerId,caseId); if(current!=revision) throw new DomainException("VERSION_CONFLICT","The requested OCR revision is stale.",true);
+        return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,caseId,current,ocr.currentSnapshot(caseId,current));
+    }
     @GetMapping("/{caseId}/review") public ApiEnvelope<C02IntakeService.StaffPrecheckResult> customerReview(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
         authenticateCustomer(actorId,role,token,customerId); var data=service.customerReview(customerId,caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+    }
+    @GetMapping("/{caseId}/customer-snapshot") public ApiEnvelope<C02IntakeService.CustomerCaseSnapshot> customerSnapshot(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,@RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
+        authenticateCustomer(actorId,role,token,customerId); var data=service.customerCaseSnapshot(customerId,caseId);
+        return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
     }
     @PostMapping("/{caseId}/staff-precheck") public ApiEnvelope<C02IntakeService.StaffPrecheckResult> precheck(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody StaffPrecheckBody body) {
@@ -77,6 +91,11 @@ public class C02Controller {
     @GetMapping("/{caseId}/staff-case") public ApiEnvelope<C02IntakeService.StaffCaseOverview> staffCase(@PathVariable long caseId,@RequestHeader("X-Actor-Role") ActorRole role,
             @RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam String requestId) {
         authenticateStaff(role,token); var data=service.staffCaseOverview(caseId); return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",data.caseView().workItemId(),caseId,data.caseView().revision(),data);
+    }
+    @GetMapping("/{caseId}/staff-ocr") public ApiEnvelope<OcrPersistence.Snapshot> staffOcr(@PathVariable long caseId,@RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam int revision,@RequestParam String requestId) {
+        authenticateStaff(role,token); if(ocr==null) throw new DomainException("OCR_QUERY_UNAVAILABLE","Persisted OCR results are unavailable.",true);
+        int current=service.currentRevisionForStaff(caseId); if(current!=revision) throw new DomainException("VERSION_CONFLICT","The requested OCR revision is stale.",true);
+        return ApiEnvelope.success(requestId,"INHERITANCE_DEPOSIT",null,caseId,current,ocr.currentSnapshot(caseId,current));
     }
     @PostMapping("/{caseId}/staff-decision") public ApiEnvelope<C02IntakeService.StaffDecisionResult> staffDecision(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody StaffDecisionBody body) {

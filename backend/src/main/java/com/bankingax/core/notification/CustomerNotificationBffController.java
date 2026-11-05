@@ -3,10 +3,7 @@ package com.bankingax.core.notification;
 import com.bankingax.core.api.ApiEnvelope;
 import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** JWT customer boundary for the shared notification API. */
 @RestController
 @RequestMapping("/api/v1/customer/notifications")
-@ConditionalOnBean(JdbcTemplate.class)
+@com.bankingax.core.persistence.ConditionalOnDataSource
 public class CustomerNotificationBffController {
     private final NotificationController internal;
     private final TaskBffPrincipal principals;
@@ -32,10 +29,27 @@ public class CustomerNotificationBffController {
     }
 
     @GetMapping
-    public ApiEnvelope<List<NotificationController.Item>> list(JwtAuthenticationToken authentication,
-                                                                 @RequestParam String requestId) {
+    public ApiEnvelope<NotificationController.Page> list(JwtAuthenticationToken authentication,
+                                                         @RequestParam(defaultValue = "false") boolean unreadOnly,
+                                                         @RequestParam(required = false) Long beforeId,
+                                                         @RequestParam(defaultValue = "20") int limit,
+                                                         @RequestParam String requestId) {
         long customerId = principals.customer(authentication);
-        return internal.list(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+        return internal.list(customerId, ActorRole.CUSTOMER, gatewayToken, unreadOnly, beforeId, limit, requestId);
+    }
+
+    @GetMapping("/summary")
+    public ApiEnvelope<NotificationController.Summary> summary(JwtAuthenticationToken authentication,
+                                                               @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.summary(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+    }
+
+    @PostMapping("/read-all")
+    public ApiEnvelope<NotificationController.ReadAll> readAll(JwtAuthenticationToken authentication,
+                                                               @RequestParam String requestId) {
+        long customerId = principals.customer(authentication);
+        return internal.readAll(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
     }
 
     @PostMapping("/{id}/read")

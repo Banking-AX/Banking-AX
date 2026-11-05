@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { toUserMessage } from '../api/errorMessages'
 import { useAuth } from '../auth/AuthContext'
+import { isStaffPath, postLoginPath } from '../auth/roleHome'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 
@@ -32,6 +33,7 @@ export function LoginPage() {
   const [error, setError] = useState<FormError | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successName, setSuccessName] = useState<string | null>(null)
+  const [successPath, setSuccessPath] = useState(returnTo)
 
   const idInvalid = error?.kind === 'credentials' || (error?.kind === 'empty' && !loginId)
   const pwInvalid = error?.kind === 'credentials' || (error?.kind === 'empty' && !password)
@@ -47,7 +49,9 @@ export function LoginPage() {
       setError(null)
       setPassword('')
       setSuccessName(user.name)
-      navigate(returnTo, { replace: true })
+      const target = postLoginPath(user.role, returnTo)
+      setSuccessPath(target)
+      navigate(target, { replace: true })
     } catch (cause) {
       const message = toUserMessage(cause)
       setError(cause instanceof ApiError && cause.code === 'AUTH_INVALID_CREDENTIALS' ? { kind: 'credentials', message } : { kind: 'server', message })
@@ -116,15 +120,15 @@ export function LoginPage() {
           {tab === 'id' && successName && <div role="status" className="login-success">
             <span className="login-success__icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
             <strong className="login-success__title">{successName}님, 로그인되었어요</strong>
-            <span className="login-success__message">{fromChat ? '보던 AI 대화로 돌아가 요청한 업무를 이어서 진행해요.' : '개인뱅킹 메인으로 이동합니다.'}</span>
-            <Link to={returnTo} className="login-success__action">{fromChat ? '대화로 돌아가기' : '개인뱅킹 메인으로'}</Link>
+            <span className="login-success__message">{isStaffPath(successPath) ? '직원 업무 화면으로 이동합니다.' : fromChat ? '보던 AI 대화로 돌아가 요청한 업무를 이어서 진행해요.' : '개인뱅킹 메인으로 이동합니다.'}</span>
+            <Link to={successPath} className="login-success__action">{isStaffPath(successPath) ? '직원 업무 화면으로' : fromChat ? '대화로 돌아가기' : '개인뱅킹 메인으로'}</Link>
           </div>}
         </div>
       </section>
 
       <div className="login-notice">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="login-notice__icon"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"></path></svg>
-        <span><strong className="login-notice__strong">교육용 시연 화면입니다.</strong> 실제 은행 아이디나 비밀번호를 입력하지 마세요. 시연용 테스트 계정: <span className="login-notice__account">customer_demo / demo1234</span></span>
+        <span><strong className="login-notice__strong">교육용 시연 화면입니다.</strong> 실제 은행 아이디나 비밀번호를 입력하지 마세요. 시연용 테스트 계정: <span className="login-notice__account">customer_demo / demo-customer-pass</span></span>
       </div>
     </main>
 

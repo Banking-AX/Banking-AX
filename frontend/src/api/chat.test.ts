@@ -86,4 +86,20 @@ describe('Spring chat BFF client', () => {
       message(10, 1, 'CUSTOMER', '질문'), message(11, 2, 'AGENT', '답변'),
     ])
   })
+
+  it('returns screen navigation for a started non-financial task', () => {
+    const run: AgentRun = {
+      customerMessage: message(10, 1, 'CUSTOMER', '거래내역 조회해 줘'),
+      agentMessage: message(11, 2, 'AGENT', '업무를 준비했습니다.'),
+      agentResult: {
+        requestId: 'op-a01', customerId: 1, outcome: 'STARTED', classification: {},
+        workflow: { workflowId: 20, workItemId: 21, taskCode: 'TRANSACTION_SEARCH', status: 'ACTIVE' },
+        loanInquiry: null, executionStatus: null, answer: '업무를 준비했습니다.', answerStatus: 'GENERATED',
+      },
+      financialOperationCompleted: false, agentMessageSaved: true,
+    }
+    expect(replyFromAgentRun(run)).toEqual({
+      kind: 'started', taskCode: 'TRANSACTION_SEARCH', workItemId: 21, answer: '업무를 준비했습니다.',
+    })
+  })
 })

@@ -54,7 +54,9 @@ export async function apiFetchWithoutAuthRetry<T>(path: string, init: RequestIni
 async function request<T>(path: string, init: RequestInit, attachAccessToken: boolean,
   allowRefresh: boolean): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers)
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  // The C-02 document endpoint is multipart. Let the browser add its boundary
+  // instead of forcing the JSON content type for FormData requests.
+  if (!headers.has('Content-Type') && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (attachAccessToken && accessToken && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
@@ -79,13 +81,30 @@ async function request<T>(path: string, init: RequestInit, attachAccessToken: bo
       } catch {
         // The shared handler below clears authentication once for every waiting request.
       }
-      const sessionWasActive = accessToken !== null
       setAccessToken(null)
-      if (sessionWasActive) authenticationLostHandler?.(error)
+      authenticationLostHandler?.(error)
+    } else if (allowRefresh && error.status === 401) {
+      // A protected request without an access token is never a business-result
+      // condition. Let the auth owner send an authenticated UI back to login.
+      setAccessToken(null)
+      authenticationLostHandler?.(error)
     }
     throw error
   }
   return body as ApiEnvelope<T>
+}
+
+/** Binary download behind the same Bearer token (e.g. staff viewing an uploaded original); refreshes once on 401. */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const send = () => fetch(`${baseUrl}${path}`, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} })
+    .catch(() => { throw new ApiError('NETWORK_ERROR', 0, 'Network request failed.') })
+  let response = await send()
+  if (response.status === 401 && accessToken && refreshAccessTokenHandler) {
+    const replacement = await refreshOnce().catch(() => null)
+    if (replacement) { setAccessToken(replacement); response = await send() }
+  }
+  if (!response.ok) throw toApiError(response, await readJson(response)) ?? new ApiError('HTTP_ERROR', response.status)
+  return response.blob()
 }
 
 function refreshOnce(): Promise<string | null> {

@@ -14,6 +14,12 @@ def existing_rag_search(query: str, task_code: str, top_k: int, audience: str) -
     return search(query, task_code, top_k, audience)
 
 
+def keyword_rag_search(query: str, task_code: str, top_k: int, audience: str) -> list[dict]:
+    """Same index, lexical strategy only: no embedding model load, so it fits Spring's short Agent timeout."""
+    from app.retrieve import search_with_strategy
+    return search_with_strategy(query, task_code, top_k, audience, 'keyword')
+
+
 class RagEvidenceAdapter:
     def __init__(self, search_callable: SearchCallable = existing_rag_search) -> None:
         self._search = search_callable

@@ -58,6 +58,24 @@ class DocumentExtractionScopeMigrationMySqlIT {
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*) FROM flyway_schema_history WHERE version='11' AND success=1
                 """, Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('12', '13') AND success=1
+                """, Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM document_type
+                 WHERE code='B01_REPAYMENT_ORDER_APPLICATION'
+                   AND source_kind='SHINHAN_OFFICIAL'
+                   AND source_verified=TRUE
+                   AND ocr_enabled=TRUE
+                """, Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM document_type
+                 WHERE code='ABSENT_HEIR_POWER_OF_ATTORNEY'
+                   AND source_kind='SHINHAN_OFFICIAL'
+                   AND source_doc_id='C02-02'
+                   AND source_verified=TRUE
+                   AND ocr_enabled=TRUE
+                """, Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForMap("""
                 SELECT is_nullable FROM information_schema.columns
                  WHERE table_schema=DATABASE() AND table_name='document_extraction' AND column_name='case_id'

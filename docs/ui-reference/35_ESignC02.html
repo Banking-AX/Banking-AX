@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>C-01 ③ 휴대폰 인증</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"><style>body{margin:0}</style></head><body><div id="root">
+
+<div style="width: 100%; min-height: 1300px; background: #F6F8FB; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; color: #2B2B2B">
+<div data-board="ESign" style="width: 100%; min-height: 1300px;">
+
+<div style="width: 100%; min-height: 1300px; background: #F6F8FB; color: #2B2B2B; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; display: flex; flex-direction: column">
+<div data-board="SiteHeader" style="width: 100%; min-height: 118px;">
+
+<header style="width: 100%; background: #2E70C3; color: #FFFFFF; font-family: 'Noto Sans KR', 'Pretendard', system-ui, sans-serif; position: relative; z-index: 5">
+<div style="max-width: 1040px; margin: 0 auto; padding: 0 20px; box-sizing: border-box">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; min-height: 62px; padding-top: 6px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; color: #FFFFFF; text-decoration: none">
+<svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="#FFFFFF"></rect><path d="M8 22 L12.5 10 L17 22 M9.8 17.5 H15.2" stroke="#2E70C3" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19 13 L24.5 21.5 M24.5 13 L19 21.5" stroke="#C9682A" stroke-width="2.4" stroke-linecap="round"></path></svg>
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px">AX뱅크</span>
+</a>
+<span style="font-size: 11px; font-weight: 500; border: 1px solid #FFFFFF; border-radius: 999px; padding: 2px 8px; color: #FFFFFF">교육용 시연</span>
+<nav aria-label="고객 구분" style="display: flex; gap: 6px">
+<a href="Main.dc.html" aria-current="page" style="padding: 6px 14px; border-radius: 4px; background: #1F5AA6; border: 1px solid #6E9BD8; color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none">개인</a>
+<a href="#" style="padding: 6px 12px; color: #FFFFFF; font-size: 16px; text-decoration: none">기업</a>
+<a href="#" style="padding: 6px 12px; color: #FFFFFF; font-size: 16px; text-decoration: none">금융상품</a>
+</nav>
+<div style="flex: 1 1 0"></div>
+<nav aria-label="부가 메뉴" style="display: flex; gap: 18px; font-size: 15px">
+<a href="#" style="color: #FFFFFF; text-decoration: none">금융서비스</a>
+<a href="#" style="color: #FFFFFF; text-decoration: none">고객센터</a>
+<a href="#" style="color: #FFFFFF; text-decoration: none">은행소개</a>
+</nav>
+<span aria-hidden="true" style="width: 1px; height: 16px; background: #8DB2E3"></span>
+
+
+<div style="display: flex; align-items: center; gap: 12px; font-size: 15px">
+<span style="color: #FFFFFF"><strong>김민준</strong>님</span>
+<a href="MyWork.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; background: #FFFFFF; color: #1F5AA6; font-size: 14px; font-weight: 700; text-decoration: none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4h6v3H9zM9 12h6M9 16h4"></path></svg>
+업무 요청 기록</a>
+<a href="NotifyPanel.dc.html" aria-label="알림, 읽지 않은 알림 2건" style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg>
+<span aria-hidden="true" style="position: absolute; top: 4px; right: 1px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #D9381E; color: #FFFFFF; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center">2</span>
+</a>
+<a href="Login.dc.html" style="color: #FFFFFF; font-size: 14px; text-decoration: underline">로그아웃</a>
+</div>
+
+<button type="button" aria-label="통합검색" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #FFFFFF; cursor: pointer; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; min-height: 56px">
+<nav aria-label="주 메뉴" style="flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 12px">
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">조회</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">이체</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">금융상품</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">공과금/법원</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">뱅킹보안관리</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">기타금융</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">부가서비스</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">사용자관리</a>
+<a href="#" style="color: #FFFFFF; font-size: 17px; font-weight: 500; text-decoration: none; padding: 14px 4px">카드/증권</a>
+</nav>
+<button type="button" aria-label="전체 메뉴" style="width: 52px; height: 52px; align-self: flex-end; margin-bottom: -8px; background: #C9682A; border: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.2); padding: 0; position: relative; z-index: 2">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</button>
+</div>
+</div>
+</header>
+</div>
+
+<main style="flex: 1 1 auto; width: 100%; max-width: 1040px; margin: 0 auto; padding: 28px 20px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<nav aria-label="현재 위치" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6B7280"><a href="Upload.dc.html" style="color: #6B7280; text-decoration: none">채무조정 접수</a><span aria-hidden="true">›</span><span aria-current="page" style="color: #2B2B2B; font-weight: 500">서명·인증</span></nav>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.5px">채무조정 접수 서명·인증</h1><span style="padding: 3px 10px; border-radius: 6px; background: #FFF4E5; border: 1px solid #F2C48D; color: #9A4A00; font-size: 12px; font-weight: 700">모의 서명 · 법적 전자서명 아님</span></div>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #4B5563">서명할 문서를 확인하고, 손글씨 서명과 휴대폰 인증을 거쳐 서명해요. 서명을 마치면 채무조정 접수가 등록돼요.</p>
+</div>
+
+<ol aria-label="서명 단계" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+
+<li aria-current="false" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E5E7EB"><span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">✓</span><span style="font-size: 14px; font-weight: 500; color: #4B5563">문서 확인</span></li>
+
+<li aria-current="false" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E5E7EB"><span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">✓</span><span style="font-size: 14px; font-weight: 500; color: #4B5563">손글씨 서명</span></li>
+
+<li aria-current="step" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #EEF6FE; border: 1px solid #2E70C3"><span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #2E70C3; color: #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span><span style="font-size: 14px; font-weight: 700; color: #1F5AA6">휴대폰 인증</span></li>
+
+<li aria-current="false" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E5E7EB"><span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #E5E7EB; color: #6B7280; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">4</span><span style="font-size: 14px; font-weight: 500; color: #4B5563">서명 완료</span></li>
+
+</ol>
+
+
+
+
+
+
+<section aria-labelledby="ot" style="background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; max-width: 620px">
+<h2 id="ot" style="margin: 0; font-size: 18px; font-weight: 700">휴대폰 본인 확인</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; font-size: 15px"><dt style="color: #6B7280">이름</dt><dd style="margin: 0; font-weight: 700">김민준</dd><dt style="color: #6B7280">휴대폰</dt><dd style="margin: 0; font-weight: 700">010-****-5821 <span style="font-size: 12px; font-weight: 400; color: #6B7280">등록된 번호 · 변경은 영업점에서</span></dd></dl>
+
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="otp" style="font-size: 14px; font-weight: 500">인증번호 6자리</label>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><input id="otp" type="text" inputmode="numeric" maxlength="6" value="" aria-invalid="false" aria-describedby="otp-msg" style="width: 200px; height: 52px; box-sizing: border-box; padding: 0px 16px; border: 1px solid rgb(201, 211, 224); border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 22px; letter-spacing: 4px;"><span style="font-size: 15px; font-weight: 700; color: #B42318">02:51</span><button type="button" style="height: 40px; padding: 0 12px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #374151; font-family: inherit; font-size: 13px; cursor: pointer">다시 받기</button></div>
+<span id="otp-msg" role="status" style="font-size: 13px; color: #4B5563">010-****-5821로 인증번호를 보냈어요. 3분 안에 입력해 주세요.</span>
+</div>
+
+<p style="margin: 0; padding: 10px 12px; border-radius: 8px; background: #F6F8FB; font-size: 12px; line-height: 1.6; color: #4B5563">인증번호는 서버가 만들어 등록된 휴대폰으로 문자(SOLAPI)를 보내요. 3분 안에 입력해 주세요. 5회 틀리면 새 번호를 받아야 하고, 다시 받기는 60초 뒤에 할 수 있어요(제안값). <span style="color: #9A4A00">시안 전용: 274615를 입력하면 넘어가요.</span></p>
+</section>
+
+
+
+
+
+
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; padding: 16px 20px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px">
+<span style="flex: 1 1 240px; min-width: 0; font-size: 13px; color: #9A4A00">등록된 휴대폰으로 받은 인증번호를 입력해 주세요.</span>
+<a href="Upload.dc.html" style="height: 50px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 18px; border: 1px solid #D1D5DB; border-radius: 8px; color: #374151; font-size: 15px; text-decoration: none">서명 취소</a>
+<button type="button" style="height: 50px; padding: 0 18px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; color: #374151; font-family: inherit; font-size: 15px; cursor: pointer">이전</button>
+<button type="button" disabled="" style="height: 50px; padding: 0 26px; border: 0; border-radius: 8px; background: #E5E7EB; color: #6B7280; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">인증하고 서명하기</button>
+</div>
+
+
+<p style="margin: 0; font-size: 12px; line-height: 1.6; color: #6B7280">교육용 시연 화면이에요. 서명은 화면에서만 동작하는 모의 서명이고, SMS 인증은 휴대폰 소지 확인이에요. 실제 실명확인·법적 전자서명이 아니에요. 서명과 SMS 인증을 마치지 않으면 서버가 실행·제출을 거부해요.</p>
+</main>
+</div>
+</div>
+</div>
+</div></body></html>

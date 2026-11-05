@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import os
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Body, Header, HTTPException
 from app.core.staff_engine import CheckRegistry, CheckRequest, FakeCasePort, StaffCheckExecutor
 from app.core.staff_engine.fakes import FakeCase
-from app.core.staff_engine.rag_adapter import RagEvidenceAdapter
+from app.core.staff_engine.rag_adapter import RagEvidenceAdapter, keyword_rag_search
 from app.tasks.c01 import adapt_c01_response, register_c01_check
 from app.tasks.c02 import register_c02_check
+
+
+# Spring sends no ragQuery yet; C-02 gets a fixed policy query so the result sheet cites the rules it used.
+DEFAULT_RAG_QUERY = {'INHERITANCE_DEPOSIT': '상속예금 지급 필요서류 상속인 방문 위임장 인감증명서'}
 
 
 def build_executor() -> StaffCheckExecutor:
@@ -16,7 +20,10 @@ def build_executor() -> StaffCheckExecutor:
     # Spring verifies ownership/current revision before calling this internal API.
     # This in-process port only gates the graph against the supplied revision.
     case_port = FakeCasePort([])
-    executor = StaffCheckExecutor(case_port, registry, RagEvidenceAdapter(lambda *_: []))
+    # Policy evidence comes from the existing curated index (keyword strategy, no model load).
+    # STAFF_AGENT_RAG_ENABLED=false keeps the previous evidence-free behaviour.
+    rag_enabled = os.getenv('STAFF_AGENT_RAG_ENABLED', 'true').strip().lower() != 'false'
+    executor = StaffCheckExecutor(case_port, registry, RagEvidenceAdapter(keyword_rag_search if rag_enabled else (lambda *_: [])))
     executor._http_case_port = case_port  # composition-only fixture; Spring remains source of truth.
     return executor
 
@@ -26,7 +33,9 @@ def create_router(executor: StaffCheckExecutor | None = None) -> APIRouter:
     selected = executor or build_executor()
 
     @router.post('/staff-agent/check')
-    def check(payload: dict, x_staff_agent_token: str | None = Header(default=None)) -> dict:
+    # Explicit Body avoids framework-version-dependent inference of a bare
+    # ``dict`` annotation at this internal HTTP boundary.
+    def check(payload: dict = Body(...), x_staff_agent_token: str | None = Header(default=None)) -> dict:
         expected = os.getenv('STAFF_AGENT_GATEWAY_TOKEN')
         if not expected or x_staff_agent_token != expected:
             raise HTTPException(403, 'STAFF_AGENT_GATEWAY_FORBIDDEN')
@@ -34,7 +43,8 @@ def create_router(executor: StaffCheckExecutor | None = None) -> APIRouter:
             request = CheckRequest(
                 request_id=payload['requestId'], case_id=payload['caseId'], revision=payload['revision'],
                 task_code=payload['taskCode'], check_type=payload.get('checkType', 'STAFF_PRECHECK'),
-                case_snapshot=payload.get('caseSnapshot', {}), rag_query=payload.get('ragQuery'), audience='staff',
+                case_snapshot=payload.get('caseSnapshot', {}),
+                rag_query=payload.get('ragQuery') or DEFAULT_RAG_QUERY.get(payload['taskCode']), audience='staff',
             )
         except (KeyError, ValueError) as exc:
             raise HTTPException(422, str(exc)) from exc

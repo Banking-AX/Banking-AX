@@ -12,6 +12,14 @@ import org.springframework.data.repository.query.Param;
 interface WorkItemRepository extends JpaRepository<WorkItemEntity, Long> {
     Optional<WorkItemEntity> findByRequestId(String requestId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select item from WorkItemEntity item join WorkflowEntity flow on flow.id = item.workflowId "
+            + "where flow.customerId = :customerId and item.taskCode = :taskCode and item.status = :status "
+            + "order by item.id desc")
+    java.util.List<WorkItemEntity> findActiveForCustomerAndTaskForUpdate(
+            @Param("customerId") long customerId, @Param("taskCode") com.bankingax.core.workflow.TaskCode taskCode,
+            @Param("status") WorkItemStatus status);
+
     @Query("select w.workflowId from WorkItemEntity w where w.id = :id")
     Optional<Long> findWorkflowIdById(@Param("id") long id);
 

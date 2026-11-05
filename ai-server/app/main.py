@@ -19,14 +19,25 @@ app = FastAPI(title='Shinhan SW Agent RAG PoC', version='1.0.0')
 app.include_router(create_router(), prefix='/api/v1')
 app.include_router(create_staff_router(), prefix='/api/v1')
 
+class StaffCandidate(BaseModel):
+    staffId: int
+    activeAssignments: int = Field(ge=0)
+
+
 class StaffRankingRequest(BaseModel):
     candidateIds: list[int] = Field(min_length=1, max_length=100)
+    candidates: list[StaffCandidate] = Field(default_factory=list, max_length=100)
     taskCode: str = Field(min_length=1, max_length=40)
 
 @app.post('/api/v1/staff-ranking')
 def staff_ranking(req: StaffRankingRequest):
-    # Ranking only: candidates are pre-filtered by Spring; no LLM or final decision.
-    return {'staffIds': sorted(set(req.candidateIds))}
+    # Ranking only: Spring pre-filters candidates and counts their workload; the only inputs are the
+    # task code and that workload (no experience/skill guesses, no LLM, no final decision).
+    allowed = set(req.candidateIds)
+    load = {c.staffId: c.activeAssignments for c in req.candidates if c.staffId in allowed}
+    ranked = sorted(allowed, key=lambda staff_id: (load.get(staff_id, 0), staff_id))
+    return {'staffIds': ranked, 'basis': 'TASK_CODE_AND_WORKLOAD',
+            'reasons': [{'staffId': staff_id, 'activeAssignments': load.get(staff_id, 0)} for staff_id in ranked]}
 
 
 class SearchRequest(BaseModel):
@@ -116,6 +127,21 @@ def _retrieval_error(exc: Exception) -> JSONResponse:
     return _error(500, 'INTERNAL_ERROR', 'Internal retrieval error.', False)
 
 
+@app.on_event('startup')
+def warm_rag_model() -> None:
+    """Load the embedding model in the background so the first chat question does not pay ~15s for it."""
+    if BACKEND != 'chroma' or os.getenv('RAG_WARMUP', 'true').strip().lower() == 'false':
+        return
+    import threading
+
+    def warm() -> None:
+        try:
+            search('상속예금 필요서류', 'INHERITANCE_DEPOSIT', 1, 'customer')
+        except Exception:  # noqa: BLE001 - warm-up is best effort; real requests report their own errors
+            pass
+    threading.Thread(target=warm, name='rag-warmup', daemon=True).start()
+
+
 @app.get('/health')
 def health():
     return {'status': 'ok', 'mode': MODE, 'backend': BACKEND, 'index_exists': INDEX.exists()}
@@ -140,6 +166,31 @@ def rag_search(req: SearchRequest):
             'context_sections': row['context_sections'],
         } for row in results],
     }
+
+
+class TaskGuideRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=500)
+    # Omit to let the existing intent classifier pick the task from the sentence.
+    task_code: Literal['TRANSACTION_SEARCH', 'LOAN_INQUIRY', 'REPAYMENT_ORDER_CHANGE', 'HOUSING_SAVINGS_CLOSE',
+                       'DEBT_ADJUSTMENT', 'INHERITANCE_DEPOSIT'] | None = None
+
+
+@app.post('/api/v1/rag/task-guide')
+def rag_task_guide(req: TaskGuideRequest):
+    """Matched bank task + short guide from verified passages; informational only, no side effects."""
+    from .task_guide import _classify_with_existing_classifier, build_guide, default_llm
+    llm = default_llm()
+    classify = _classify_with_existing_classifier if llm is not None else None
+    if req.task_code is None and classify is None:
+        return _error(503, 'INTENT_CLASSIFICATION_UNAVAILABLE', 'Task matching needs the LLM; send task_code instead.', True)
+    try:
+        guide = build_guide(req.query, req.task_code, search=search, llm=llm, classify=classify)
+    except Exception as exc:
+        description = f'{type(exc).__module__}.{type(exc).__name__}'.lower()
+        if 'intent' in description or 'openai' in description:
+            return _error(503, 'INTENT_CLASSIFICATION_UNAVAILABLE', 'Task matching is temporarily unavailable.', True)
+        return _retrieval_error(exc)
+    return {**guide, 'mode': MODE}
 
 
 @app.post('/api/v1/rag/answer')

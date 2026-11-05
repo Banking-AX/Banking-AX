@@ -154,6 +154,27 @@ class StaffPhaseZeroTests(unittest.TestCase):
         supplement = next(item for item in docs if item.category == 'DOCUMENT_NEEDS_SUPPLEMENT')
         self.assertEqual((supplement.document_file_id, supplement.evidence['personRef'], supplement.evidence['documentVersion']), (71, 'h1', 2))
 
+    def test_verified_policy_evidence_becomes_reference_items_not_a_pass(self) -> None:
+        response = self._executor().run(CheckRequest(
+            request_id='c02-evidence', case_id=200, revision=1, task_code='INHERITANCE_DEPOSIT',
+            rag_query='상속 위임장 준비 서류',
+        ))
+        references = [item for item in response.review_items if item.category == 'POLICY_EVIDENCE']
+        self.assertTrue(references)
+        self.assertTrue(all(item.result == 'REFERENCE' and item.basis_doc_id for item in references))
+        self.assertNotIn('PASS', {item.result for item in response.review_items})
+
+    def test_keyword_search_reads_the_curated_c02_index_without_embeddings(self) -> None:
+        from app.core.staff_engine.rag_adapter import keyword_rag_search
+        evidence = RagEvidenceAdapter(keyword_rag_search).search('상속예금 지급 필요서류 위임장', 'INHERITANCE_DEPOSIT')
+        self.assertTrue(evidence)
+        self.assertTrue(all(row.doc_id and row.section for row in evidence))
+
+    def test_staff_router_applies_the_default_c02_policy_query(self) -> None:
+        from app.staff_agent.router import DEFAULT_RAG_QUERY
+        self.assertIn('INHERITANCE_DEPOSIT', DEFAULT_RAG_QUERY)
+        self.assertNotIn('DEBT_ADJUSTMENT', DEFAULT_RAG_QUERY)
+
 
 if __name__ == '__main__':
     unittest.main()

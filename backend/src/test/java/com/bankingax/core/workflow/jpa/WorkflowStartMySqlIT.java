@@ -243,6 +243,48 @@ class WorkflowStartMySqlIT {
     }
 
     @Test
+    void resumesExistingActiveItemForTheSameCustomerAndTask() {
+        var first = starts.start(new WorkflowStartService.StartCommand(
+                "b02-first", 1, 77L, TaskCode.HOUSING_SAVINGS_CLOSE));
+        var resumed = starts.start(new WorkflowStartService.StartCommand(
+                "b02-second", 1, 77L, TaskCode.HOUSING_SAVINGS_CLOSE));
+
+        assertEquals(first, resumed);
+        assertEquals(1, count("select count(*) from workflow"));
+        assertEquals(1, count("select count(*) from work_item where task_code='HOUSING_SAVINGS_CLOSE' and status='ACTIVE'"));
+        assertEquals(0, count("select count(*) from task_result"));
+    }
+
+    @Test
+    void doesNotReuseDoneItem() {
+        var done = starts.start(new WorkflowStartService.StartCommand(
+                "a01-done", 1, 77L, TaskCode.TRANSACTION_SEARCH));
+        jdbc.update("update work_item set status='DONE' where id=?", done.workItemId());
+        jdbc.update("update workflow set status='COMPLETED' where id=?", done.workflowId());
+
+        var next = starts.start(new WorkflowStartService.StartCommand(
+                "a01-next", 1, 77L, TaskCode.TRANSACTION_SEARCH));
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(done.workItemId(), next.workItemId());
+        assertEquals(1, count("select count(*) from work_item where task_code='TRANSACTION_SEARCH' and status='DONE'"));
+        assertEquals(1, count("select count(*) from work_item where task_code='TRANSACTION_SEARCH' and status='ACTIVE'"));
+    }
+
+    @Test
+    void neverResumesAnotherCustomersActiveItem() {
+        jdbc.update("insert into `user`(id,login_id,password_hash,`role`,name) values(2,'other','x','CUSTOMER','other')");
+        jdbc.update("insert into chat_room(id,customer_id) values(78,2)");
+        var other = starts.start(new WorkflowStartService.StartCommand(
+                "other-b02", 2, 78L, TaskCode.HOUSING_SAVINGS_CLOSE));
+
+        var own = starts.start(new WorkflowStartService.StartCommand(
+                "own-b02", 1, 77L, TaskCode.HOUSING_SAVINGS_CLOSE));
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(other.workItemId(), own.workItemId());
+        assertEquals(2, count("select count(*) from work_item where task_code='HOUSING_SAVINGS_CLOSE' and status='ACTIVE'"));
+    }
+
+    @Test
     void rejectsInvalidTaskCodeBeforeCreatingAnything() throws Exception {
         http.perform(post("/api/v1/tools/workflows/start").headers(headers()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"requestId\":\"bad-task\",\"customerId\":1,\"taskCode\":\"UNKNOWN\"}"))

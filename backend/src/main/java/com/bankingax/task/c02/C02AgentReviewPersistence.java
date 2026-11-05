@@ -7,14 +7,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Persists a validated C-02 staff precheck.  The Agent never writes these tables directly. */
 @Service
-@ConditionalOnBean(JdbcTemplate.class)
+@com.bankingax.core.persistence.ConditionalOnDataSource
 @ConditionalOnProperty(prefix = "app.c02", name = "review-persistence-enabled", havingValue = "true")
 public class C02AgentReviewPersistence {
     private static final String CHECK_TYPE = "STAFF_PRECHECK";

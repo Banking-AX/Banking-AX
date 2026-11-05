@@ -8,6 +8,7 @@ from app.customer_agent.router import create_router
 from app.customer_agent.tasks.loan_inquiry import LoanInquiryTask
 from app.customer_agent.tasks.transaction_search import TransactionSearchTask
 from app.customer_agent.tasks.housing_savings_close import HousingSavingsCloseTask
+from app.customer_agent.tasks.repayment_order_change import RepaymentOrderChangeTask
 
 
 class CustomerAgentContractTests(unittest.TestCase):
@@ -26,6 +27,12 @@ class CustomerAgentContractTests(unittest.TestCase):
         task=HousingSavingsCloseTask(FakeSpringToolGateway())
         self.assertEqual("B2-R3",task.run({"requestId":"b","customerId":1,"accountId":3001,"waivePreferredRate":True})["data"]["rule"])
         with self.assertRaises(ValueError): task.run({"requestId":"e","customerId":1,"accountId":3001,"submissionConfirmed":True})
+
+    def test_b01_is_registered_as_screen_only_and_cannot_execute_a_change(self) -> None:
+        task = RepaymentOrderChangeTask()
+        registry = TaskRegistry([task])
+        self.assertEqual([], registry.definitions()[0]["allowedTools"])
+        self.assertEqual({"taskCode": "REPAYMENT_ORDER_CHANGE", "screenOnly": True}, task.run({}))
 
 
     def test_t2_fake_ports_keep_case_boundaries_explicit(self) -> None:

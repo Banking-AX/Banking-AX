@@ -21,6 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessTokenState, setAccessTokenState] = useState<string | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
   const userRef = useRef<AuthUser | null>(null)
+  // A late bootstrap refresh must never clear a session established by login.
+  const sessionGeneration = useRef(0)
 
   const applyUser = useCallback((next: AuthUser | null, token: string | null = null) => {
     userRef.current = next
@@ -36,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
+    const bootstrapGeneration = sessionGeneration.current
     // The HttpOnly refresh cookie is the only real-mode bootstrap credential.
     authApi.refresh()
-      .then(session => { if (active) applySession(session) })
-      .catch(() => { if (active) applyUser(null) })
+      .then(session => { if (active && sessionGeneration.current === bootstrapGeneration) applySession(session) })
+      .catch(() => { if (active && sessionGeneration.current === bootstrapGeneration) applyUser(null) })
     return () => { active = false }
   }, [applySession, applyUser])
 
@@ -51,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     setAuthenticationLostHandler(() => {
       if (!userRef.current) return
+      sessionGeneration.current += 1
       applyUser(null)
       navigate('/login?reason=expired', { replace: true })
     })
@@ -62,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (loginId: string, password: string) => {
     const session = await authApi.login(loginId, password)
+    sessionGeneration.current += 1
     applySession(session)
     return { userId: session.userId, name: session.name, role: session.role }
   }, [applySession])
@@ -70,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout()
     } finally {
+      sessionGeneration.current += 1
       applyUser(null)
     }
   }, [applyUser])

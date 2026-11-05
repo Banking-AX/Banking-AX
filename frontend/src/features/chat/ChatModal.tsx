@@ -142,7 +142,7 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
           mergeMessages([run.customerMessage])
           throw new ApiError('AGENT_MESSAGE_NOT_SAVED', 502, 'Agent answer was not saved.')
         }
-        if (run.agentResult.outcome === 'STARTED' && !run.financialOperationCompleted) {
+        if (run.agentResult.outcome === 'STARTED' && run.agentResult.executionStatus && !run.financialOperationCompleted) {
           mergeMessages([run.customerMessage, run.agentMessage])
           throw new ApiError('FINANCIAL_OPERATION_NOT_COMPLETED', 502, 'Financial operation completion was not confirmed.')
         }

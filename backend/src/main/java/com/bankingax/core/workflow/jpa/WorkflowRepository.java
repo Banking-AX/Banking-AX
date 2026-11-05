@@ -11,6 +11,9 @@ interface WorkflowRepository extends JpaRepository<WorkflowEntity, Long> {
     @Query(value = "select exists(select 1 from `user` u where u.id = :customerId and u.role = 'CUSTOMER' and u.is_active = true)", nativeQuery = true)
     int existsActiveCustomerById(@Param("customerId") long customerId);
 
+    @Query(value = "select id from `user` where id = :customerId and role = 'CUSTOMER' and is_active = true for update", nativeQuery = true)
+    Optional<Long> lockActiveCustomerById(@Param("customerId") long customerId);
+
     @Query(value = "select exists(select 1 from chat_room r where r.id = :chatRoomId)", nativeQuery = true)
     int existsChatRoomById(@Param("chatRoomId") long chatRoomId);
 
