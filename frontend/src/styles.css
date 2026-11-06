@@ -276,14 +276,7 @@ body { margin: 0; font-family: var(--font-family-base); }
 .chat-loan-body { flex: 1 1 0; max-width: 640px; gap: 8px; }
 .chat-loan-bubble { align-self: stretch; padding: 0; overflow: hidden; white-space: normal; }
 .chat-loan-summary { padding: 12px 16px; font-size: 15px; }
-.chat-loan-scroll { overflow-x: auto; }
-.chat-loan-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
-.chat-loan-th { text-align: left; padding: 8px 10px; font-weight: var(--font-weight-medium); color: #4B5563; background: #F7F8FA; }
-.chat-loan-td { padding: 8px 10px; border-top: 1px solid #F0F1F3; text-align: left; }
-.chat-loan-sub { color: var(--color-text-sub); }
-.chat-loan-overdue { color: var(--color-error); font-weight: var(--font-weight-bold); }
 .chat-loan-note { font-size: var(--font-size-caption); color: var(--color-text-sub); }
-.chat-loan-scroll:focus-visible { outline: 2px solid #2E70C3; outline-offset: 2px; }
 
 /* Mock signature + SMS flow (docs/design-ref/ESign.dc.html).
    Element rules above (section, nav) are overridden by the sign- section and nav classes. */

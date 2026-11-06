@@ -36,11 +36,15 @@ export type LoanSummary = {
   repaymentOrder: string
 }
 
+/** One task of a composite request, taken from the classifier output (classification.tasks). */
+export type CompositeTask = { order: number; taskCode: TaskCode }
+
 export type ChatReply =
   | { kind: 'message'; answer: string }
+  | { kind: 'information'; answer: string }
   | { kind: 'clarify'; question: string }
   | { kind: 'unsupported'; reason: string }
-  | { kind: 'composite'; answer?: string }
+  | { kind: 'composite'; answer?: string; tasks?: CompositeTask[] }
   | { kind: 'notStartable'; taskCode?: TaskCode; answer?: string }
   | { kind: 'started'; taskCode: TaskCode; workItemId: number; answer: string }
   | { kind: 'taskAction'; answer: string; action: ChatTaskAction }
@@ -115,6 +119,21 @@ export const chatApi = {
   },
 }
 
+const TASK_CODES = new Set<string>(['TRANSACTION_SEARCH', 'LOAN_INQUIRY', 'REPAYMENT_ORDER_CHANGE', 'HOUSING_SAVINGS_CLOSE', 'DEBT_ADJUSTMENT', 'INHERITANCE_DEPOSIT'])
+
+/** Reads classification.tasks defensively; anything unexpected yields no list rather than a guessed one. */
+function compositeTasks(classification: unknown): CompositeTask[] | undefined {
+  if (typeof classification !== 'object' || classification === null) return undefined
+  const tasks = (classification as { tasks?: unknown }).tasks
+  if (!Array.isArray(tasks)) return undefined
+  const parsed = tasks.flatMap(task => {
+    const { order, taskCode } = (task ?? {}) as { order?: unknown; taskCode?: unknown }
+    return typeof order === 'number' && typeof taskCode === 'string' && TASK_CODES.has(taskCode)
+      ? [{ order, taskCode: taskCode as TaskCode }] : []
+  })
+  return parsed.length > 1 ? parsed.sort((left, right) => left.order - right.order) : undefined
+}
+
 export function replyFromAgentRun(run: AgentRun): ChatReply {
   const answer = run.agentMessage?.content || run.agentResult.answer || '요청 결과를 확인하지 못했어요.'
   const loans = run.agentResult.loanInquiry?.loans
@@ -128,7 +147,8 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   switch (run.agentResult.outcome) {
     case 'CLARIFICATION_REQUIRED': return { kind: 'clarify', question: answer }
     case 'UNSUPPORTED': return { kind: 'unsupported', reason: answer }
-    case 'COMPOSITE_NOT_SUPPORTED': return { kind: 'composite', answer }
+    case 'COMPOSITE_NOT_SUPPORTED': return { kind: 'composite', answer, tasks: compositeTasks(run.agentResult.classification) }
+    case 'INFORMATION_ONLY': return { kind: 'information', answer }
     case 'TASK_NOT_AUTOSTART_ENABLED': return { kind: 'notStartable', taskCode: run.agentResult.workflow?.taskCode, answer }
     default: return { kind: 'message', answer }
   }
