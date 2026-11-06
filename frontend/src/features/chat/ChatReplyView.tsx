@@ -2,7 +2,9 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ChatReply, TaskCode } from '../../api/chat'
 import { LoanTable } from './LoanTable'
+import { b01Guide, c02Guide } from './chatGuideCopy'
 import './chat-reply.css'
+import './chat-task.css'
 
 // The six tasks this assistant supports (docs/design-ref/ChatSystem.dc.html). Names and tags are fixed service copy;
 // "A · 채팅에서 조회" is only true for the loan inquiry, so the transaction search keeps the plain "A · 조회" tag.
@@ -58,6 +60,8 @@ export function replyText(reply: ChatReply): string {
   }
 }
 
+const MOVE_ARROW = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+
 function taskPath(taskCode: Extract<ChatReply, { kind: 'started' }>['taskCode'], workItemId: number): string {
   switch (taskCode) {
     case 'TRANSACTION_SEARCH': return `/tasks/a01/${workItemId}`
@@ -99,6 +103,27 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
       })}
     </ol>}>{replyText(reply)}</BotMessage>
   }
+  if (reply.kind === 'started' && reply.taskCode === 'INHERITANCE_DEPOSIT') {
+    // ChatInherit.dc.html: guidance box and the button to the C-02 intake page (server workItemId).
+    const guide = c02Guide()
+    return <BotMessage label="AI 금융 도우미" time={time} after={<>
+      <div className="chat-task-know">
+        <div className="chat-task-know__title">{guide.knowTitle}</div>
+        <ul className="chat-task-know__list">
+          {guide.know.map(item => <li key={item.text}>{item.lead && <strong>{item.lead}</strong>}{item.lead ? ' ' : ''}{item.text}</li>)}
+        </ul>
+      </div>
+      <div className="chat-b-go">
+        <Link to={taskPath(reply.taskCode, reply.workItemId)} className="chat-b-button chat-b-button--primary">상속예금 사전접수 화면으로 이동{MOVE_ARROW}</Link>
+      </div>
+    </>}>{reply.answer}</BotMessage>
+  }
+  if (reply.kind === 'notStartable' && reply.taskCode === 'DEBT_ADJUSTMENT') {
+    // The server does not start C-01 from the chat; /tasks/c01 explains that the intake is not connected yet.
+    return <BotMessage label={replyLabel(reply)} time={time} after={<div className="chat-b-go">
+      <Link to="/tasks/c01" className="chat-b-button chat-b-button--primary">채무조정 접수 화면으로 이동{MOVE_ARROW}</Link>
+    </div>}>{replyText(reply)}</BotMessage>
+  }
   if (reply.kind === 'started') {
     return <BotMessage label="AI 금융 도우미" time={time}>
       <p>{reply.answer}</p>
@@ -106,12 +131,20 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
     </BotMessage>
   }
   if (reply.kind === 'taskAction') {
-    return <BotMessage label={replyLabel(reply)} time={time}>
-      <p>{reply.answer}</p>
-      <button type="button" className="chat-error__retry" disabled={actionPending} onClick={onTaskAction}>
-        {actionPending ? '신청 화면을 준비하고 있어요' : reply.action.label}
-      </button>
-    </BotMessage>
+    // ChatConsent.dc.html (guide). The button keeps the server action; only its label follows the design decision.
+    const guide = b01Guide()
+    return <BotMessage label={replyLabel(reply)} time={time} after={<>
+      <p className="chat-b-scenario">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="chat-b-scenario__icon"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>
+        {guide.scenario}
+      </p>
+      <div className="chat-b-go">
+        <button type="button" className="chat-b-button chat-b-button--primary" disabled={actionPending} onClick={onTaskAction}>
+          {actionPending ? '신청 화면을 준비하고 있어요' : <>채무변제 충당순서 변경{MOVE_ARROW}</>}
+        </button>
+        <span className="chat-b-go__note">{guide.moveNote}</span>
+      </div>
+    </>}>{reply.answer}</BotMessage>
   }
   return <BotMessage label={replyLabel(reply)} time={time}>{replyText(reply)}</BotMessage>
 }

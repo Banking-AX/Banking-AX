@@ -134,6 +134,15 @@ function compositeTasks(classification: unknown): CompositeTask[] | undefined {
   return parsed.length > 1 ? parsed.sort((left, right) => left.order - right.order) : undefined
 }
 
+/** Task code of a single classified task, used when the server started no workflow (e.g. TASK_NOT_AUTOSTART_ENABLED). */
+function singleTaskCode(classification: unknown): TaskCode | undefined {
+  if (typeof classification !== 'object' || classification === null) return undefined
+  const tasks = (classification as { tasks?: unknown }).tasks
+  if (!Array.isArray(tasks) || tasks.length !== 1) return undefined
+  const taskCode = (tasks[0] ?? {} as { taskCode?: unknown }).taskCode
+  return typeof taskCode === 'string' && TASK_CODES.has(taskCode) ? taskCode as TaskCode : undefined
+}
+
 export function replyFromAgentRun(run: AgentRun): ChatReply {
   const answer = run.agentMessage?.content || run.agentResult.answer || '요청 결과를 확인하지 못했어요.'
   const loans = run.agentResult.loanInquiry?.loans
@@ -149,7 +158,7 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
     case 'UNSUPPORTED': return { kind: 'unsupported', reason: answer }
     case 'COMPOSITE_NOT_SUPPORTED': return { kind: 'composite', answer, tasks: compositeTasks(run.agentResult.classification) }
     case 'INFORMATION_ONLY': return { kind: 'information', answer }
-    case 'TASK_NOT_AUTOSTART_ENABLED': return { kind: 'notStartable', taskCode: run.agentResult.workflow?.taskCode, answer }
+    case 'TASK_NOT_AUTOSTART_ENABLED': return { kind: 'notStartable', taskCode: run.agentResult.workflow?.taskCode ?? singleTaskCode(run.agentResult.classification), answer }
     default: return { kind: 'message', answer }
   }
 }

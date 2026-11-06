@@ -1,0 +1,12 @@
+/* Task guidance inside chat answers (docs/design-ref/ChatConsent.dc.html, ChatInherit.dc.html, ChatCollect.dc.html).
+   Reuses the chat-b-* rules in styles.css (scenario note, primary button, move note). This file loads before
+   styles.css, so rules that override a styles.css rule use a more specific selector. */
+
+/* "미리 알아두세요" box under the C-02 answer. */
+.chat-task-know { background: #FFFFFF; border: 1px solid #D5E3F5; border-radius: 12px; overflow: hidden; font-size: 14px; }
+.chat-task-know__title { padding: 10px 16px; background: #F7FAFE; border-bottom: 1px solid var(--color-line); font-weight: var(--font-weight-bold); }
+.chat-task-know__list { margin: 0; padding: 12px 16px 12px 34px; display: flex; flex-direction: column; gap: 6px; line-height: 1.6; color: #374151; }
+
+/* Move buttons follow the design: left aligned, arrow after the label, locked while the server prepares the page. */
+.chat-b-go .chat-b-button:disabled { background: #9CA3AF; cursor: not-allowed; }
+.chat-b-go .chat-b-button:focus-visible { outline: 2px solid var(--color-primary-dark); outline-offset: 2px; }
