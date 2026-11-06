@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ApiError } from '../../api/client'
 import { toUserMessage } from '../../api/errorMessages'
 import { chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRunRequest, type ChatMessage, type ChatReply, type ChatRoom, type ChatTaskAction } from '../../api/chat'
-import { BotAvatar, BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
+import { BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
 import { useNavigate } from 'react-router-dom'
 import { DOCK_STAGES, DockStageChip, DOCK_ROBOT, type DockStage } from './ChatDock'
 import { useChatDock } from './chatDockContext'
@@ -319,8 +319,8 @@ export function ChatModal() {
             {currentRoom && <span className="chat-dock__sub">{roomStartedLabel(currentRoom.createdAt)}</span>}
             <DockStageChip stage={stage} />
           </div>
-          <button type="button" aria-label="도크 접기" onClick={collapse} className="chat-dock__collapse">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          <button type="button" aria-label="대화 기록 닫기" onClick={backToChat} className="chat-dock__close">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
           </button>
         </div> : <div className="chat-dock__bar">
           <span className="chat-dock__logo">{DOCK_ROBOT}</span>
@@ -331,8 +331,8 @@ export function ChatModal() {
           <button ref={historyButtonRef} type="button" onClick={openHistory} disabled={DOCK_STAGES[stage].locksInput} className="chat-dock__history-button">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>
             대화 기록</button>
-          <button type="button" aria-label="도크 접기" onClick={collapse} className="chat-dock__collapse">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          <button type="button" aria-label="AI 도우미 닫기" onClick={collapse} className="chat-dock__collapse">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
           </button>
         </div>}
         {view === 'room'
@@ -347,7 +347,7 @@ export function ChatModal() {
         <BotMessage label="AI 금융 도우미" time={formatTime(openedAt)}>안녕하세요! AX AI 금융 도우미입니다.<br />어떤 금융업무를 도와드릴까요?</BotMessage>
 
         {screen?.guide && <div className="chat-dock__guide">
-          <span className="chat-dock__guide-tag"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>이 화면 안내</span>
+          <span className="chat-dock__guide-tag">이 화면 안내</span>
           <span className="chat-dock__guide-text">{screen.guide}</span>
         </div>}
 
@@ -396,7 +396,8 @@ export function ChatModal() {
         {actionError && <div role="alert" className="chat-error__box"><span className="chat-error__text">{actionError}</span></div>}
 
         {(pending || roomLoading) && <div className="chat-typing">
-          <BotAvatar />
+          {/* ChatModal.dc.html: the waiting bubble uses a plain avatar circle. */}
+          <span className="chat-avatar" aria-hidden="true"></span>
           <div role="status" className="chat-typing__bubble">
             <span className="chat-typing__dot"></span>
             <span className="chat-typing__dot"></span>
@@ -422,7 +423,7 @@ export function ChatModal() {
           </button>
         </div>
         <p id="chat-input-hint" aria-live="polite" className="chat-hint">{hint}</p>
-        <p className="chat-footnote">AI 안내는 참고용이에요. 서명·인증·동의는 직접 해 주세요.</p>
+        <p className="chat-footnote">{pending ? '응답 생성 중에는 입력이 잠겨요. 업무 전용 화면으로 이동한 동안에도 채팅 입력은 받지 않아요.' : 'AI 안내는 참고용이에요. 서명·인증·동의는 직접 해 주세요.'}</p>
       </footer>
     </section>, slot)
 }
