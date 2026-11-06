@@ -148,10 +148,6 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
     // ChatConsent.dc.html (guide). The button keeps the server action; only its label follows the design decision.
     const guide = b01Guide()
     return <BotMessage label={replyLabel(reply)} time={time} after={<>
-      <p className="chat-b-scenario">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="chat-b-scenario__icon"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>
-        {guide.scenario}
-      </p>
       <div className="chat-b-go">
         <button type="button" className="chat-b-button chat-b-button--primary" disabled={actionPending} onClick={onTaskAction}>
           {actionPending ? '신청 화면을 준비하고 있어요' : <>채무변제 충당순서 변경{MOVE_ARROW}</>}

@@ -95,7 +95,7 @@ export function LoginPage() {
               {error && <span id="login-err" role="alert" className="login-error"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5h.01"></path></svg>{errorMessage}</span>}
             </div>
             <button type="submit" disabled={submitting} aria-busy={submitting} className="login-submit">로그인</button>
-            <p className="login-help">시연용으로 미리 등록된 계정만 사용해요. 회원가입과 아이디·비밀번호 찾기는 제공하지 않아요.</p>
+            <p className="login-help">회원가입과 아이디·비밀번호 찾기는 제공하지 않아요.</p>
             <a className="login-staff-link" aria-disabled="true">직원이신가요? 직원 로그인</a>
           </form>}
 
@@ -108,10 +108,6 @@ export function LoginPage() {
         </div>
       </section>
 
-      <div className="login-notice">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="login-notice__icon"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"></path></svg>
-        <span><strong className="login-notice__strong">교육용 시연 화면입니다.</strong> 실제 은행 아이디나 비밀번호를 입력하지 마세요. 시연용 테스트 계정: <span className="login-notice__account">customer_demo / demo-customer-pass</span></span>
-      </div>
     </main>
 
     <SiteFooter />

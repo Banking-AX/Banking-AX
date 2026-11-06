@@ -61,7 +61,7 @@ const DETAILS: Record<string, WorkRecordDetail> = {
     basis: 'B02-01 – 이율 자격 입증서류 ②③ · 무주택 판단기준',
     timeline: [
       { time: '2026-10-21T14:20:00+09:00', text: '해지 화면 이어서 진행 · 청년주택드림 이율 선택', tone: 'gray' },
-      { time: '2026-10-21T14:31:00+09:00', text: '과세증명서 확인 · 과세사실 있음 (OCR 미적용 · 모의 과세정보)', tone: 'gray' },
+      { time: '2026-10-21T14:31:00+09:00', text: '과세증명서 확인 · 과세사실 있음 (OCR 미적용)', tone: 'gray' },
       { time: '2026-10-21T14:34:00+09:00', text: '규칙 B2-R5 판정 → 영업점 상담 필요 (MANUAL_REVIEW)', tone: 'amber' },
       { time: '2026-10-21T14:34:00+09:00', text: '상담 필요 안내 이메일 발송', tone: 'blue' },
     ],

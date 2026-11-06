@@ -7,7 +7,6 @@
 export type GuideItem = { lead?: string; text: string }
 
 const B01_GUIDE = {
-  scenario: '실제로는 영업점 방문이 필요한 업무예요. 이 프로젝트에서는 ‘규칙이 명확한 영업점 업무를 비대면으로 처리한다면’이라는 가정 시나리오로 보여드려요.',
   // "끝나면 이 대화로 돌아와요" is left out until the task pages return to the dock.
   moveNote: '지금 탭에서 전용 화면이 열려요. 변경 가능 여부는 그 화면에서 규칙으로 다시 확인해요.',
 }
@@ -27,7 +26,7 @@ export function serverOr<T>(serverValue: T | null | undefined, fallback: T): T {
 }
 
 export function b01Guide(server?: Partial<typeof B01_GUIDE>) {
-  return { scenario: serverOr(server?.scenario, B01_GUIDE.scenario), moveNote: serverOr(server?.moveNote, B01_GUIDE.moveNote) }
+  return { moveNote: serverOr(server?.moveNote, B01_GUIDE.moveNote) }
 }
 
 export function c02Guide(server?: Partial<typeof C02_GUIDE>) {

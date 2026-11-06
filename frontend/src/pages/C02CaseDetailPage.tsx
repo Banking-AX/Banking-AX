@@ -89,7 +89,7 @@ export function C02CaseDetailPage() {
           <ul className="c02-bring">{groups.visitOnly.map(row => <li key={row.key}><span>{row.title}</span><b>방문 시 필수</b></li>)}<li><span>업로드한 서류의 원본 (3개월 이내 발급)</span><b>방문 시 필수</b></li>{heirs.filter(heir => heir.visitStatus === 'UNCONFIRMED_ABSENT').map(heir => <li key={heir.personRef} className="is-conditional"><span>{heir.name}님이 오지 못하는 경우: 신분증 사본, 인감증명서(본인발급용·3개월 이내), 인감 날인 위임장 — 또는 AX뱅크 앱 위임장 접수번호</span><b>불참 시</b></li>)}</ul>
           <p className="c02-notice">‘진행 가능’과 방문 예약은 예금 지급이 확정되었다는 뜻이 아니에요. 실제 지급 여부는 방문했을 때 영업점에서 원본을 확인한 뒤 정해져요.</p>
         </>}
-        {decision.outcome !== 'PROCEED' && <p className="c02-notice">이 결과는 모의 접수 검토 결과이며 법정 통지·최종 결정이 아니에요. 다시 신청하면 새 접수로 진행돼요.</p>}
+        {decision.outcome !== 'PROCEED' && <p className="c02-notice">이 결과는 사전 검토 결과이며 법정 통지·최종 결정이 아니에요. 다시 신청하면 새 접수로 진행돼요.</p>}
       </div>
     </section>}
 
@@ -131,7 +131,6 @@ function SubmittedModal({ number, submittedAt, heirCount, documentCount, pill, o
     <div className="c02-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="c02-submitted-title" onClick={event => event.stopPropagation()}>
       <span className="c02-modal__check" aria-hidden="true">✓</span>
       <h2 id="c02-submitted-title">상속예금 사전접수가 등록되었습니다</h2>
-      <span className="c02-modal__poc">PoC 모의 접수 · 실제 법정 신청 접수를 뜻하지 않아요</span>
       <dl className="c02-modal__summary">
         <div><dt>업무 유형</dt><dd><b>상속예금 해지 및 지급 사전접수</b></dd></div>
         <div><dt>접수번호</dt><dd className="c02-mono c02-accent">{number}</dd></div>

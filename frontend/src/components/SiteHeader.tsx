@@ -27,7 +27,6 @@ export function SiteHeader({ spot = false }: { spot?: boolean }) {
           <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="#FFFFFF"></rect><path d="M8 22 L12.5 10 L17 22 M9.8 17.5 H15.2" stroke="#2E70C3" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"></path><path d="M19 13 L24.5 21.5 M24.5 13 L19 21.5" stroke="#C9682A" strokeWidth="2.4" strokeLinecap="round"></path></svg>
           <span className="site-header__brand-name">AX뱅크</span>
         </Link>
-        <span className="site-header__demo-tag">교육용 시연</span>
         <nav aria-label="고객 구분" className="site-header__segment">
           <Link to="/" aria-current="page" tabIndex={dimmedTabIndex} className="site-header__segment-link site-header__segment-link--active">개인</Link>
           <a className="site-header__segment-link" aria-disabled="true">기업</a>

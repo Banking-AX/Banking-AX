@@ -119,14 +119,14 @@ export function VisitReservationPage() {
     <div className="c02-reserve">
       <div className="c02-detail__stack">
         <section className="c02-detail__card"><h2>1. 영업점</h2>
-          <div className="c02-branches">{branches.length === 0 ? <p className="c02-notice">예약 가능한 영업점이 없어요.</p> : branches.map(item => <button type="button" key={item.id} className={`c02-branch${branchId === item.id ? ' is-selected' : ''}`} aria-pressed={branchId === item.id} onClick={() => setBranchId(item.id)}><span><b>{item.name}</b><small>{item.address} · 평일 10:00–16:00 (모의)</small></span><em>상속예금 상담 가능</em></button>)}</div>
+          <div className="c02-branches">{branches.length === 0 ? <p className="c02-notice">예약 가능한 영업점이 없어요.</p> : branches.map(item => <button type="button" key={item.id} className={`c02-branch${branchId === item.id ? ' is-selected' : ''}`} aria-pressed={branchId === item.id} onClick={() => setBranchId(item.id)}><span><b>{item.name}</b><small>{item.address} · 평일 10:00–16:00</small></span><em>상속예금 상담 가능</em></button>)}</div>
         </section>
         <section className="c02-detail__card"><h2>2. 방문 날짜</h2>
           <div className="c02-days">{days.map((item, index) => { const closed = isWeekend(item); const key = dayKey(item); return <button type="button" key={key} disabled={closed} className={day === key ? 'is-selected' : ''} aria-pressed={day === key} onClick={() => { setDay(key); setHour(null) }}><small>{WEEKDAY[item.getDay()]}</small><b>{item.getDate()}</b>{closed ? <small>휴무</small> : index === 0 ? <small>내일</small> : null}</button> })}</div>
         </section>
         <section className="c02-detail__card"><div className="c02-card__title"><h2>3. 방문 시간</h2><span>{selectedDay ? `${dayLabel(selectedDay)} · 1시간 단위` : '날짜를 먼저 골라 주세요'}</span></div>
           <div className="c02-hours">{HOURS.map(value => { const open = selectedDay ? bookable(slotTime(selectedDay, value)) : false; return <button type="button" key={value} disabled={!open} className={hour === value ? 'is-selected' : ''} aria-pressed={hour === value} onClick={() => setHour(value)}><b>{pad2(value)}:00</b>{selectedDay && !open && <small>마감</small>}</button> })}</div>
-          <p className="c02-helper c02-helper--muted">영업점 운영시간·슬롯 단위·예약 가능 기간은 시연용 모의값이에요. 방문 24시간 이내 시간은 고를 수 없어요.</p>
+          <p className="c02-helper c02-helper--muted">방문 24시간 이내 시간은 고를 수 없어요.</p>
         </section>
       </div>
       <aside className="c02-detail__card c02-reserve__summary"><h2>선택한 일정</h2>
