@@ -3,18 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { toUserMessage } from '../api/errorMessages'
 import { createRealLoanAccountsAdapter, type CustomerLoan, type CustomerLoanList, type RepaymentStep } from '../api/loans'
 import { createMockLoanAccountsAdapter, type LoanMockScenario } from '../api/mock/loansMock'
-import { useAuth } from '../auth/AuthContext'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
-import { ChatDockColumn } from '../features/chat/ChatDock'
-import { useChatDock, type DockScreen } from '../features/chat/chatDockContext'
 import { loanPageGuide } from '../features/chat/chatGuideCopy'
 import '../features/loans/loan-accounts.css'
 
 type State = { kind: 'loading' } | { kind: 'ready'; data: CustomerLoanList } | { kind: 'error'; message: string }
 
 const GUIDE = loanPageGuide()
-const SCREEN: DockScreen = { name: '대출계좌 정보 조회', guide: GUIDE.dockGuide }
 const STEP_LABELS = new Map<RepaymentStep, string>([['COST', '비용'], ['INTEREST', '이자'], ['PRINCIPAL', '원금']])
 const ORDER_STEPS = new Map<CustomerLoan['repaymentOrder'], RepaymentStep[]>([
   ['INTEREST_FIRST', ['COST', 'INTEREST', 'PRINCIPAL']],
@@ -51,8 +47,6 @@ function mockScenario(value: string | null): LoanMockScenario | null {
 /** A-02 loan account page (docs/design-ref/A02Page.dc.html). Every value comes from the adapter; nothing is fabricated. */
 export function LoanAccountsPage() {
   const [params] = useSearchParams()
-  const { user } = useAuth()
-  const { start, setScreen } = useChatDock()
   // The real API is the default; the Mock sample exists only in DEV with ?mock=1|empty|error.
   // import.meta.env.DEV is a build-time constant, so production bundles drop the Mock adapter entirely.
   const scenario = import.meta.env.DEV ? mockScenario(params.get('mock')) : null
@@ -69,11 +63,6 @@ export function LoanAccountsPage() {
   }, [adapter])
 
   useEffect(() => load(), [load])
-
-  useEffect(() => {
-    setScreen(SCREEN)
-    return () => setScreen(null)
-  }, [setScreen])
 
   return <div className="loan-page">
     <SiteHeader spot />
@@ -96,14 +85,11 @@ export function LoanAccountsPage() {
 
           <p className="loan-footnote">카드론 등 AX뱅크 대출이 아닌 상품은 조회되지 않아요</p>
           <div className="loan-actions">
-            {/* The chat lives in this page's dock; returning to the chat opens it here. */}
-            {user?.role === 'CUSTOMER' && <button type="button" onClick={start} className="loan-button loan-button--primary">대화로 돌아가기</button>}
             <Link to="/" className="loan-button loan-button--plain">홈으로</Link>
           </div>
         </main>
         <SiteFooter />
       </div>
-      <ChatDockColumn />
     </div>
   </div>
 }

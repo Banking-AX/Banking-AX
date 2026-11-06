@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import { screenForPath } from './chatGuideCopy'
 
 /** What the current page tells the dock: the "현재 화면" line and the "이 화면 안내" card. */
 export type DockScreen = { name: string; guide?: ReactNode }
@@ -16,9 +18,10 @@ type ChatDockValue = {
   collapse: () => void
   expand: () => void
   noteAgentReply: () => void
-  /** The element of the current page's dock column; the chat card is portaled into it. */
+  /** The dock's slot element; the chat card is portaled into it. */
   slot: HTMLElement | null
   setSlot: (element: HTMLElement | null) => void
+  /** The page's own screen (setScreen) or, when it sets none, the route table in chatGuideCopy.ts. */
   screen: DockScreen | null
   setScreen: (screen: DockScreen | null) => void
   focusRequest: DockFocusRequest
@@ -33,7 +36,9 @@ export function ChatDockProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [unseen, setUnseen] = useState(0)
   const [slot, setSlot] = useState<HTMLElement | null>(null)
-  const [screen, setScreen] = useState<DockScreen | null>(null)
+  const [pageScreen, setScreen] = useState<DockScreen | null>(null)
+  const { pathname } = useLocation()
+  const screen = pageScreen ?? screenForPath(pathname)
   const [focusRequest, setFocusRequest] = useState<DockFocusRequest>(null)
   const collapsedRef = useRef(collapsed)
   collapsedRef.current = collapsed

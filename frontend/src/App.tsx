@@ -9,6 +9,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { useAuth } from './auth/AuthContext'
 import { ChatModal } from './features/chat/ChatModal'
 import { ChatDockProvider } from './features/chat/chatDockContext'
+import { ChatDockHost } from './features/chat/ChatDock'
 import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02CaseDetailPage } from './pages/C02CaseDetailPage'
@@ -68,5 +69,6 @@ export function App() {
     <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     {status === 'authenticated' && user?.role === 'CUSTOMER' && <ChatModal />}
+    <ChatDockHost />
   </ChatDockProvider>
 }

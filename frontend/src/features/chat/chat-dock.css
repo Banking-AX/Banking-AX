@@ -2,10 +2,11 @@
    main.tsx imports App (and this file) before styles.css, so this file loads first. Rules that override a
    styles.css rule therefore use a more specific selector instead of relying on order. */
 
-/* The column has no width: the dock floats over the page, starts below the header and sticks to the top. */
-.chat-dock-col { flex: 0 0 0; width: 0; position: sticky; top: 0; align-self: flex-start; z-index: 40; }
-.chat-dock-inner { position: absolute; top: 0; right: 0; width: 456px; padding: 16px 16px 16px 0; }
-.chat-dock-slot { height: min(780px, calc(100vh - 32px)); }
+/* Fixed on the right over the page (mounted once in App). --chat-dock-top is the header bottom + 16px, set by ChatDockHost,
+   so the dock starts below the header and sticks 16px from the top once the header scrolls away. */
+.chat-dock-col { position: fixed; top: var(--chat-dock-top, 16px); right: 0; z-index: 40; width: 456px; }
+.chat-dock-inner { padding: 0 16px 16px 0; }
+.chat-dock-slot { height: min(780px, calc(100vh - var(--chat-dock-top, 16px) - 16px)); }
 
 /* Closed dock: only the round button (with the unread badge) remains, at every width. */
 .chat-dock-round { display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 40; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: var(--color-primary); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24); align-items: center; justify-content: center; cursor: pointer; }
@@ -25,8 +26,8 @@
 .chat-dock-card--room .chat-footnote { margin-top: 8px; }
 
 @media (max-width: 1279px) {
-  .chat-dock-col { position: fixed; right: 0; bottom: 0; top: auto; width: 456px; flex: none; }
-  .chat-dock-inner { position: static; width: auto; padding: 0 16px 16px 0; }
+  .chat-dock-col { top: auto; bottom: 0; }
+  .chat-dock-slot { height: min(780px, calc(100vh - 32px)); }
 }
 @media (max-width: 1023px) {
   .chat-dock-col { left: 0; width: auto; }

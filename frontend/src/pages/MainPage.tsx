@@ -1,10 +1,8 @@
-import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
-import { ChatDockColumn } from '../features/chat/ChatDock'
-import { useChatDock, type DockScreen } from '../features/chat/chatDockContext'
+import { useChatDock } from '../features/chat/chatDockContext'
 
 const ARROW_CIRCLE = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M10.5 8.5L14 12l-3.5 3.5"></path></svg>
 
@@ -24,21 +22,10 @@ const PRODUCTS = [
   { label: '퇴직연금', icon: <><path d="M12 3a8 8 0 0 1 8 8H4a8 8 0 0 1 8-8z"></path><path d="M12 11v7a2 2 0 0 1-4 0"></path></> },
 ]
 
-// Dock copy from docs/design-ref/Main.dc.html.
-const MAIN_SCREEN: DockScreen = {
-  name: '개인뱅킹 메인',
-  guide: <>개인뱅킹 메인 화면이에요. 아래에서 업무를 고르거나 하고 싶은 일을 말씀해 주세요. 신청 기록은 위쪽 <strong>[업무 요청 기록]</strong>에서 볼 수 있어요.</>,
-}
-
 export function MainPage() {
   const { status, user } = useAuth()
   const navigate = useNavigate()
-  const { started, start, setScreen } = useChatDock()
-
-  useEffect(() => {
-    setScreen(MAIN_SCREEN)
-    return () => setScreen(null)
-  }, [setScreen])
+  const { start } = useChatDock()
 
   const startChat = () => {
     if (status === 'authenticated' && user?.role === 'CUSTOMER') start()
@@ -168,10 +155,10 @@ export function MainPage() {
 
         <SiteFooter />
       </div>
-      <ChatDockColumn />
     </div>
 
-    {!started && <button type="button" onClick={startChat} disabled={loading || chatForbidden} className="main-fab">
+    {/* Signed out (or still loading) only: the pill leads to the login. Signed in, the global dock's round button takes over. */}
+    {status !== 'authenticated' && <button type="button" onClick={startChat} disabled={loading} className="main-fab">
       <span className="main-fab__icon">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2E70C3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2z"></path><path d="M12 7.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="#2E70C3"></path></svg>
       </span>
