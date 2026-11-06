@@ -33,3 +33,13 @@ export function b01Guide(server?: Partial<typeof B01_GUIDE>) {
 export function c02Guide(server?: Partial<typeof C02_GUIDE>) {
   return { knowTitle: serverOr(server?.knowTitle, C02_GUIDE.knowTitle), know: serverOr(server?.know, C02_GUIDE.know) }
 }
+
+const LOAN_PAGE_GUIDE = {
+  overdueNote: '연체 중인 대출은 충당순서 변경이나 채무조정을 요청할 수 있어요. 요청은 대화에서 하시고, 가능 여부는 각 업무 화면에서 규칙으로 확인해요.',
+  dockGuide: '고객님 명의 대출의 잔액·금리·연체 상태예요. 궁금한 점은 대화로 돌아가 물어보세요.',
+}
+
+/** Loan account page (docs/design-ref/A02Page.dc.html): rule note under overdue loans and the dock's screen guide. */
+export function loanPageGuide(server?: Partial<typeof LOAN_PAGE_GUIDE>) {
+  return { overdueNote: serverOr(server?.overdueNote, LOAN_PAGE_GUIDE.overdueNote), dockGuide: serverOr(server?.dockGuide, LOAN_PAGE_GUIDE.dockGuide) }
+}
