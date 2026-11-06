@@ -1,0 +1,26 @@
+/* A-01 chat lookup (docs/design-ref/ChatLookup.dc.html). New classes only; loaded before styles.css. */
+.chat-lookup-card { background: #FFFFFF; border: 1px solid #D5E3F5; border-radius: 12px; overflow: hidden; }
+.chat-lookup-card__head { display: flex; flex-direction: column; gap: 2px; padding: 10px 16px; background: #F7FAFE; border-bottom: 1px solid var(--color-line); font-size: 13px; }
+.chat-lookup-card__period { color: #4B5563; }
+.chat-lookup-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chat-lookup-table th { text-align: left; padding: 7px 8px; font-weight: var(--font-weight-medium); color: var(--color-text-sub); }
+.chat-lookup-table td { padding: 7px 8px; border-top: 1px solid #F0F1F3; vertical-align: top; }
+.chat-lookup-table th:first-child, .chat-lookup-table td:first-child { padding-left: 16px; white-space: nowrap; }
+.chat-lookup-table th:last-child, .chat-lookup-table td:last-child { padding-right: 16px; }
+.chat-lookup-table .chat-lookup-table__amount { text-align: right; white-space: nowrap; }
+.chat-lookup-table .chat-lookup-table__amount--in { color: var(--color-primary-dark); }
+.chat-lookup-table__text { overflow-wrap: anywhere; }
+.chat-lookup-card__foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 16px; border-top: 1px solid var(--color-line); background: #FAFBFC; font-size: 12px; color: #4B5563; }
+.chat-lookup-more { align-self: flex-start; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; padding: 0 18px; border: 1px solid var(--color-primary); border-radius: 8px; background: #FFFFFF; color: var(--color-primary-dark); font-size: 14px; font-weight: var(--font-weight-bold); text-decoration: none; }
+.chat-lookup-note { font-size: 12px; color: var(--color-text-sub); }
+.chat-lookup-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-lookup-pill { padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #D5E3F5; color: var(--color-primary-dark); font-family: inherit; font-size: 13px; cursor: pointer; }
+.chat-lookup-pill:disabled { opacity: 0.6; cursor: not-allowed; }
+.chat-lookup-more:focus-visible, .chat-lookup-pill:focus-visible { outline: 2px solid var(--color-primary-dark); outline-offset: 2px; }
+
+/* DEV preview frame: one dock-width column of replies. */
+.chat-lookup-preview { min-height: 100vh; background: var(--color-bg); padding: 24px 16px; font-family: var(--font-family-base); color: var(--color-text); }
+.chat-lookup-preview__frame { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.chat-lookup-preview__title { margin: 0; font-size: 18px; }
+.chat-lookup-preview__case { margin: 0; font-size: 12px; font-weight: var(--font-weight-bold); color: #9A4A00; }
+.chat-lookup-preview__sent { margin: 0; font-size: 13px; color: #4B5563; }

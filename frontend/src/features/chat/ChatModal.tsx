@@ -381,7 +381,7 @@ export function ChatModal() {
             const reply = entry.reply ?? replyFromChatMessage(entry.message)
             return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)}
               actionPending={reply.kind === 'taskAction' && actionPending === reply.action.actionRequestId}
-              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} />
+              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} onQuickReply={pending ? undefined : send} />
           }
           return <div key={entry.key} className="chat-error">
             <span className="chat-spacer" aria-hidden="true"></span>

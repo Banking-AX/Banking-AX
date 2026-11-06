@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ChatReply, TaskCode } from '../../api/chat'
 import { LoanTable } from './LoanTable'
+import { ParameterRequestBody, TransactionResultBody } from './TransactionResultCard'
 import { b01Guide, c02Guide } from './chatGuideCopy'
 import './chat-reply.css'
 import './chat-task.css'
@@ -42,6 +43,8 @@ export function BotMessage({ label, time, children, wide = false, note, after }:
 export function replyLabel(reply: ChatReply): string {
   if (reply.kind === 'unsupported') return '지원하지 않는 업무'
   if (reply.kind === 'information') return 'AI 금융 도우미 · 업무 설명'
+  if (reply.kind === 'transactions') return reply.result.totalElements > 0 ? 'A-01 거래내역 조회 · 결과' : 'A-01 거래내역 조회 · 결과 없음'
+  if (reply.kind === 'parameterRequest') return 'A-01 거래내역 조회 · 조건 확인'
   if (reply.kind === 'loans') return reply.loans.length > 0 ? 'A-02 대출계좌 정보 조회' : 'A-02 대출계좌 정보 조회 · 없음'
   return 'AI 금융 도우미'
 }
@@ -57,6 +60,8 @@ export function replyText(reply: ChatReply): string {
     case 'started': return reply.answer
     case 'taskAction': return reply.answer
     case 'loans': return reply.answer
+    case 'transactions': return reply.answer
+    case 'parameterRequest': return reply.answer
   }
 }
 
@@ -72,14 +77,23 @@ function taskPath(taskCode: Extract<ChatReply, { kind: 'started' }>['taskCode'],
   }
 }
 
-export function ChatReplyView({ reply, time, onTaskAction, actionPending = false }: {
+export function ChatReplyView({ reply, time, onTaskAction, actionPending = false, onQuickReply }: {
   reply: ChatReply
   time: string
   onTaskAction?: () => void
   actionPending?: boolean
+  /** Sends a pill's sentence as the customer's message; omitted (pills disabled) while an answer is pending. */
+  onQuickReply?: (text: string) => void
 }) {
+  if (reply.kind === 'transactions') {
+    return <BotMessage label={replyLabel(reply)} time={time} after={<TransactionResultBody result={reply.result} onQuickReply={onQuickReply} />}>{reply.answer}</BotMessage>
+  }
+  if (reply.kind === 'parameterRequest') {
+    return <BotMessage label={replyLabel(reply)} time={time} after={<ParameterRequestBody request={reply.request} onQuickReply={onQuickReply} />}>{reply.answer}</BotMessage>
+  }
   if (reply.kind === 'loans' && reply.loans.length > 0) {
-    return <BotMessage label={replyLabel(reply)} time={time} wide note="조회만 했어요. 충당순서 변경이나 채무조정은 요청하시면 따로 안내해 드려요.">
+    // [대출계좌 상세 보기] and "금리, 기한의 이익, 충당순서는 상세 화면에서 볼 수 있어요." return once GET /api/v1/customer/loans is merged (서버 연결 후).
+    return <BotMessage label={replyLabel(reply)} time={time} >
       <div className="chat-loan-summary">대출 <strong>{reply.loans.length}건</strong>을 찾았어요.</div>
       <LoanTable loans={reply.loans} />
     </BotMessage>

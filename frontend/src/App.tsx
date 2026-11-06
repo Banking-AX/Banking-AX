@@ -27,6 +27,7 @@ import { TaskGuidePreviewPage } from './pages/TaskGuidePreviewPage'
 import { WorkRecordsPage } from './pages/WorkRecordsPage'
 import { WorkRecordDetailPage } from './pages/WorkRecordDetailPage'
 import { LoanAccountsPage } from './pages/LoanAccountsPage'
+import { ChatLookupPreviewPage } from './pages/ChatLookupPreviewPage'
 
 export function App() {
   const { status, user } = useAuth()
@@ -44,6 +45,7 @@ export function App() {
     {import.meta.env.DEV && <Route path="/preview/chat-b" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatBPreviewPage /></RequireAuth>} />}
     {import.meta.env.DEV && <Route path="/preview/task-guide" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><TaskGuidePreviewPage /></RequireAuth>} />}
     {import.meta.env.DEV && <Route path="/preview/chat-rooms" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatRoomsPreviewPage /></RequireAuth>} />}
+    {import.meta.env.DEV && <Route path="/preview/chat-lookup" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatLookupPreviewPage /></RequireAuth>} />}
     <Route element={<AppShell />}>
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
       <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />
