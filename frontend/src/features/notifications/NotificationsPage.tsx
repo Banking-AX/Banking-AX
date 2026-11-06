@@ -114,7 +114,7 @@ export function NotificationsPage() {
     {loading && <p role="status" className="noti-loading">알림을 불러오고 있어요.</p>}
     {hasMore && !loading && <button type="button" className="noti-more" onClick={() => void load(filter, items[items.length - 1]?.id)}>이전 알림 더보기</button>}
 
-    <p className="noti-footnote">알림을 눌러야 읽음으로 바뀌어요(페이지를 여는 것만으로는 바뀌지 않아요). 조회(A) 업무는 알림·이메일을 보내지 않아요. 이 알림은 법적 통지가 아니에요. 교육용 시연 화면 · 가상 데이터.</p>
+    <p className="noti-footnote">알림을 눌러야 읽음으로 바뀌어요(페이지를 여는 것만으로는 바뀌지 않아요). 조회(A) 업무는 알림·이메일을 보내지 않아요. 이 알림은 법적 통지가 아니에요.</p>
     <span className="noti-sr" aria-live="polite">{badgeText(unread) ? `읽지 않은 알림 ${unread}건` : '읽지 않은 알림 없음'}</span>
   </main>
 }

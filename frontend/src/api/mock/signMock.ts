@@ -15,7 +15,8 @@ export function createMockSignAdapter(docKey: SignDocKey): SignAdapter {
   let current: { challengeId: string; expiresAt: number; wrong: number; used: boolean } | null = null
 
   return {
-    devHint: `시연용 Mock 인증번호: ${MOCK_CODE}`,
+    // Shown only in development builds; production never exposes the mock code.
+    devHint: import.meta.env.DEV ? `시연용 Mock 인증번호: ${MOCK_CODE}` : undefined,
     async submitSignature() {
       // The signature image is not sent anywhere in the mock.
       await delay(400)

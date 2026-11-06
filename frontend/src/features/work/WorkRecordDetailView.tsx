@@ -109,6 +109,6 @@ export function WorkRecordDetailView({ detail }: { detail: WorkRecordDetail }) {
       <Link to="/chat" className="work-button work-button--primary">{manual ? '상담 대화로 돌아가기' : '대화로 돌아가 다음 업무 진행'}</Link>
       <Link to="/work" className="work-button work-button--plain">목록으로</Link>
     </div>
-    <p className="work-footnote">교육용 시연 화면 · 모든 계좌·금액·약관 내용은 가상이에요. B 업무 결과는 처리 시점에 확정되며, 직원 검토 단계가 없어요.</p>
+    <p className="work-footnote">B 업무 결과는 처리 시점에 확정되며, 직원 검토 단계가 없어요.</p>
   </main>
 }

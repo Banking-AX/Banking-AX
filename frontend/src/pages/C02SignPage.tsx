@@ -33,8 +33,8 @@ function documentsFor(snapshot: C02CustomerCaseSnapshot, signer: string): SignDo
     },
     {
       name: '개인정보 수집·이용 동의서', ref: 'C02 · 필수',
-      body: '상속예금 사전검토를 위해 신청인과 상속인의 개인정보를 수집·이용하는 데 동의합니다. (시연 문구)',
-      fields: [field('동의자', applicant?.name || signer), field('수집 항목', '성명, 관계, 연락처, 제출 서류'), field('목적', '상속예금 사전검토'), field('보유 기간', '검토 종료 후 모의 기준')],
+      body: '상속예금 사전검토를 위해 신청인과 상속인의 개인정보를 수집·이용하는 데 동의합니다.',
+      fields: [field('동의자', applicant?.name || signer), field('수집 항목', '성명, 관계, 연락처, 제출 서류'), field('목적', '상속예금 사전검토'), field('보유 기간', '검토 종료 시까지')],
     },
   ]
 }

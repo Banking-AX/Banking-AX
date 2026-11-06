@@ -42,7 +42,7 @@ const IMAGE_MESSAGES: Record<B01ImageMismatchCode, string> = {
 }
 
 function ocrTitle(method: string): string {
-  if (method === 'MOCK') return 'Mock OCR 처리 결과'
+  if (method === 'MOCK') return '자동 판독 결과'
   if (method === 'CLOVA_TEMPLATE') return 'CLOVA OCR 처리 결과'
   return '문서 텍스트 인식 결과'
 }
@@ -264,7 +264,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           <dt className="b01-dl__key">선택한 대출</dt><dd className="b01-dl__value">{selectedId ? `대출 ID ${selectedId}` : '선택 전'}</dd>
           <dt className="b01-dl__key">요청 충당순서</dt><dd className="b01-dl__value">{requestedOrder ? ORDER_LABELS[requestedOrder] : '선택 전'}</dd>
           <dt className="b01-dl__key">신청서</dt><dd className="b01-dl__value">{document?.displayName ?? '업로드 전'}</dd>
-          <dt className="b01-dl__key">동의·서명·SMS</dt><dd className="b01-dl__value">{context?.consentAgreed ? '동의 완료' : '동의 전'} · {context?.mockSignatureCompleted ? '모의서명 완료' : '모의서명 전'} · {context?.smsVerified ? 'SMS 완료' : 'SMS 전'}</dd>
+          <dt className="b01-dl__key">동의·서명·SMS</dt><dd className="b01-dl__value">{context?.consentAgreed ? '동의 완료' : '동의 전'} · {context?.mockSignatureCompleted ? '서명 완료' : '서명 전'} · {context?.smsVerified ? 'SMS 완료' : 'SMS 전'}</dd>
         </dl>
         {resumeError && <div role="alert" className="b01-alert">{resumeError}</div>}
         <div className="b01-done__actions">
@@ -314,7 +314,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
     <main className="b01-main">
       <div className="b01-top">
         <div className="b01-top__titles">
-          <div className="b01-tags"><span className="b01-tag b01-tag--auto">B · 자동처리</span><span className="b01-tag">비대면 가정 시나리오 · 실제로는 영업점 방문 업무</span></div>
+          <div className="b01-tags"><span className="b01-tag b01-tag--auto">B · 자동처리</span></div>
           <h1 className="b01-title">채무변제 충당순서 변경</h1>
         </div>
         {phase !== 'done' && <Link to="/chat" className="b01-button b01-button--plain b01-top__back">채팅으로 돌아가기</Link>}
@@ -402,7 +402,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           <span>변경순서 체크박스: {checkboxLabel(document.ocr.visualChecks)}</span>
           <span>채무자 서명란 필기 흔적: {document.ocr.visualChecks?.debtorSignatureTrace === 'TRACE_PRESENT' ? '흔적 감지' : document.ocr.visualChecks?.debtorSignatureTrace === 'TRACE_ABSENT' ? '흔적 없음' : '판정 불확실'}</span>
           {document.ocr.method === 'MOCK'
-            ? <span className="b01-basis">등록된 테스트 파일 해시와 Fixture를 연결한 Mock 결과입니다. 실제 문자 인식·문서 진위·본인 서명 검증 결과가 아닙니다.</span>
+            ? <span className="b01-basis">자동 판독 결과는 참고용이에요.</span>
             : <span className="b01-basis">텍스트 인식과 이미지 흔적 분석 결과입니다. 서명자 본인 여부나 문서 진위를 확인한 결과가 아닙니다.</span>}
         </div>}
         {checking && <p role="status" className="b01-status">신청서와 대출정보를 비교하고 있어요.</p>}
@@ -417,7 +417,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           {!eligibility.ocrMatched && <span className="b01-loan__notice">신청서 정보가 선택한 대출과 일치하지 않아요: {eligibility.mismatchCodes.join(', ')}</span>}
           {!eligibility.image.matched && <span className="b01-loan__notice">{eligibility.image.mismatchCodes.map(code => IMAGE_MESSAGES[code]).join(' ')}</span>}
           {eligibility.thirdPartyProvider && <span className="b01-loan__notice">{THIRD_PARTY_NOTICE}</span>}
-          {eligibility.manualVerificationRequired && <span className="b01-basis">서류 항목 검증과 최종 모의 처리 허용 여부는 별개입니다. 문서 진위와 서명자 본인 여부는 확인되지 않았습니다.</span>}
+          {eligibility.manualVerificationRequired && <span className="b01-basis">서류 항목 검증과 최종 처리 허용 여부는 별개입니다. 문서 진위와 서명자 본인 여부는 확인되지 않았습니다.</span>}
           <span className="b01-basis">근거: {RULE_BASIS}</span>
         </div>}
         <label className={`b01-agree${agreed ? ' b01-agree--on' : ''}`}><input type="checkbox" checked={agreed} disabled={consenting} onChange={() => setAgreed(value => !value)} className="b01-agree__input" />유의사항을 확인했습니다</label>

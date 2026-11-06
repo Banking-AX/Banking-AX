@@ -6,6 +6,10 @@ import { StaffBranchPage, StaffDashboardPage, StaffQueuePage } from './features/
 import { LoginPage } from './pages/LoginPage'
 import { MainPage } from './pages/MainPage'
 import { RequireAuth } from './auth/RequireAuth'
+import { useAuth } from './auth/AuthContext'
+import { ChatModal } from './features/chat/ChatModal'
+import { ChatDockProvider } from './features/chat/chatDockContext'
+import { ChatDockHost } from './features/chat/ChatDock'
 import { DebtAdjustmentPage } from './features/c01/DebtAdjustmentPage'
 import { C02IntakePage } from './pages/C02IntakePage'
 import { C02CaseDetailPage } from './pages/C02CaseDetailPage'
@@ -23,9 +27,14 @@ import { ChatRoomsPreviewPage } from './pages/ChatRoomsPreviewPage'
 import { TaskGuidePreviewPage } from './pages/TaskGuidePreviewPage'
 import { WorkRecordsPage } from './pages/WorkRecordsPage'
 import { WorkRecordDetailPage } from './pages/WorkRecordDetailPage'
+import { LoanAccountsPage } from './pages/LoanAccountsPage'
+import { ChatLookupPreviewPage } from './pages/ChatLookupPreviewPage'
 
 export function App() {
-  return <Routes>
+  const { status, user } = useAuth()
+  // The chat stays mounted while a customer is signed in so the conversation survives page changes.
+  return <ChatDockProvider>
+    <Routes>
     <Route path="/" element={<MainPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/sign/:docKey" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><SignPage /></RequireAuth>} />
@@ -33,9 +42,11 @@ export function App() {
     <Route path="/tasks/c02/cases/:caseId/sign" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><C02SignPage /></RequireAuth>} />
     <Route path="/work" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordsPage /></RequireAuth>} />
     <Route path="/work/:recordId" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><WorkRecordDetailPage /></RequireAuth>} />
+    <Route path="/loans" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><LoanAccountsPage /></RequireAuth>} />
     {import.meta.env.DEV && <Route path="/preview/chat-b" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatBPreviewPage /></RequireAuth>} />}
     {import.meta.env.DEV && <Route path="/preview/task-guide" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><TaskGuidePreviewPage /></RequireAuth>} />}
     {import.meta.env.DEV && <Route path="/preview/chat-rooms" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatRoomsPreviewPage /></RequireAuth>} />}
+    {import.meta.env.DEV && <Route path="/preview/chat-lookup" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><ChatLookupPreviewPage /></RequireAuth>} />}
     <Route element={<AppShell />}>
       <Route path="/chat/:roomId?" element={<RequireAuth from="chat" roles={['CUSTOMER', 'ADMIN']}><ChatShellPage /></RequireAuth>} />
       <Route path="/tasks/c01" element={<RequireAuth roles={['CUSTOMER', 'ADMIN']}><DebtAdjustmentPage /></RequireAuth>} />
@@ -56,5 +67,8 @@ export function App() {
       <Route path="*" element={<Navigate to="/staff" replace />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>
+    </Routes>
+    {status === 'authenticated' && user?.role === 'CUSTOMER' && <ChatModal />}
+    <ChatDockHost />
+  </ChatDockProvider>
 }
