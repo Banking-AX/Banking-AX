@@ -20,6 +20,19 @@ interface WorkItemRepository extends JpaRepository<WorkItemEntity, Long> {
             @Param("customerId") long customerId, @Param("taskCode") com.bankingax.core.workflow.TaskCode taskCode,
             @Param("status") WorkItemStatus status);
 
+    /**
+     * A submitted/reviewed C Case can retain its WorkItem audit state, but it is
+     * not resumable customer work.  Keep draft C Cases resumable and leave all
+     * non-Case tasks unchanged.
+     */
+    @Query(value = "select wi.* from work_item wi join workflow wf on wf.id=wi.workflow_id "
+            + "left join service_case sc on sc.work_item_id=wi.id "
+            + "where wf.customer_id=:customerId and wi.task_code=:taskCode and wi.status=:status "
+            + "and (sc.id is null or sc.case_status='DRAFT') order by wi.id desc for update", nativeQuery = true)
+    java.util.List<WorkItemEntity> findResumableActiveForCustomerAndTaskForUpdate(
+            @Param("customerId") long customerId, @Param("taskCode") String taskCode,
+            @Param("status") String status);
+
     @Query(value = "select wi.* from work_item wi join workflow wf on wf.id=wi.workflow_id "
             + "where wf.customer_id=:customerId and wf.chat_room_id=:chatRoomId "
             + "and wi.task_code=:taskCode and wi.status in ('ACTIVE','ON_HOLD') "

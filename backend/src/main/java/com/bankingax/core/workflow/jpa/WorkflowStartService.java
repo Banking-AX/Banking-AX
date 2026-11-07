@@ -95,8 +95,8 @@ public class WorkflowStartService {
                 return result(linked.get());
             }
         }
-        var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
-                command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
+        var active = workItemRepository.findResumableActiveForCustomerAndTaskForUpdate(
+                command.customerId(), command.taskCode().name(), WorkItemStatus.ACTIVE.name());
         if (!active.isEmpty()) {
             return result(active.get(0));
         }
