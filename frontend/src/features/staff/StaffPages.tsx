@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { toUserMessageOr } from '../../api/errorMessages'
 import { c02Api, taskBffEnabled, type BranchReservations, type C02CaseRow } from '../../api/taskApi'
-import { caseNumber, formatDateTime } from '../c02/c02CaseView'
+import { caseNumber, formatDateTime, reservationNumber } from '../c02/c02CaseView'
 
 const dateLabel = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
@@ -153,8 +153,9 @@ export function StaffBranchPage() {
       {!data && !error && <p className="staff-empty">불러오는 중이에요.</p>}
       {data && data.reservations.length === 0 && <p className="staff-empty">예정된 방문 예약이 없어요.</p>}
       {data && data.reservations.length > 0 && <div className="staff-table-wrap"><table className="staff-table">
-        <thead><tr><th>방문 일시</th><th>Case</th><th>고객</th><th>예약 상태</th><th>담당 직원</th><th><span className="staff-sr">열기</span></th></tr></thead>
+        <thead><tr><th>예약번호</th><th>방문 일시</th><th>Case</th><th>고객</th><th>예약 상태</th><th>담당 직원</th><th><span className="staff-sr">열기</span></th></tr></thead>
         <tbody>{data.reservations.map(item => <tr key={item.id}>
+          <td className="staff-mono">{reservationNumber(item.id)}</td>
           <td><b>{formatDateTime(item.startsAt)}</b></td>
           <td className="staff-mono">#{item.caseId}</td>
           <td><span className="staff-task">C-02</span> <b>{item.customerName}</b></td>

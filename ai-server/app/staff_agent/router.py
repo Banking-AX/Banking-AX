@@ -5,6 +5,8 @@ from fastapi import APIRouter, Body, Header, HTTPException
 from app.core.staff_engine import CheckRegistry, CheckRequest, FakeCasePort, StaffCheckExecutor
 from app.core.staff_engine.fakes import FakeCase
 from app.core.staff_engine.rag_adapter import RagEvidenceAdapter, keyword_rag_search
+from app.staff_agent.case_brief import default_brief_llm, write_brief
+from app.staff_agent.policy_impact import analyze, default_policy_llm
 from app.tasks.c01 import adapt_c01_response, register_c01_check
 from app.tasks.c02 import register_c02_check
 
@@ -58,5 +60,23 @@ def create_router(executor: StaffCheckExecutor | None = None) -> APIRouter:
         if request.task_code == 'DEBT_ADJUSTMENT':
             response = adapt_c01_response(response)
         return response.as_dict()
+
+    @router.post('/staff-agent/policy-impact')
+    def policy_impact(payload: dict = Body(...), x_staff_agent_token: str | None = Header(default=None)) -> dict:
+        expected = os.getenv('STAFF_AGENT_GATEWAY_TOKEN')
+        if not expected or x_staff_agent_token != expected:
+            raise HTTPException(403, 'STAFF_AGENT_GATEWAY_FORBIDDEN')
+        if not {'change', 'mappedTaskCodes', 'registeredTasks'} <= payload.keys():
+            raise HTTPException(422, 'POLICY_IMPACT_REQUEST_INVALID')
+        return analyze(payload, llm=default_policy_llm())
+
+    @router.post('/staff-agent/case-brief')
+    def case_brief(payload: dict = Body(...), x_staff_agent_token: str | None = Header(default=None)) -> dict:
+        expected = os.getenv('STAFF_AGENT_GATEWAY_TOKEN')
+        if not expected or x_staff_agent_token != expected:
+            raise HTTPException(403, 'STAFF_AGENT_GATEWAY_FORBIDDEN')
+        if not isinstance(payload.get('facts'), dict):
+            raise HTTPException(422, 'CASE_BRIEF_REQUEST_INVALID')
+        return write_brief(payload['facts'], llm=default_brief_llm(bool(os.getenv('OPENAI_API_KEY', '').strip())))
 
     return router

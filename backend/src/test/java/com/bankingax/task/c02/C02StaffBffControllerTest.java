@@ -32,6 +32,24 @@ import org.springframework.test.web.servlet.MockMvc;
 class C02StaffBffControllerTest {
     @Autowired MockMvc http;
     @MockBean C02Controller internal;
+    @MockBean C02ReviewerAccess reviewers;
+
+    @Test
+    void staffWithoutTheReviewGrantReachNoCasePath() throws Exception {
+        org.mockito.Mockito.doThrow(new com.bankingax.core.api.DomainException("FORBIDDEN", "no grant")).when(reviewers).require(202L);
+        var staff = jwt().jwt(token -> token.subject("202").claim("role", "EMPLOYEE")).authorities(new SimpleGrantedAuthority("ROLE_EMPLOYEE"));
+        String revision = "{\"revision\":1,\"requestId\":\"r\"}";
+
+        http.perform(get("/api/v1/staff/c02/55/staff-case").param("requestId", "r").with(staff)).andExpect(status().isForbidden());
+        http.perform(get("/api/v1/staff/c02/55/ocr").param("revision", "1").param("requestId", "r").with(staff)).andExpect(status().isForbidden());
+        http.perform(get("/api/v1/staff/c02/55/staff-review").param("requestId", "r").with(staff)).andExpect(status().isForbidden());
+        http.perform(get("/api/v1/staff/c02/55/documents/9/content").with(staff)).andExpect(status().isForbidden());
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/staff/c02/55/staff-precheck")
+                .contentType("application/json").content(revision).with(staff)).andExpect(status().isForbidden());
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/staff/c02/55/staff-decision")
+                .contentType("application/json").content("{\"revision\":1,\"requestId\":\"r\",\"outcome\":\"PROCEED\",\"customerMessage\":\"m\"}").with(staff)).andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(internal);
+    }
 
     @Test
     void staffJwtCanReadStaffCaseButCustomerJwtIsRejected() throws Exception {

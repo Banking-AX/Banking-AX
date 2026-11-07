@@ -19,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class C02CaseLifecycleBffController {
     private static final String TASK = "INHERITANCE_DEPOSIT";
     private final ObjectProvider<C02StaffDecisionPersistence> persistence;
+    private final C02ReviewerAccess reviewers;
     private final TaskBffPrincipal principals;
 
-    public C02CaseLifecycleBffController(ObjectProvider<C02StaffDecisionPersistence> persistence, TaskBffPrincipal principals) {
+    public C02CaseLifecycleBffController(ObjectProvider<C02StaffDecisionPersistence> persistence, TaskBffPrincipal principals, C02ReviewerAccess reviewers) {
+        this.reviewers = reviewers;
         this.persistence = persistence;
         this.principals = principals;
     }
@@ -30,6 +32,7 @@ public class C02CaseLifecycleBffController {
     public ApiEnvelope<C02StaffDecisionPersistence.Lifecycle> startReview(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestBody StartReview body) {
         long staffId = principals.staff(authentication);
+        reviewers.require(staffId);
         var result = store().startReview(staffId, caseId, body.revision(), requireRequestId(body.requestId()));
         return ApiEnvelope.success(body.requestId(), TASK, null, caseId, result.revision(), result);
     }

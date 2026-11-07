@@ -49,6 +49,13 @@ def c02_staff_precheck(request: CheckRequest) -> list[ReviewItem]:
             message='방문 여부 미응답 상속인은 잠정 불참일 뿐이며 직원 확인이 필요합니다.',
             evidence={'caseStatement': 'UNCONFIRMED_ABSENT is not a legal determination'},
         ))
+    for heir in heirs:
+        if heir.get('visitStatus') == 'ABSENT' and heir.get('delegationMethod') == 'DOCUMENT':
+            items.append(ReviewItem(
+                source='AGENT_SEMANTIC', category='DELEGATION_DOCUMENT_PRIORITY', result='NEEDS_STAFF_REVIEW',
+                message='An absent heir selected written delegation. Prioritize the power of attorney, ID copy, and seal certificate; confirm the original, issuance requirements, seal/signature, and delegation intent.',
+                evidence={'personRef': heir.get('personRef'), 'basis': ['C02-01', 'C02-02'], 'requiredTypes': ['ABSENT_HEIR_POWER_OF_ATTORNEY', 'ABSENT_HEIR_ID_COPY', 'ABSENT_HEIR_SEAL_CERTIFICATE']},
+            ))
     items.append(ReviewItem(
         source='PRE_SUBMISSION', category='DOCUMENT_POLICY', result='NEEDS_STAFF_REVIEW',
         message='일반 증명서 원문은 OCR 미적용이며 직원 원문 확인이 필요합니다.',

@@ -19,33 +19,41 @@ import org.springframework.web.bind.annotation.RestController;
 public class C02StaffBffController {
     private final C02Controller internal;
     private final TaskBffPrincipal principals;
+    private final C02ReviewerAccess reviewers;
     private final String gatewayToken;
 
-    public C02StaffBffController(C02Controller internal, TaskBffPrincipal principals,
+    public C02StaffBffController(C02Controller internal, TaskBffPrincipal principals, C02ReviewerAccess reviewers,
                                  @Value("${app.tool-gateway-token:}") String gatewayToken) {
         this.internal = internal;
         this.principals = principals;
+        this.reviewers = reviewers;
         this.gatewayToken = gatewayToken;
+    }
+
+    private long reviewer(JwtAuthenticationToken authentication) {
+        long staffId = principals.staff(authentication);
+        reviewers.require(staffId);
+        return staffId;
     }
 
     @GetMapping("/{caseId}/staff-case")
     public ApiEnvelope<C02IntakeService.StaffCaseOverview> staffCase(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {
-        principals.staff(authentication);
+        reviewer(authentication);
         return internal.staffCase(caseId, ActorRole.STAFF, gatewayToken, requestId);
     }
 
     @GetMapping("/{caseId}/ocr")
     public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication, @PathVariable long caseId,
             @RequestParam int revision, @RequestParam String requestId) {
-        principals.staff(authentication);
+        reviewer(authentication);
         return internal.staffOcr(caseId, ActorRole.STAFF, gatewayToken, revision, requestId);
     }
 
     @GetMapping("/{caseId}/staff-review")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> staffReview(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestParam String requestId) {
-        principals.staff(authentication);
+        reviewer(authentication);
         return internal.staffReview(caseId, ActorRole.STAFF, gatewayToken, requestId);
     }
 
@@ -53,14 +61,14 @@ public class C02StaffBffController {
     @GetMapping("/{caseId}/documents/{documentId}/content")
     public org.springframework.http.ResponseEntity<org.springframework.core.io.InputStreamResource> document(
             JwtAuthenticationToken authentication, @PathVariable long caseId, @PathVariable long documentId) {
-        long staffId = principals.staff(authentication);
+        long staffId = reviewer(authentication);
         return internal.download(caseId, documentId, staffId, ActorRole.STAFF, gatewayToken, null);
     }
 
     @PostMapping("/{caseId}/staff-precheck")
     public ApiEnvelope<C02IntakeService.StaffPrecheckResult> precheck(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestBody Revision body) {
-        principals.staff(authentication);
+        reviewer(authentication);
         return internal.precheck(caseId, 0L, ActorRole.STAFF, gatewayToken,
                 new C02Controller.StaffPrecheckBody(body.revision(), body.requestId()));
     }
@@ -68,7 +76,7 @@ public class C02StaffBffController {
     @PostMapping("/{caseId}/staff-decision")
     public ApiEnvelope<C02IntakeService.StaffDecisionResult> decision(JwtAuthenticationToken authentication,
             @PathVariable long caseId, @RequestBody Decision body) {
-        long staffId = principals.staff(authentication);
+        long staffId = reviewer(authentication);
         return internal.staffDecision(caseId, staffId, ActorRole.STAFF, gatewayToken,
                 new C02Controller.StaffDecisionBody(body.revision(), body.requestId(), body.outcome(), body.customerMessage()));
     }

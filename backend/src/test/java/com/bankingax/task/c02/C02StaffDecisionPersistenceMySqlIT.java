@@ -26,6 +26,7 @@ class C02StaffDecisionPersistenceMySqlIT {
         .withDatabaseName("c02_decision_it").withUsername("test").withPassword("test");
 
     @DynamicPropertySource static void mysql(DynamicPropertyRegistry properties) {
+        MYSQL.start(); // PER_CLASS creates the instance, and so the context, before @Container would start it
         properties.add("spring.datasource.url", MYSQL::getJdbcUrl);
         properties.add("spring.datasource.username", MYSQL::getUsername);
         properties.add("spring.datasource.password", MYSQL::getPassword);
