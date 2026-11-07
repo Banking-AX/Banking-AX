@@ -96,7 +96,7 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
   if (reply.kind === 'loans' && reply.loans.length > 0) {
     // ChatLookup.dc.html (a02): card, [대출계좌 상세 보기] to the loan account page (GET /api/v1/customer/loans), then the note.
     return <BotMessage label={replyLabel(reply)} time={time} wide
-      note="금리, 기한의 이익, 충당순서는 상세 화면에서 볼 수 있어요. 조회만 했어요. 충당순서 변경이나 채무조정은 요청하시면 따로 안내해 드려요."
+      // note="금리, 기한의 이익, 충당순서는 상세 화면에서 볼 수 있어요. 조회만 했어요. 충당순서 변경이나 채무조정은 요청하시면 따로 안내해 드려요."
       after={<Link to="/loans" className="chat-lookup-more">대출계좌 상세 보기
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
       </Link>}>
