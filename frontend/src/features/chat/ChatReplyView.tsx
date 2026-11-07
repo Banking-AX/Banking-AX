@@ -46,6 +46,7 @@ export function replyLabel(reply: ChatReply): string {
   if (reply.kind === 'transactions') return reply.result.totalElements > 0 ? 'A-01 거래내역 조회 · 결과' : 'A-01 거래내역 조회 · 결과 없음'
   if (reply.kind === 'parameterRequest') return 'A-01 거래내역 조회 · 조건 확인'
   if (reply.kind === 'loans') return reply.loans.length > 0 ? 'A-02 대출계좌 정보 조회' : 'A-02 대출계좌 정보 조회 · 없음'
+  if (reply.kind === 'loanDetailsAction') return 'A-02 대출계좌 정보 조회'
   return 'AI 금융 도우미'
 }
 
@@ -59,6 +60,7 @@ export function replyText(reply: ChatReply): string {
     case 'notStartable': return reply.answer ?? '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
     case 'started': return reply.answer
     case 'taskAction': return reply.answer
+    case 'loanDetailsAction': return reply.answer
     case 'loans': return reply.answer
     case 'transactions': return reply.answer
     case 'parameterRequest': return reply.answer
@@ -100,6 +102,14 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
       </Link>}>
       <div className="chat-loan-summary">대출 <strong>{reply.loans.length}건</strong>을 찾았어요.</div>
       <LoanTable loans={reply.loans} />
+    </BotMessage>
+  }
+  if (reply.kind === 'loanDetailsAction') {
+    return <BotMessage label={replyLabel(reply)} time={time}
+      after={<Link to="/loans" className="chat-lookup-more">대출계좌 상세 보기
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </Link>}>
+      {reply.answer}
     </BotMessage>
   }
   if (reply.kind === 'unsupported') {

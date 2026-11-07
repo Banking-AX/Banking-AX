@@ -129,7 +129,7 @@ class ChatControllerMySqlIT {
     }
 
     @Test
-    void runsA02AgentWithJwtPersistsBothMessagesAndReplaysIdempotently() {
+    void runsA02AgentWithJwtPersistsBothMessagesAndReplaysIdempotently() throws Exception {
         String token = login("chat_customer_one");
         long roomId = createRoom(token);
         when(customerAgent.start(any())).thenReturn(completedAgentResponse(roomId));
@@ -156,6 +156,16 @@ class ChatControllerMySqlIT {
         assertThat(jdbc.queryForObject(
                 "select count(*) from chat_message where chat_room_id=?", Integer.class, roomId))
                 .isEqualTo(2);
+        String citations = jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class,
+                roomId);
+        assertThat(json.readTree(citations).path("uiAction").path("type").asText())
+                .isEqualTo("OPEN_CUSTOMER_LOANS");
+        assertThat(json.readTree(citations).path("uiAction").path("taskCode").asText())
+                .isEqualTo("LOAN_INQUIRY");
+        assertThat(citations)
+                .doesNotContain("loanId", "loanNo", "balance", "interestRate", "loans");
 
         ArgumentCaptor<CustomerAgentClient.AgentRequest> request =
                 ArgumentCaptor.forClass(CustomerAgentClient.AgentRequest.class);
@@ -167,6 +177,28 @@ class ChatControllerMySqlIT {
             assertThat(sent.message()).isEqualTo("내 대출정보 조회해 줘");
             assertThat(sent.recentMessages()).doesNotContain("CUSTOMER: 내 대출정보 조회해 줘");
         });
+    }
+
+    @Test
+    void doesNotPersistLoanPageActionWhenA02ReturnsNoLoans() {
+        String token = login("chat_customer_one");
+        long roomId = createRoom(token);
+        when(customerAgent.start(any())).thenReturn(completedAgentResponse(roomId, false));
+
+        ResponseEntity<Map> response = exchange(
+                HttpMethod.POST,
+                "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs",
+                Map.of(
+                        "messageRequestId", "empty-a02-message",
+                        "operationRequestId", "agent-operation-1",
+                        "content", "내 대출정보 조회해 줘"),
+                token);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class,
+                roomId)).isNull();
     }
 
     @Test
@@ -335,13 +367,26 @@ class ChatControllerMySqlIT {
     }
 
     private CustomerAgentClient.AgentResponse completedAgentResponse(long roomId) {
+        return completedAgentResponse(roomId, true);
+    }
+
+    private CustomerAgentClient.AgentResponse completedAgentResponse(long roomId, boolean hasLoans) {
+        var loanInquiry = json.createObjectNode().put("chatRoomId", roomId);
+        var loans = loanInquiry.putArray("loans");
+        if (hasLoans) {
+            loans.addObject()
+                    .put("loanId", 7001)
+                    .put("loanNoMasked", "210-***-000001")
+                    .put("balance", 1000)
+                    .put("interestRate", 4.1);
+        }
         return new CustomerAgentClient.AgentResponse(
                 "agent-operation-1",
                 1,
                 "STARTED",
                 json.createObjectNode(),
                 new CustomerAgentClient.WorkflowView(501, 1001, "LOAN_INQUIRY", "ACTIVE"),
-                json.createObjectNode().put("chatRoomId", roomId),
+                loanInquiry,
                 new CustomerAgentClient.ExecutionStatus(
                         501, 1001, "LOAN_INQUIRY", "DONE", "COMPLETED"),
                 null,
