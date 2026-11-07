@@ -3,6 +3,7 @@ import { AppShell } from './components/AppShell'
 import { ChatShellPage } from './pages/ShellPages'
 import { StaffLayout } from './features/staff/StaffLayout'
 import { StaffBranchPage, StaffDashboardPage, StaffQueuePage } from './features/staff/StaffPages'
+import { PolicyChangeDetailPage, PolicyChangeListPage } from './features/staff/PolicyChangePages'
 import { LoginPage } from './pages/LoginPage'
 import { MainPage } from './pages/MainPage'
 import { RequireAuth } from './auth/RequireAuth'
@@ -52,6 +53,8 @@ export function App() {
       <Route index element={<StaffDashboardPage />} />
       <Route path="queue" element={<StaffQueuePage />} />
       <Route path="branch" element={<StaffBranchPage />} />
+      <Route path="policy-changes" element={<PolicyChangeListPage />} />
+      <Route path="policy-changes/:id" element={<PolicyChangeDetailPage />} />
       <Route path="c02/:caseId" element={<C02StaffReviewPage />} />
       <Route path="*" element={<Navigate to="/staff" replace />} />
     </Route>

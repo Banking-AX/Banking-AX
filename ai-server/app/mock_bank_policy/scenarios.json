@@ -1,0 +1,223 @@
+{
+  "c02-poa-v2": [
+    {
+      "changeEventId": "EDU-EVT-C02-POA-0002",
+      "externalPolicyId": "EDU-POLICY-C02-DELEGATION",
+      "sourceVersion": "EDU-2026.2",
+      "versionOrder": 2,
+      "previousVersion": "EDU-2026.1",
+      "policyCategory": "OPERATION_GUIDE",
+      "changeType": "REVIEW_CRITERIA_CHANGE",
+      "affectedTaskCodes": [
+        "INHERITANCE_DEPOSIT"
+      ],
+      "effectiveInDays": 14,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가",
+      "sourceReference": {
+        "documentId": "EDU-DOC-001",
+        "title": "교육용 가상 업무기준 변경 안내",
+        "uri": "mock://bank/edu/EDU-DOC-001"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "불참 상속인의 위임장은 인감 날인을 확인한다.",
+        "after": "불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.",
+        "addedCheckItems": [
+          "위임장 작성일이 제출일 기준 30일 이내인지 확인"
+        ],
+        "taskExtensions": {
+          "INHERITANCE_DEPOSIT": {
+            "delegationMethods": ["DOCUMENT"],
+            "documentTypeCodes": [
+              "ABSENT_HEIR_POWER_OF_ATTORNEY"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "c02-poa-v3": [
+    {
+      "changeEventId": "EDU-EVT-C02-POA-0003",
+      "externalPolicyId": "EDU-POLICY-C02-DELEGATION",
+      "sourceVersion": "EDU-2026.3",
+      "versionOrder": 3,
+      "previousVersion": "EDU-2026.2",
+      "policyCategory": "OPERATION_GUIDE",
+      "changeType": "REVIEW_CRITERIA_CHANGE",
+      "affectedTaskCodes": [
+        "INHERITANCE_DEPOSIT"
+      ],
+      "effectiveInDays": 30,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] 위임장 작성일 확인 기준을 45일로 조정",
+      "sourceReference": {
+        "documentId": "EDU-DOC-002",
+        "title": "교육용 가상 업무기준 변경 안내 2",
+        "uri": "mock://bank/edu/EDU-DOC-002"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "위임장 작성일이 제출일 기준 30일 이내인지 직원이 확인한다.",
+        "after": "위임장 작성일이 제출일 기준 45일 이내인지 직원이 확인한다.",
+        "addedCheckItems": [
+          "위임장 작성일이 제출일 기준 45일 이내인지 확인"
+        ],
+        "taskExtensions": {
+          "INHERITANCE_DEPOSIT": {
+            "delegationMethods": ["DOCUMENT"],
+            "documentTypeCodes": [
+              "ABSENT_HEIR_POWER_OF_ATTORNEY"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "b02-info": [
+    {
+      "changeEventId": "EDU-EVT-B02-INFO-0002",
+      "externalPolicyId": "EDU-POLICY-B02-GUIDE",
+      "sourceVersion": "EDU-2026.2",
+      "versionOrder": 2,
+      "previousVersion": "EDU-2026.1",
+      "policyCategory": "PRODUCT_INFO",
+      "changeType": "INFORMATION_UPDATE",
+      "affectedTaskCodes": [
+        "HOUSING_SAVINGS_CLOSE"
+      ],
+      "effectiveInDays": 0,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] 청약통장 해지 화면의 안내 문구 변경",
+      "sourceReference": {
+        "documentId": "EDU-DOC-003",
+        "title": "교육용 가상 상품 안내 변경",
+        "uri": "mock://bank/edu/EDU-DOC-003"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "해지 전 예상 이자를 안내한다.",
+        "after": "해지 전 예상 이자와 재가입 시 불이익 가능성을 함께 안내한다.",
+        "addedCheckItems": []
+      }
+    }
+  ],
+  "out-of-scope": [
+    {
+      "changeEventId": "EDU-EVT-CARD-0001",
+      "externalPolicyId": "EDU-POLICY-CARD",
+      "sourceVersion": "EDU-2026.1",
+      "versionOrder": 1,
+      "previousVersion": null,
+      "policyCategory": "PRODUCT_INFO",
+      "changeType": "INFORMATION_UPDATE",
+      "affectedTaskCodes": [
+        "CARD_ISSUE"
+      ],
+      "effectiveInDays": 0,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] Banking-AX에 없는 업무의 안내 변경",
+      "sourceReference": {
+        "documentId": "EDU-DOC-004",
+        "title": "교육용 가상 카드 안내",
+        "uri": "mock://bank/edu/EDU-DOC-004"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "기존 안내",
+        "after": "변경 안내"
+      }
+    }
+  ],
+  "unknown-change-type": [
+    {
+      "changeEventId": "EDU-EVT-BAD-0001",
+      "externalPolicyId": "EDU-POLICY-BAD",
+      "sourceVersion": "EDU-2026.1",
+      "versionOrder": 1,
+      "previousVersion": null,
+      "policyCategory": "OPERATION_GUIDE",
+      "changeType": "AUTO_APPLY_RULE",
+      "affectedTaskCodes": [
+        "INHERITANCE_DEPOSIT"
+      ],
+      "effectiveInDays": 0,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] 알 수 없는 변경 유형",
+      "sourceReference": {
+        "documentId": "EDU-DOC-005",
+        "title": "교육용 가상 오류 데이터",
+        "uri": "mock://bank/edu/EDU-DOC-005"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "기존",
+        "after": "변경"
+      }
+    }
+  ],
+  "bad-task-code": [
+    {
+      "changeEventId": "EDU-EVT-BAD-0002",
+      "externalPolicyId": "EDU-POLICY-BAD-TASK",
+      "sourceVersion": "EDU-2026.1",
+      "versionOrder": 1,
+      "previousVersion": null,
+      "policyCategory": "OPERATION_GUIDE",
+      "changeType": "INFORMATION_UPDATE",
+      "affectedTaskCodes": [
+        "inheritance deposit!"
+      ],
+      "effectiveInDays": 0,
+      "sourceStatus": "PUBLISHED",
+      "changeSummary": "[교육용 가상 사례] 형식이 잘못된 업무 코드",
+      "sourceReference": {
+        "documentId": "EDU-DOC-006",
+        "title": "교육용 가상 오류 데이터",
+        "uri": "mock://bank/edu/EDU-DOC-006"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "기존",
+        "after": "변경"
+      }
+    }
+  ],
+  "c02-poa-withdrawn": [
+    {
+      "changeEventId": "EDU-EVT-C02-POA-0004",
+      "externalPolicyId": "EDU-POLICY-C02-DELEGATION",
+      "sourceVersion": "EDU-2026.4",
+      "versionOrder": 4,
+      "previousVersion": "EDU-2026.3",
+      "policyCategory": "OPERATION_GUIDE",
+      "changeType": "REVIEW_CRITERIA_CHANGE",
+      "affectedTaskCodes": [
+        "INHERITANCE_DEPOSIT"
+      ],
+      "effectiveInDays": 0,
+      "sourceStatus": "WITHDRAWN",
+      "changeSummary": "[교육용 가상 사례] 위임장 작성일 확인 기준 철회",
+      "sourceReference": {
+        "documentId": "EDU-DOC-007",
+        "title": "교육용 가상 업무기준 철회 안내",
+        "uri": "mock://bank/edu/EDU-DOC-007"
+      },
+      "detail": {
+        "fictional": true,
+        "before": "위임장 작성일이 제출일 기준 45일 이내인지 직원이 확인한다.",
+        "after": "해당 확인 기준을 철회한다.",
+        "addedCheckItems": [],
+        "taskExtensions": {
+          "INHERITANCE_DEPOSIT": {
+            "delegationMethods": ["DOCUMENT"],
+            "documentTypeCodes": [
+              "ABSENT_HEIR_POWER_OF_ATTORNEY"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
