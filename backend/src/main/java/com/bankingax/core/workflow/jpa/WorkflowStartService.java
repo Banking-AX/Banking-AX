@@ -88,17 +88,20 @@ public class WorkflowStartService {
         if (replay != null) {
             return replay;
         }
-        if (reconnectChatTask) {
+        boolean reconnectUnfinished = command.taskCode() != TaskCode.LOAN_INQUIRY;
+        if (reconnectUnfinished && reconnectChatTask) {
             var linked = workItemRepository.findLatestLinkedUnfinished(
                     command.customerId(), command.chatRoomId(), command.taskCode().name());
             if (linked.isPresent()) {
                 return result(linked.get());
             }
         }
-        var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
-                command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
-        if (!active.isEmpty()) {
-            return result(active.get(0));
+        if (reconnectUnfinished) {
+            var active = workItemRepository.findActiveForCustomerAndTaskForUpdate(
+                    command.customerId(), command.taskCode(), WorkItemStatus.ACTIVE);
+            if (!active.isEmpty()) {
+                return result(active.get(0));
+            }
         }
         WorkflowService.WorkflowView workflow = workflows.create(
                 new WorkflowService.CreateWorkflowCommand(command.customerId(), command.chatRoomId()));
