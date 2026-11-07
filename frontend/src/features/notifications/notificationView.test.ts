@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { badgeText, channelLabel, formatReceivedAt, relatedPath, taskLabel, toneOf } from './notificationView'
+import { badgeText, channelLabel, formatReceivedAt, needsCaseLookup, relatedPath, resolvedTaskCode, taskLabel, toneOf } from './notificationView'
 
 describe('notification presentation', () => {
   it('maps spec type codes to the mockup icon tones', () => {
@@ -29,6 +29,17 @@ describe('notification presentation', () => {
     expect(relatedPath({ taskCode: 'HOUSING_SAVINGS_CLOSE', caseId: null })).toBeNull()
     expect(taskLabel('INHERITANCE_DEPOSIT')).toBe('C-02 상속예금 사전접수')
     expect(taskLabel(null)).toBeNull()
+  })
+
+  it('links a case without a task code only when it is one of the customer C-02 cases', () => {
+    const c02CaseIds = new Set([7])
+    expect(needsCaseLookup({ taskCode: null, caseId: 7 })).toBe(true)
+    expect(needsCaseLookup({ taskCode: 'INHERITANCE_DEPOSIT', caseId: 7 })).toBe(false)
+    expect(resolvedTaskCode({ taskCode: null, caseId: 7 }, c02CaseIds)).toBe('INHERITANCE_DEPOSIT')
+    expect(relatedPath({ taskCode: null, caseId: 7 }, c02CaseIds)).toBe('/tasks/c02/cases/7')
+    expect(relatedPath({ taskCode: null, caseId: 8 }, c02CaseIds)).toBeNull()
+    expect(relatedPath({ taskCode: null, caseId: 7 })).toBeNull()
+    expect(resolvedTaskCode({ taskCode: 'HOUSING_SAVINGS_CLOSE', caseId: 7 }, c02CaseIds)).toBe('HOUSING_SAVINGS_CLOSE')
   })
 
   it('formats as MM.DD HH:mm and tolerates bad input', () => {

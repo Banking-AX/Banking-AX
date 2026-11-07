@@ -77,7 +77,10 @@ function C02CasePanel({ caseId }: { caseId: number }) {
   return <div className="c02-page"><main className="c02-page__main">
     <header className="c02-page__heading"><div><div className="c02-page__badges"><span>C · 직원 검토</span><span>방문 전 서류 사전확인</span><span>작성 중</span></div><h1>상속예금 해지 및 지급 사전접수</h1></div><button type="button" className="c02-page__hold" onClick={() => navigate('/chat')}>보류하고 채팅으로</button></header>
     {error && <p className="c02-alert" role="alert">{error}</p>}{message && <p className="c02-notice" role="status">{message}</p>}
-    <div className="c02-progress"><strong>접수 준비 현황</strong><span>필수정보 <b>입력 완료</b></span><span>업로드 서류 <b>{uploadable.filter(row => row.uploaded).length}/{uploadable.length}</b></span>{resetAt && <em>{formatDateTime(resetAt)}까지 진행하지 않으면 입력 내용 초기화</em>}</div>
+    <div className="c02-progress"><strong>접수 준비 현황</strong><span>필수정보 <b>입력 완료</b></span><span>업로드 서류 <b>{uploadable.filter(row => row.uploaded).length}/{uploadable.length}</b></span>
+      {/* Hidden: resetAt is computed in the browser (last activity + 72h), not sent by the server. Show it again with the
+          server's reset time once the snapshot carries one: {resetAt && <em>{formatDateTime(resetAt)}까지 진행하지 않으면 입력 내용 초기화</em>} */}
+    </div>
     <section className="c02-card"><h2>1. 돌아가신 분(피상속인) 정보</h2><dl className="c02-summary"><div><dt>성명</dt><dd>{intake?.decedentName ?? '—'}</dd></div><div><dt>생년월일</dt><dd>{formatDate(intake?.decedentBirthDate)}</dd></div><div><dt>사망일</dt><dd>{formatDate(intake?.deathDate)}</dd></div></dl></section>
     <section className="c02-card"><h2>2. 신청인과 상속인 정보</h2><strong className="c02-card__label">상속인 {heirs.length}명</strong>
       <div className="c02-table-wrap"><table className="c02-table"><thead><tr><th>상속인</th><th>관계</th><th>비고</th></tr></thead><tbody>{heirs.map(heir => <tr key={heir.personRef}><td>{heir.name}</td><td>{heir.relationship || '—'}</td><td>{heir.applicant ? <b className="c02-accent">신청인</b> : '—'}</td></tr>)}</tbody></table></div></section>
