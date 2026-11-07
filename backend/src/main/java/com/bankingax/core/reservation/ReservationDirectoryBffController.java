@@ -4,6 +4,7 @@ import com.bankingax.core.api.ApiEnvelope;
 import com.bankingax.core.api.DomainException;
 import com.bankingax.core.auth.TaskBffPrincipal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -22,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReservationDirectoryBffController {
     private final JdbcTemplate jdbc;
     private final TaskBffPrincipal principals;
+    private final VisitReservationService reservations;
 
-    public ReservationDirectoryBffController(JdbcTemplate jdbc, TaskBffPrincipal principals) {
+    public ReservationDirectoryBffController(JdbcTemplate jdbc, TaskBffPrincipal principals, VisitReservationService reservations) {
         this.jdbc = jdbc;
         this.principals = principals;
+        this.reservations = reservations;
     }
 
     @GetMapping("/api/v1/customer/reservations/branches")
@@ -35,6 +38,13 @@ public class ReservationDirectoryBffController {
         List<Branch> rows = jdbc.query("select id, name, address from branch where is_active=true order by id",
                 (rs, n) -> new Branch(rs.getLong(1), rs.getString(2), rs.getString(3)));
         return ApiEnvelope.success(requestId, "VISIT_RESERVATION", null, null, null, rows);
+    }
+
+    @GetMapping("/api/v1/customer/reservations/availability")
+    public ApiEnvelope<List<VisitReservationController.Slot>> availability(JwtAuthenticationToken authentication, @RequestParam long branchId,
+            @RequestParam LocalDate date, @RequestParam String requestId) {
+        principals.customer(authentication);
+        return ApiEnvelope.success(requestId, "VISIT_RESERVATION", null, null, null, reservations.availability(branchId, date));
     }
 
     @GetMapping("/api/v1/staff/reservations")
