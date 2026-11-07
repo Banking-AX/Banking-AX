@@ -22,7 +22,7 @@ const C02_GUIDE = {
     { lead: '방문 영업점과 시간은 접수할 때 고르지 않아요.', text: '직원 검토 결과가 ‘진행 가능’이면 그때 예약할 수 있도록 알려드려요.' },
   ] as GuideItem[],
   // Caption under the C-02 card (ChatInherit shows it under the input; it stays on the card because a room moves on to other tasks).
-  staffCheckNote: '상속인 관계, 위임서류 적정성, 원본 진위는 직원이 확인해요.',
+  // staffCheckNote: '상속인 관계, 위임서류 적정성, 원본 진위는 직원이 확인해요.',
 }
 
 /** Server text wins; the temporary copy is used only while the server sends nothing. */
