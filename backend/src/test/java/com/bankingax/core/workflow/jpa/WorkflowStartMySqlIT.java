@@ -243,6 +243,32 @@ class WorkflowStartMySqlIT {
     }
 
     @Test
+    void newA02RequestsRunIndependentlyWhileAnEarlierRequestRemainsActive() {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        var earlier = starts.start(new WorkflowStartService.StartCommand(
+                "a02-earlier-active", 1, 77L, TaskCode.LOAN_INQUIRY));
+
+        var sameRoom = starts.start(new WorkflowStartService.StartCommand(
+                "a02-same-room-new", 1, 77L, TaskCode.LOAN_INQUIRY));
+        var otherRoom = starts.start(new WorkflowStartService.StartCommand(
+                "a02-other-room-new", 1, 78L, TaskCode.LOAN_INQUIRY));
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(earlier.workItemId(), sameRoom.workItemId());
+        org.junit.jupiter.api.Assertions.assertNotEquals(earlier.workItemId(), otherRoom.workItemId());
+        org.junit.jupiter.api.Assertions.assertNotEquals(sameRoom.workItemId(), otherRoom.workItemId());
+
+        gateway.loanInquiry(actor(1), request("a02-same-room-new", sameRoom.workItemId(), 1, null));
+        gateway.loanInquiry(actor(1), request("a02-other-room-new", otherRoom.workItemId(), 1, null));
+
+        assertEquals(1, count("select count(*) from work_item where id=" + earlier.workItemId()
+                + " and status='ACTIVE'"));
+        assertEquals(2, count("select count(*) from work_item where id in (" + sameRoom.workItemId() + ","
+                + otherRoom.workItemId() + ") and status='DONE'"));
+        assertEquals(2, count("select count(*) from task_result where work_item_id in ("
+                + sameRoom.workItemId() + "," + otherRoom.workItemId() + ")"));
+    }
+
+    @Test
     void resumesExistingActiveItemForTheSameCustomerAndTask() {
         var first = starts.start(new WorkflowStartService.StartCommand(
                 "b02-first", 1, 77L, TaskCode.HOUSING_SAVINGS_CLOSE));

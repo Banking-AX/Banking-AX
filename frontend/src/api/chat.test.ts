@@ -105,6 +105,45 @@ describe('Spring chat BFF client', () => {
     })
   })
 
+  it('restores only the A02 loan-page action from persisted UI metadata', () => {
+    const agent = message(13, 2, 'AGENT', '대출계좌 3건을 조회했습니다.')
+    agent.citations = JSON.stringify({ uiAction: {
+      type: 'OPEN_CUSTOMER_LOANS', taskCode: 'LOAN_INQUIRY',
+    } })
+
+    expect(replyFromChatMessage(agent)).toEqual({
+      kind: 'loanDetailsAction', answer: agent.content,
+    })
+  })
+
+  it('ignores malformed or server-directed loan-page metadata', () => {
+    const malformed = message(14, 2, 'AGENT', '조회 결과')
+    malformed.citations = JSON.stringify({ uiAction: {
+      type: 'OPEN_CUSTOMER_LOANS', taskCode: 'OTHER', url: 'https://example.invalid',
+    } })
+
+    expect(replyFromChatMessage(malformed)).toEqual({ kind: 'message', answer: malformed.content })
+  })
+
+  it('does not create a loan-page action for an empty A02 result', () => {
+    const run: AgentRun = {
+      customerMessage: message(20, 1, 'CUSTOMER', '내 대출정보 조회해 줘'),
+      agentMessage: message(21, 2, 'AGENT', '조회된 대출계좌가 없습니다.'),
+      agentResult: {
+        requestId: 'op-empty', customerId: 1, outcome: 'STARTED', classification: {},
+        workflow: { workflowId: 30, workItemId: 31, taskCode: 'LOAN_INQUIRY', status: 'COMPLETED' },
+        loanInquiry: { loans: [] },
+        executionStatus: { workflowId: 30, workItemId: 31, taskCode: 'LOAN_INQUIRY', workItemStatus: 'DONE', workflowStatus: 'COMPLETED' },
+        taskAction: null, answer: '조회된 대출계좌가 없습니다.', answerStatus: 'GENERATED',
+      },
+      financialOperationCompleted: true, agentMessageSaved: true,
+    }
+
+    expect(replyFromAgentRun(run)).toEqual({
+      kind: 'loans', loans: [], answer: '조회된 대출계좌가 없습니다.',
+    })
+  })
+
   it('restores messages in server sequence order', async () => {
     setAccessToken('customer-token')
     vi.stubGlobal('fetch', vi.fn(async () => new Response(envelope([

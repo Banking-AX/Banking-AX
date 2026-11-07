@@ -85,6 +85,7 @@ export type ChatReply =
   | { kind: 'notStartable'; taskCode?: TaskCode; answer?: string }
   | { kind: 'started'; taskCode: TaskCode; workItemId: number; answer: string }
   | { kind: 'taskAction'; answer: string; action: ChatTaskAction }
+  | { kind: 'loanDetailsAction'; answer: string }
   | { kind: 'loans'; loans: LoanSummary[]; answer: string }
   | { kind: 'transactions'; answer: string; result: ChatTransactionSearch }
   | { kind: 'parameterRequest'; answer: string; request: ChatParameterRequest }
@@ -233,6 +234,10 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   const answer = run.agentMessage?.content || run.agentResult.answer || '요청 결과를 확인하지 못했어요.'
   const loans = run.agentResult.loanInquiry?.loans
   if (loans) return { kind: 'loans', loans, answer }
+  if (run.agentMessage) {
+    const persisted = replyFromChatMessage(run.agentMessage)
+    if (persisted.kind === 'loanDetailsAction') return persisted
+  }
   const transactionSearch = readTransactionSearch(run.agentResult.transactionSearch)
   if (transactionSearch) return { kind: 'transactions', answer, result: transactionSearch }
   const parameterRequest = run.agentResult.outcome === 'PARAMETER_REQUIRED' ? readParameterRequest(run.agentResult.parameterRequest) : null
@@ -256,12 +261,23 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
 export function replyFromChatMessage(message: ChatMessage): ChatReply {
   if (message.citations) {
     try {
-      const parsed = JSON.parse(message.citations) as { taskAction?: ChatTaskAction }
-      const action = parsed.taskAction
-      if (action?.taskCode === 'REPAYMENT_ORDER_CHANGE'
-          && action.label === '신청 화면으로 이동'
-          && typeof action.actionRequestId === 'string') {
-        return { kind: 'taskAction', answer: message.content, action }
+      const parsed: unknown = JSON.parse(message.citations)
+      if (isRecord(parsed)) {
+        const action = parsed.taskAction
+        if (isRecord(action)
+            && action.taskCode === 'REPAYMENT_ORDER_CHANGE'
+            && action.label === '신청 화면으로 이동'
+            && typeof action.actionRequestId === 'string') {
+          return { kind: 'taskAction', answer: message.content, action: {
+            taskCode: action.taskCode, label: action.label, actionRequestId: action.actionRequestId,
+          } }
+        }
+        const uiAction = parsed.uiAction
+        if (isRecord(uiAction)
+            && uiAction.type === 'OPEN_CUSTOMER_LOANS'
+            && uiAction.taskCode === 'LOAN_INQUIRY') {
+          return { kind: 'loanDetailsAction', answer: message.content }
+        }
       }
     } catch {
       // Ordinary citations and legacy messages remain plain chat messages.
