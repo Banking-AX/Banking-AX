@@ -23,11 +23,12 @@ export type C02Prepare = { requestId: string; workItemId: number; registeredPhon
 export type C02Prepared = { caseView: { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null } ; requiredDocuments: C02DocumentSlot[]; submission: { submittable: boolean; errors: string[]; outOfScope: string[]; missingDocuments: string[] } }
 export type C02DocumentSlot = { documentTypeCode: string; requirement: 'REQUIRED' | 'CONDITIONAL' | 'VISIT_ONLY'; personRef: string | null; note: string }
 export type C02Document = { documentFileId: number; caseId: number; caseRevision: number; documentSlotKey: string; version: number; fileName: string; mimeType: string; sizeBytes: number; status: string; documentType: string; uploadedAt: string }
-export type C02ReviewItem = { category?: string; message?: string; source?: string; documentFileId?: number }
+export type C02ReviewItem = { category?: string; result?: string; message?: string; source?: string; documentFileId?: number }
 export type C02Review = { caseId: number; workItemId: number; revision: number; agentRunStatus: string; reviewStatus: string | null; reviewItems: C02ReviewItem[]; error: Record<string, unknown> | null; finalStaffDecision: boolean }
-export type C02OcrDocument = { documentFileId: number; method: string; status: string; extracted: string | null; failureReason: string | null; manualVerificationRequired: boolean }
+export type C02AiReview = { status: string; code?: string; revision: number; analyzedAt?: string; method: 'LLM' | 'RULE_FALLBACK'; model: string | null; promptVersion: string | null; summary: string; confirmed: string[]; staffChecks: string[]; basis: { docId: string; reason: string }[]; evidence: { docId: string; title: string; section: string }[]; basisMissing: boolean; customerDraft: string }
+export type C02OcrDocument = { documentFileId: number; documentVersion: number; method: string; status: string; extracted: string | null; failureReason: string | null; manualVerificationRequired: boolean }
 export type C02OcrSnapshot = { caseId: number; revision: number; manualVerificationRequired: boolean; documents: C02OcrDocument[] }
-export type C02HeirView = { personRef: string; name: string; relationship: string; applicant: boolean; visitStatus: string; delegationMethod: string }
+export type C02HeirView = { personRef: string; name: string; birthDate?: string | null; relationship: string; applicant: boolean; visitStatus: string; delegationMethod: string }
 export type C02CaseIntake = { decedentName: string; decedentBirthDate: string | null; deathDate: string | null; heirs: C02HeirView[] }
 /** ISO instants from service_case; null while a milestone has not happened. Absent when DB persistence is off. */
 export type C02CaseTimeline = { createdAt: string | null; submittedAt: string | null; reviewStartedAt: string | null; decidedAt: string | null; resultNotifiedAt: string | null; canceledAt: string | null; updatedAt: string | null }
@@ -35,13 +36,15 @@ export type C02CaseTimeline = { createdAt: string | null; submittedAt: string | 
 export type C02CustomerDecision = { outcome: 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'; customerMessage: string }
 export type C02CustomerCaseSnapshot = { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null; visitRequired: boolean; requiredDocuments: C02DocumentSlot[]; documents: C02Document[]; precheck: C02Review; intake: C02CaseIntake | null; timeline: C02CaseTimeline | null; finalDecision: C02CustomerDecision | null }
 export type C02StaffDecision = { caseId: number; workItemId: number; customerId: number; staffId: number; revision: number; outcome: 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'; currentCaseStatus: string; proposedCaseStatus: string; customerMessage: string; notification: { notificationId: string; caseId: number; revision: number; outcome: string; message: string; externalDeliveryAttempted: boolean } }
-export type C02StaffCase = { caseView: { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null; visitRequired: boolean }; requiredDocuments: C02DocumentSlot[]; documents: C02Document[]; precheck: C02Review; finalDecision: C02StaffDecision | null }
+export type C02StaffSummary = { heirCount: number; absentHeirCount: number; requiredUploadCount: number; uploadedRequiredCount: number; missingRequiredCount: number; visitOnlyCount: number; autoMatchedCount: number; mismatchCount: number; precheckNotRun: boolean; manualVerificationRequired: boolean }
+export type C02StaffCase = { caseView: { caseId: number; workItemId: number; revision: number; caseStatus: string; reviewStatus: string | null; visitRequired: boolean }; requiredDocuments: C02DocumentSlot[]; documents: C02Document[]; precheck: C02Review; intake: C02CaseIntake | null; summary: C02StaffSummary; finalDecision: C02StaffDecision | null }
 /** Read-only list rows; staff only see non-DRAFT Cases and only with pre-review permission. */
 export type C02CaseRow = { caseId: number; workItemId: number; caseStatus: string; reviewStatus: string | null; revision: number; createdAt: string | null; submittedAt: string | null; decidedAt: string | null; resultNotifiedAt: string | null; customerName: string }
 export type Branch = { id: number; name: string; address: string }
 export type StaffReservation = { id: number; caseId: number; startsAt: string; status: string; assignedStaffId: number | null; customerName: string; assignedStaffName: string | null; caseType: string }
 export type BranchReservations = { branch: Branch; reservations: StaffReservation[] }
 export type Reservation = { id: number; caseId: number; branchId: number; staffId: number; startsAt: string; status: string }
+export type ReservationSlot = { startsAt: string; available: boolean }
 export type ReservationCreate = { requestId: string; caseId: number; branchId: number; staffId: number | null; startsAt: string }
 
 function requireBff() {
@@ -68,6 +71,7 @@ export const b02Api = {
 }
 
 export const c02Api = {
+  async startWorkItem(requestId: string) { requireBff(); return apiFetch<{ workflowId: number; workItemId: number; taskCode: string; status: string }>('/api/v1/customer/c02/work-items', { method: 'POST', body: JSON.stringify({ requestId }) }) },
   async resume(workItemId: number, requestId: string) { requireBff(); return apiFetch<C02Prepared>('/api/v1/customer/c02/work-items/' + workItemId + '/resume?requestId=' + encodeURIComponent(requestId)) },
   async prepare(body: C02Prepare) { requireBff(); return apiFetch<C02Prepared>('/api/v1/customer/c02/prepare', { method: 'POST', body: JSON.stringify(body) }) },
   async consent(caseId: number, body: { revision: number; requestId: string; consented: boolean; mockSignatureCompleted: boolean }) { requireBff(); return apiFetch<{ caseId: number; revision: number }>('/api/v1/customer/c02/' + caseId + '/consent', { method: 'POST', body: JSON.stringify(body) }) },
@@ -75,11 +79,14 @@ export const c02Api = {
   async verifyVerification(body: { requestId: string; challengeId: string; otp: string }) { requireBff(); return apiFetch<{ bindingId: string }>('/api/v1/customer/c02/verification/verify', { method: 'POST', body: JSON.stringify(body) }) },
   async submit(caseId: number, body: { revision: number; requestId: string; bindingId: string }) { requireBff(); return apiFetch<{ caseId: number; workItemId: number; revision: number; caseStatus: string; agentRunStatus: string; reviewStatus: string | null }>('/api/v1/customer/c02/' + caseId + '/submit', { method: 'POST', body: JSON.stringify(body) }) },
   async uploadDocument(caseId: number, input: { revision: number; requestId: string; documentSlotKey: string; file: File }) { requireBff(); const form = new FormData(); form.set('revision', String(input.revision)); form.set('requestId', input.requestId); form.set('documentSlotKey', input.documentSlotKey); form.set('file', input.file); return apiFetch<{ revision: number; document: C02Document }>('/api/v1/customer/c02/' + caseId + '/documents/upload', { method: 'POST', body: form }) },
+  async powerOfAttorneyDraft(caseId: number, body: { delegatorPersonRef: string; accountNumbers: string[]; depositProduct: string; agentAddress: string; delegatorAddress: string; delegatorRelationship: string; writtenDate: string | null }) { requireBff(); return apiFetchBlob('/api/v1/customer/c02/' + caseId + '/power-of-attorney/draft', { method: 'POST', body: JSON.stringify(body) }) },
   async documents(caseId: number, requestId: string) { requireBff(); return apiFetch<C02Document[]>('/api/v1/customer/c02/' + caseId + '/documents?requestId=' + encodeURIComponent(requestId)) },
   async customerOcr(caseId: number, revision: number, requestId: string) { requireBff(); return apiFetch<C02OcrSnapshot>('/api/v1/customer/c02/' + caseId + '/ocr?revision=' + revision + '&requestId=' + encodeURIComponent(requestId)) },
   async review(caseId: number, requestId: string) { requireBff(); return apiFetch<C02Review>('/api/v1/customer/c02/' + caseId + '/review?requestId=' + encodeURIComponent(requestId)) },
   async snapshot(caseId: number, requestId: string) { requireBff(); return apiFetch<C02CustomerCaseSnapshot>('/api/v1/customer/c02/' + caseId + '/snapshot?requestId=' + encodeURIComponent(requestId)) },
   async staffCase(caseId: number, requestId: string) { requireBff(); return apiFetch<C02StaffCase>('/api/v1/staff/c02/' + caseId + '/staff-case?requestId=' + encodeURIComponent(requestId)) },
+  async aiReview(caseId: number, requestId: string) { requireBff(); return apiFetch<C02AiReview | null>('/api/v1/staff/c02/' + caseId + '/ai-review?requestId=' + encodeURIComponent(requestId)) },
+  async generateAiReview(caseId: number, body: { revision: number; requestId: string }) { requireBff(); return apiFetch<C02AiReview>('/api/v1/staff/c02/' + caseId + '/ai-review', { method: 'POST', body: JSON.stringify(body) }) },
   async staffOcr(caseId: number, revision: number, requestId: string) { requireBff(); return apiFetch<C02OcrSnapshot>('/api/v1/staff/c02/' + caseId + '/ocr?revision=' + revision + '&requestId=' + encodeURIComponent(requestId)) },
   async staffPrecheck(caseId: number, body: { revision: number; requestId: string }) { requireBff(); return apiFetch<C02Review>('/api/v1/staff/c02/' + caseId + '/staff-precheck', { method: 'POST', body: JSON.stringify(body) }) },
   async staffDecision(caseId: number, body: { revision: number; requestId: string; outcome: 'PROCEED' | 'REQUIREMENT_FAILED' | 'DOCUMENT_INSUFFICIENT'; customerMessage: string }) { requireBff(); return apiFetch<C02StaffDecision>('/api/v1/staff/c02/' + caseId + '/staff-decision', { method: 'POST', body: JSON.stringify(body) }) },
@@ -90,6 +97,7 @@ export const c02Api = {
   async staffCases(requestId: string) { requireBff(); return apiFetch<C02CaseRow[]>('/api/v1/staff/c02/cases?requestId=' + encodeURIComponent(requestId)) },
   async branches(requestId: string) { requireBff(); return apiFetch<Branch[]>('/api/v1/customer/reservations/branches?requestId=' + encodeURIComponent(requestId)) },
   async staffReservations(requestId: string) { requireBff(); return apiFetch<BranchReservations>('/api/v1/staff/reservations?requestId=' + encodeURIComponent(requestId)) },
+  async reservationAvailability(branchId: number, date: string, requestId: string) { requireBff(); return apiFetch<ReservationSlot[]>('/api/v1/customer/reservations/availability?branchId=' + branchId + '&date=' + date + '&requestId=' + encodeURIComponent(requestId)) },
   async reservations(requestId: string) { requireBff(); return apiFetch<Reservation[]>('/api/v1/customer/reservations?requestId=' + encodeURIComponent(requestId)) },
   async createReservation(body: ReservationCreate) { requireBff(); return apiFetch<Reservation>('/api/v1/customer/reservations', { method: 'POST', body: JSON.stringify(body) }) },
   async cancelReservation(id: number, requestId: string) { requireBff(); return apiFetch<null>('/api/v1/customer/reservations/' + id + '/cancel?requestId=' + encodeURIComponent(requestId), { method: 'POST' }) },

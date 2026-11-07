@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toUserMessageOr } from '../api/errorMessages'
 import { c02Api, taskBffEnabled, type C02CustomerCaseSnapshot, type Reservation } from '../api/taskApi'
-import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, lastActivityAt, timelineSteps, uploadProgress, visitConfirmation, visitLabel, type StatusPill } from '../features/c02/c02CaseView'
+import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, lastActivityAt, timelineSteps, uploadProgress, visitConfirmation, visitLabel, type StatusPill, reservationNumber } from '../features/c02/c02CaseView'
 import '../features/t2/customer-pages.css'
 import '../features/c02/c02-case.css'
 
@@ -70,7 +70,7 @@ export function C02CaseDetailPage() {
     <section className="c02-detail__card c02-detail__head">
       <div className="c02-detail__titlebar"><div><span className="c02-tag">C · 직원 검토</span><h1>상속예금 해지 및 지급 사전접수</h1></div><div className="c02-pills">{pills.map(pill => <Pill key={pill.label} pill={pill} />)}</div></div>
       <dl className="c02-meta"><div><dt>접수번호</dt><dd className="c02-mono">{number}</dd></div><div><dt>접수 일시</dt><dd>{formatDateTime(snapshot.timeline?.submittedAt)}</dd></div><div><dt>업무 번호</dt><dd>#{snapshot.workItemId}</dd></div><div><dt>최근 변경</dt><dd>{formatDateTime(lastActivityAt(snapshot))}</dd></div></dl>
-      {snapshot.caseStatus === 'DRAFT' && <div className="c02-detail__actions"><Link className="c02-primary c02-link-button" to={`/tasks/c02/${snapshot.workItemId}`}>접수 이어서 작성</Link></div>}
+      {snapshot.caseStatus === 'DRAFT' && <div className="c02-detail__actions"><Link className="c02-primary c02-link-button" to={`/tasks/c02/${snapshot.workItemId}?edit=1`}>신청정보 수정</Link></div>}
       {snapshot.caseStatus === 'SUBMITTED' && <div className="c02-detail__actions c02-cancel">
         {confirmCancel
           ? <><span>접수를 취소할까요? 취소한 접수는 되돌릴 수 없고, 다시 신청하면 새 접수로 진행돼요.</span><button type="button" className="c02-danger" disabled={busy} onClick={() => void cancelCase()}>취소하기</button><button type="button" className="c02-secondary" disabled={busy} onClick={() => setConfirmCancel(false)}>돌아가기</button></>
@@ -97,7 +97,7 @@ export function C02CaseDetailPage() {
       <div className="c02-reservation__title"><h2>방문 예약</h2><span className="c02-pill c02-pill--muted">{reservation ? (RESERVATION_LABEL[reservation.status]?.label ?? reservation.status) : snapshot.caseStatus === 'REVIEW_PASSED' ? '예약 전' : '결과 대기'}</span></div>
       {snapshot.caseStatus === 'REVIEW_PASSED'
         ? reservation
-          ? <p>{formatDateTime(reservation.startsAt)} 방문으로 예약돼 있어요. {reservation.status === 'CONFIRMED' ? '담당 직원이 배정됐어요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
+          ? <p>예약번호 {reservationNumber(reservation.id)} · {formatDateTime(reservation.startsAt)} 방문으로 예약돼 있어요. {reservation.status === 'CONFIRMED' ? '담당 직원이 배정됐어요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
           : <div className="c02-reservation__row"><p>아직 예약하지 않았어요. 가까운 영업점과 방문 시간을 골라 주세요. 예약하면 그 지점의 담당 직원이 배정돼요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>방문 영업점 예약</button></div>
         : <p>{decision ? '이 접수는 방문 예약 대상이 아니에요.' : '직원 검토 결과를 기다리고 있어요. 결과가 ‘진행 가능’이면 알림을 받은 뒤 방문할 영업점과 시간을 예약할 수 있어요. 지금은 예약 정보가 없어요.'}</p>}
     </section>

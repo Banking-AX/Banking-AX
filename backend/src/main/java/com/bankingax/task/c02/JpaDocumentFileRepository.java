@@ -30,7 +30,7 @@ interface JpaDocumentFileRepository extends JpaRepository<JpaDocumentFileEntity,
           df.uploaded_at as uploadedAt, df.uploaded_by as uploadedBy
         from document_file df join required_document rd on rd.id=df.required_document_id join work_item wi on wi.id=rd.work_item_id
           join service_case sc on sc.work_item_id=wi.id left join heir h on h.id=rd.heir_id
-        where sc.id=:caseId order by rd.document_type_code,h.person_ref,df.version
+        where sc.id=:caseId and df.deleted_at is null order by rd.document_type_code,h.person_ref,df.version
         """,nativeQuery=true) List<DocumentRow> metadataByCase(@Param("caseId") long caseId);
     interface DocumentRow { long getDocumentId(); long getCaseId(); int getCaseRevision(); String getDocumentType(); String getPersonRef(); int getVersion(); String getOriginalName(); String getContentType(); long getSizeBytes(); String getStorageKey(); String getStatus(); String getChecksum(); java.time.Instant getUploadedAt(); long getUploadedBy(); }
 }

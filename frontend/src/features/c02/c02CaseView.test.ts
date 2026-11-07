@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import type { C02CaseIntake, C02Document, C02DocumentSlot } from '../../api/taskApi'
-import { caseNumber, casePill, groupDocuments, slotKey, timelineSteps, uploadProgress, visitConfirmation, visitLabel } from './c02CaseView'
+import { caseNumber, reservationNumber, casePill, hasCurrentReview, groupDocuments, slotKey, timelineSteps, uploadProgress, visitConfirmation, visitLabel } from './c02CaseView'
+
+describe('hasCurrentReview', () => {
+  it('does not treat a NOT_RUN placeholder as a finished precheck', () => {
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'NOT_RUN' }, 6)).toBe(false)
+  })
+
+  it('accepts a run for the current revision, including a failed one that staff handle manually', () => {
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'SUCCEEDED' }, 6)).toBe(true)
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'FAILED' }, 6)).toBe(true)
+  })
+
+  it('rejects a run for another revision or no run', () => {
+    expect(hasCurrentReview({ revision: 5, agentRunStatus: 'SUCCEEDED' }, 6)).toBe(false)
+    expect(hasCurrentReview(null, 6)).toBe(false)
+  })
+})
 
 const intake: C02CaseIntake = {
   decedentName: '이정호', decedentBirthDate: '1958-02-11', deathDate: '2026-09-28',
@@ -55,5 +71,12 @@ describe('C-02 case view', () => {
   it('derives a display receipt number from id and creation date', () => {
     expect(caseNumber(2, '2026-10-20T01:42:00Z')).toMatch(/^C-202610(20|21)-002$/)
     expect(caseNumber(7, null)).toBe('C-00000000-007')
+  })
+})
+
+describe('reservationNumber', () => {
+  it('shows the fixed-width number staff and customers both quote', () => {
+    expect(reservationNumber(1)).toBe('V-000001')
+    expect(reservationNumber(1234567)).toBe('V-1234567')
   })
 })

@@ -92,9 +92,14 @@ async function request<T>(path: string, init: RequestInit, attachAccessToken: bo
 }
 
 /** Binary download behind the same Bearer token (e.g. staff viewing an uploaded original); refreshes once on 401. */
-export async function apiFetchBlob(path: string): Promise<Blob> {
-  const send = () => fetch(`${baseUrl}${path}`, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} })
-    .catch(() => { throw new ApiError('NETWORK_ERROR', 0, 'Network request failed.') })
+export async function apiFetchBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const send = () => {
+    const headers = new Headers(init.headers)
+    if (!headers.has('Content-Type') && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
+    if (accessToken && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${accessToken}`)
+    return fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers })
+      .catch(() => { throw new ApiError('NETWORK_ERROR', 0, 'Network request failed.') })
+  }
   let response = await send()
   if (response.status === 401) {
     const replacement = await refreshOnce().catch(() => null)

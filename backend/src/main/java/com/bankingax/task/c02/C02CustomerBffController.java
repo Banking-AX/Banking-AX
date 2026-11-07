@@ -5,6 +5,10 @@ import com.bankingax.core.auth.TaskBffPrincipal;
 import com.bankingax.core.tool.ActorRole;
 import com.bankingax.core.verification.VerificationBinding;
 import com.bankingax.core.verification.VerificationIssue;
+import com.bankingax.core.workflow.TaskCode;
+import com.bankingax.core.api.DomainException;
+import com.bankingax.core.workflow.jpa.WorkflowStartService;
+import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,13 +30,31 @@ import org.springframework.web.multipart.MultipartFile;
 public class C02CustomerBffController {
     private final C02Controller internal;
     private final TaskBffPrincipal principals;
+    private final ObjectProvider<WorkflowStartService> workflowStarts;
+    private final C02PowerOfAttorneyDraftService poaDrafts;
     private final String gatewayToken;
 
     public C02CustomerBffController(C02Controller internal, TaskBffPrincipal principals,
-                                    @Value("${app.tool-gateway-token:}") String gatewayToken) {
+                                    ObjectProvider<WorkflowStartService> workflowStarts,
+                                    @Value("${app.tool-gateway-token:}") String gatewayToken, C02PowerOfAttorneyDraftService poaDrafts) {
         this.internal = internal;
         this.principals = principals;
+        this.workflowStarts = workflowStarts;
         this.gatewayToken = gatewayToken;
+        this.poaDrafts = poaDrafts;
+    }
+
+    /** Explicit non-chat entry point; workflow creation rules remain centralized. */
+    @PostMapping("/work-items")
+    public ApiEnvelope<WorkflowStartService.StartResult> startWorkItem(
+            JwtAuthenticationToken authentication, @RequestBody StartWorkItem body) {
+        long customerId = principals.customer(authentication);
+        WorkflowStartService starts = workflowStarts.getIfAvailable();
+        if (starts == null) throw new DomainException("WORKFLOW_START_UNAVAILABLE", "Workflow start needs the persistent Case port.");
+        WorkflowStartService.StartResult result = starts.start(
+                new WorkflowStartService.StartCommand(body.requestId(), customerId, TaskCode.INHERITANCE_DEPOSIT));
+        return ApiEnvelope.success(body.requestId(), TaskCode.INHERITANCE_DEPOSIT.name(), result.workItemId(),
+                null, null, result);
     }
 
     @PostMapping("/prepare")
@@ -116,10 +138,16 @@ public class C02CustomerBffController {
         long customerId = principals.customer(authentication);
         return internal.customerSnapshot(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
+    @PostMapping(value="/{caseId}/power-of-attorney/draft",produces="application/pdf")
+    public org.springframework.http.ResponseEntity<byte[]> powerOfAttorneyDraft(JwtAuthenticationToken authentication,@PathVariable long caseId,@RequestBody C02PowerOfAttorneyDraftService.Request body){
+        byte[] pdf=poaDrafts.create(principals.customer(authentication),caseId,body);
+        return org.springframework.http.ResponseEntity.ok().header("Cache-Control","no-store").header("Content-Disposition","attachment; filename=inheritance-power-of-attorney-draft.pdf").contentType(MediaType.APPLICATION_PDF).body(pdf);
+    }
 
     public record Prepare(long workItemId, String requestId, String registeredPhone,
                           C02Controller.DecedentBody decedent, List<C02Controller.HeirBody> heirs,
                           Map<String, C02IntakeService.DocumentStatus> documentStatuses) { }
+    public record StartWorkItem(String requestId) { }
     public record Consent(int revision, String requestId, boolean consented, boolean mockSignatureCompleted) { }
     public record Revision(int revision, String requestId) { }
     public record Verify(String requestId, String challengeId, String otp) { }

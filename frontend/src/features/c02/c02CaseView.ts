@@ -4,6 +4,13 @@ import { c02DocumentLabel } from '../../ui/customerLabels'
 /** Must match the server's DocumentSlot.key(): common slots use "COMMON", never an empty person reference. */
 export const slotKey = (slot: Pick<C02DocumentSlot, 'documentTypeCode' | 'personRef'>) => `${slot.documentTypeCode}:${slot.personRef ?? 'COMMON'}`
 
+/** The server answers NOT_RUN for a revision with no precheck, so a matching revision alone proves nothing. */
+export const hasCurrentReview = (precheck: { revision: number; agentRunStatus: string } | null | undefined, revision: number | undefined) =>
+  precheck != null && precheck.revision === revision && precheck.agentRunStatus !== 'NOT_RUN'
+
+/** Same format as the server's notification text. */
+export const reservationNumber = (id: number) => `V-${String(id).padStart(6, '0')}`
+
 export type Tone = 'info' | 'progress' | 'success' | 'warn' | 'danger' | 'muted'
 export type StatusPill = { label: string; tone: Tone }
 

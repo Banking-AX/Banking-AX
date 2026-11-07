@@ -7,6 +7,7 @@ import com.bankingax.core.api.DomainException;
 import com.bankingax.core.notification.NotificationWriter;
 import com.bankingax.core.reservation.MockStaffRankingAdapter;
 import com.bankingax.core.reservation.VisitReservationController;
+import com.bankingax.core.reservation.VisitReservationService;
 import com.bankingax.core.tool.InternalGatewayAuthenticator;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -94,6 +95,13 @@ class T2DemoFlowLocalMySqlIT {
         assertEquals(1, succeeded);
     }
 
+    /** 10:00 in Seoul on the next weekday at least two days away. */
+    private static OffsetDateTime offeredTime() {
+        java.time.LocalDate date = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).plusDays(2);
+        while (date.getDayOfWeek().getValue() > 5) date = date.plusDays(1);
+        return date.atTime(10, 0).atOffset(java.time.ZoneOffset.ofHours(9));
+    }
+
     @Test
     void reservationAssignsLowestWorkloadLogsTheBasisAndNotifiesTheCustomer() {
         persistence.persist(101, 2, 1, "decide-r", "PROCEED", "진행 가능", "REVIEW_PASSED");
@@ -103,13 +111,15 @@ class T2DemoFlowLocalMySqlIT {
         jdbc.update("insert into visit_reservation(case_id,customer_id,branch_id,assigned_staff_id,starts_at,status) values(3,1,1,101,UTC_TIMESTAMP(6)+interval 3 day,'CONFIRMED')");
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("writer", new NotificationWriter(jdbc));
-        VisitReservationController controller = new VisitReservationController(jdbc, new InternalGatewayAuthenticator("t"), new MockStaffRankingAdapter(), beans.getBeanProvider(NotificationWriter.class));
-        var item = controller.create(1, ActorRoleCustomer.CUSTOMER, "t", new VisitReservationController.Create("reserve-1", 2, 1, null, OffsetDateTime.now().plusDays(2))).data();
+        VisitReservationController controller = new VisitReservationController(new VisitReservationService(jdbc, new MockStaffRankingAdapter(), beans.getBeanProvider(NotificationWriter.class)), new InternalGatewayAuthenticator("t"));
+        var item = controller.create(1, ActorRoleCustomer.CUSTOMER, "t", new VisitReservationController.Create("reserve-1", 2, 1, null, offeredTime())).data();
         assertEquals(102L, item.staffId());
         assertEquals("CONFIRMED", item.status());
         assertEquals("TASK_CODE_AND_WORKLOAD", jdbc.queryForObject("select JSON_UNQUOTE(JSON_EXTRACT(payload,'$.basis')) from event_log where request_id='reserve-1-assign'", String.class));
         assertEquals(1, jdbc.queryForObject("select count(*) from notification where type='VISIT_CONFIRMED' and case_id=2", Integer.class));
-        assertEquals("INVALID_REQUEST", assertThrows(DomainException.class, () -> controller.create(1, ActorRoleCustomer.CUSTOMER, "t",
+        assertEquals("RESERVATION_ALREADY_EXISTS", assertThrows(DomainException.class, () -> controller.create(1, ActorRoleCustomer.CUSTOMER, "t",
+                new VisitReservationController.Create("reserve-again", 2, 1, null, offeredTime().plusHours(1)))).code());
+        assertEquals("RESERVATION_SLOT_UNAVAILABLE", assertThrows(DomainException.class, () -> controller.create(1, ActorRoleCustomer.CUSTOMER, "t",
                 new VisitReservationController.Create("reserve-past", 2, 1, null, OffsetDateTime.now().minusHours(1)))).code());
     }
 
@@ -117,7 +127,7 @@ class T2DemoFlowLocalMySqlIT {
     void reservationCancelIsLockedWithin24Hours() {
         jdbc.update("update service_case set case_status='REVIEW_PASSED', result_notified_at=UTC_TIMESTAMP(6) where id=2");
         jdbc.update("insert into visit_reservation(id,case_id,customer_id,branch_id,assigned_staff_id,starts_at,status) values(50,2,1,1,101,UTC_TIMESTAMP(6)+interval 23 hour,'CONFIRMED')");
-        VisitReservationController controller = new VisitReservationController(jdbc, new InternalGatewayAuthenticator("t"), new MockStaffRankingAdapter(), new StaticListableBeanFactory().getBeanProvider(NotificationWriter.class));
+        VisitReservationController controller = new VisitReservationController(new VisitReservationService(jdbc, new MockStaffRankingAdapter(), new StaticListableBeanFactory().getBeanProvider(NotificationWriter.class)), new InternalGatewayAuthenticator("t"));
         assertEquals("RESERVATION_CHANGE_LOCKED", assertThrows(DomainException.class, () -> controller.cancel(50, 1, ActorRoleCustomer.CUSTOMER, "t", "c-23h")).code());
         jdbc.update("update visit_reservation set starts_at=UTC_TIMESTAMP(6)+interval 25 hour where id=50");
         controller.cancel(50, 1, ActorRoleCustomer.CUSTOMER, "t", "c-25h");
