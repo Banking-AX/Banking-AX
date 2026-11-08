@@ -16,6 +16,28 @@ class FakeSpringToolGateway:
                 "data": {"outcome": "CREATED", "workItem": {
                     "workflowId": 501, "workItemId": 1001,
                     "taskCode": "REPAYMENT_ORDER_CHANGE", "status": "ACTIVE"}}}
+
+    def b01_loans(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "REPAYMENT_ORDER_CHANGE",
+                "workItemId": request["workItemId"], "caseId": None, "revision": None,
+                "data": {"loans": []}, "error": None}
+
+    def b01_selection(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "REPAYMENT_ORDER_CHANGE",
+                "workItemId": request["workItemId"], "caseId": None, "revision": None,
+                "data": {"workItemId": request["workItemId"],
+                         "selectedLoanId": request["selectedLoanId"],
+                         "requestedRepaymentOrder": request["requestedRepaymentOrder"],
+                         "changed": True, "replayed": False, "workItemVersion": 1},
+                "error": None}
+
+    def b01_eligibility(self, request: dict[str, Any]) -> dict[str, Any]:
+        return {"requestId": request["requestId"], "taskCode": "REPAYMENT_ORDER_CHANGE",
+                "workItemId": request["workItemId"], "caseId": None, "revision": None,
+                "data": {"workItemId": request["workItemId"], "selectedLoanId": 101,
+                         "requestedRepaymentOrder": "PRINCIPAL_FIRST",
+                         "eligibilityStatus": "ELIGIBLE", "reasonCode": "ELIGIBLE",
+                         "reasonMessage": "대출 규칙 사전검증을 통과했습니다."}, "error": None}
     def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"rate":"BASE_RATE","rule":"B2-R3","manual":False}}
     def b02_execute(self, request: dict[str, Any]) -> dict[str, Any]: return {"taskCode":"HOUSING_SAVINGS_CLOSE","data":{"status":"CLOSED"}}
     """Consumer-test fixture. It has no database or HTTP side effect."""
