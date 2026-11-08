@@ -26,6 +26,18 @@ class SpringHttpToolGateway:
                    for key in ("requestId", "customerId", "chatRoomId", "taskCode")}
         return self._post("/api/v1/tools/workflows/start", payload, headers)
 
+    def b01_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
+        customer_id = request["customerId"]
+        token = os.getenv("SPRING_TOOL_GATEWAY_TOKEN")
+        if not token:
+            raise RuntimeError("SPRING_TOOL_GATEWAY_TOKEN_MISSING")
+        headers = {"Content-Type": "application/json", "X-Actor-Id": str(customer_id),
+                   "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": token}
+        payload = {key: request[key]
+                   for key in ("requestId", "customerId", "chatRoomId", "mode", "workItemId")
+                   if key in request and request[key] is not None}
+        return self._post("/api/v1/tools/workflows/b01/prepare", payload, headers)
+
     def b02_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._b02("/api/v1/b02/prepare", request, ("requestId","customerId","accountId","waivePreferredRate","taxed"))
     def b02_execute(self, request: dict[str, Any]) -> dict[str, Any]:
