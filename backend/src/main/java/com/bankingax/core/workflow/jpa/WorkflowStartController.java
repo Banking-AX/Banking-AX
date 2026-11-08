@@ -46,6 +46,25 @@ public class WorkflowStartController {
         return ApiEnvelope.success(request.requestId(), taskCode.name(), result.workItemId(), null, null, result);
     }
 
+    @PostMapping("/b01/prepare")
+    public ApiEnvelope<WorkflowStartService.B01PrepareResult> prepareB01(
+            @RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,
+            @RequestHeader("X-Tool-Gateway-Token") String gatewayToken,
+            @RequestBody B01PrepareRequest request) {
+        authenticator.verify(gatewayToken);
+        if (role != ActorRole.CUSTOMER || actorId != request.customerId()) {
+            throw new DomainException("FORBIDDEN", "Customer ownership cannot be verified.");
+        }
+        WorkflowStartService.B01PrepareMode mode = parseB01Mode(request.mode());
+        WorkflowStartService.B01PrepareResult result = starts.prepareB01(
+                new WorkflowStartService.B01PrepareCommand(
+                        request.requestId(), request.customerId(), request.chatRoomId(), mode, request.workItemId()));
+        return ApiEnvelope.success(
+                request.requestId(), TaskCode.REPAYMENT_ORDER_CHANGE.name(),
+                result.workItem().workItemId(), null, null, result);
+    }
+
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiEnvelope<Void>> handleDomain(DomainException exception) {
         HttpStatus status = switch (exception.code()) {
@@ -71,5 +90,19 @@ public class WorkflowStartController {
         }
     }
 
+    private static WorkflowStartService.B01PrepareMode parseB01Mode(String value) {
+        if (value == null || value.isBlank()) {
+            throw new DomainException("INVALID_REQUEST", "A supported B-01 mode is required.");
+        }
+        try {
+            return WorkflowStartService.B01PrepareMode.valueOf(value);
+        } catch (IllegalArgumentException exception) {
+            throw new DomainException("INVALID_REQUEST", "A supported B-01 mode is required.");
+        }
+    }
+
     public record StartRequest(String requestId, long customerId, Long chatRoomId, String taskCode) { }
+
+    public record B01PrepareRequest(String requestId, long customerId, long chatRoomId,
+                                    String mode, Long workItemId) { }
 }

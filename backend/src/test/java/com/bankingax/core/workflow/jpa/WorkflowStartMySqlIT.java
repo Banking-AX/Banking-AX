@@ -18,6 +18,7 @@ import com.bankingax.core.tool.ToolGatewayService;
 import com.bankingax.core.tool.ActorRole;
 import com.bankingax.core.workflow.TaskCode;
 import com.bankingax.core.workflow.TaskHandler;
+import com.bankingax.core.workflow.WorkItemStatus;
 import com.bankingax.task.a02.LoanQueryPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -282,6 +283,140 @@ class WorkflowStartMySqlIT {
     }
 
     @Test
+    void preparesNewB01AndReplaysTheSameRequest() throws Exception {
+        String body = "{\"requestId\":\"b01-prepare-1\",\"customerId\":1,\"chatRoomId\":77,"
+                + "\"mode\":\"DISCOVER\"}";
+
+        String first = http.perform(post("/api/v1/tools/workflows/b01/prepare").headers(headers())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.taskCode").value("REPAYMENT_ORDER_CHANGE"))
+                .andExpect(jsonPath("$.data.outcome").value("CREATED"))
+                .andExpect(jsonPath("$.data.workItem.status").value("ACTIVE"))
+                .andReturn().getResponse().getContentAsString();
+        long workItemId = json.readTree(first).path("data").path("workItem").path("workItemId").asLong();
+
+        http.perform(post("/api/v1/tools/workflows/b01/prepare").headers(headers())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.outcome").value("REQUEST_REPLAYED"))
+                .andExpect(jsonPath("$.data.workItem.workItemId").value(workItemId));
+        assertEquals(1, count("select count(*) from work_item where task_code='REPAYMENT_ORDER_CHANGE'"));
+    }
+
+    @Test
+    void reusesUnfinishedB01InTheSameChat() {
+        var first = prepareB01("b01-same-first", 1, 77, WorkflowStartService.B01PrepareMode.DISCOVER, null);
+        var reused = prepareB01("b01-same-second", 1, 77, WorkflowStartService.B01PrepareMode.DISCOVER, null);
+
+        assertEquals(WorkflowStartService.B01PrepareOutcome.SAME_CHAT_REUSED, reused.outcome());
+        assertEquals(first.workItem().workItemId(), reused.workItem().workItemId());
+        assertEquals(1, count("select count(*) from workflow"));
+    }
+
+    @Test
+    void requiresConfirmationForUnfinishedB01InAnotherChat() {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        var existing = prepareB01("b01-room-77", 1, 77, WorkflowStartService.B01PrepareMode.DISCOVER, null);
+
+        var found = prepareB01("b01-room-78", 1, 78, WorkflowStartService.B01PrepareMode.DISCOVER, null);
+
+        assertEquals(WorkflowStartService.B01PrepareOutcome.RECONNECT_CONFIRMATION_REQUIRED, found.outcome());
+        assertEquals(existing.workItem().workItemId(), found.workItem().workItemId());
+        assertEquals(1, count("select count(*) from workflow"));
+    }
+
+    @Test
+    void explicitlyContinuesOwnedB01WithoutChangingItsChatRoomOrStatus() {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        var existing = prepareB01("b01-continue-source", 1, 77,
+                WorkflowStartService.B01PrepareMode.DISCOVER, null);
+        jdbc.update("update work_item set status='ON_HOLD', resume_step='DOCUMENT_UPLOAD' where id=?",
+                existing.workItem().workItemId());
+
+        var continued = prepareB01("b01-continue-choice", 1, 78,
+                WorkflowStartService.B01PrepareMode.CONTINUE_EXISTING, existing.workItem().workItemId());
+
+        assertEquals(WorkflowStartService.B01PrepareOutcome.EXISTING_RECONNECTED, continued.outcome());
+        assertEquals(existing.workItem().workItemId(), continued.workItem().workItemId());
+        assertEquals(WorkItemStatus.ON_HOLD, continued.workItem().status());
+        assertEquals(1, count("select count(*) from workflow where id=" + existing.workItem().workflowId()
+                + " and chat_room_id=77"));
+    }
+
+    @Test
+    void rejectsStartingNewB01WhileAnotherChatHasAnActiveItem() {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        var existing = prepareB01("b01-active-source", 1, 77,
+                WorkflowStartService.B01PrepareMode.DISCOVER, null);
+
+        var conflict = prepareB01("b01-start-new", 1, 78,
+                WorkflowStartService.B01PrepareMode.START_NEW, null);
+
+        assertEquals(WorkflowStartService.B01PrepareOutcome.ACTIVE_WORK_ITEM_CONFLICT, conflict.outcome());
+        assertEquals(existing.workItem().workItemId(), conflict.workItem().workItemId());
+        assertEquals(1, count("select count(*) from work_item where task_code='REPAYMENT_ORDER_CHANGE'"));
+    }
+
+    @Test
+    void startsNewB01WhenAnotherChatOnlyHasAnOnHoldItem() {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
+        var existing = prepareB01("b01-hold-source", 1, 77,
+                WorkflowStartService.B01PrepareMode.DISCOVER, null);
+        jdbc.update("update work_item set status='ON_HOLD' where id=?", existing.workItem().workItemId());
+
+        var created = prepareB01("b01-new-after-hold", 1, 78,
+                WorkflowStartService.B01PrepareMode.START_NEW, null);
+
+        assertEquals(WorkflowStartService.B01PrepareOutcome.CREATED, created.outcome());
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                existing.workItem().workItemId(), created.workItem().workItemId());
+        assertEquals(1, count("select count(*) from work_item where status='ON_HOLD'"));
+        assertEquals(1, count("select count(*) from work_item where status='ACTIVE'"));
+    }
+
+    @Test
+    void neverContinuesAnotherCustomersB01() {
+        jdbc.update("insert into `user`(id,login_id,password_hash,`role`,name) "
+                + "values(2,'other-b01','x','CUSTOMER','other')");
+        jdbc.update("insert into chat_room(id,customer_id) values(78,2)");
+        var other = prepareB01("b01-other-owned", 2, 78,
+                WorkflowStartService.B01PrepareMode.DISCOVER, null);
+
+        DomainException error = assertThrows(DomainException.class, () -> prepareB01(
+                "b01-foreign-continue", 1, 77, WorkflowStartService.B01PrepareMode.CONTINUE_EXISTING,
+                other.workItem().workItemId()));
+
+        assertEquals("WORK_ITEM_NOT_AVAILABLE", error.code());
+    }
+
+    @Test
+    void concurrentB01DiscoveryCreatesOneWorkItem() throws Exception {
+        var pool = Executors.newFixedThreadPool(2);
+        var gate = new CountDownLatch(1);
+        try {
+            var first = pool.submit(() -> {
+                gate.await();
+                return prepareB01("b01-concurrent-first", 1, 77,
+                        WorkflowStartService.B01PrepareMode.DISCOVER, null);
+            });
+            var second = pool.submit(() -> {
+                gate.await();
+                return prepareB01("b01-concurrent-second", 1, 77,
+                        WorkflowStartService.B01PrepareMode.DISCOVER, null);
+            });
+            gate.countDown();
+
+            var firstResult = first.get(10, TimeUnit.SECONDS);
+            var secondResult = second.get(10, TimeUnit.SECONDS);
+            assertEquals(firstResult.workItem().workItemId(), secondResult.workItem().workItemId());
+            assertEquals(1, count("select count(*) from work_item where task_code='REPAYMENT_ORDER_CHANGE'"));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     void doesNotReuseDoneItem() {
         var done = starts.start(new WorkflowStartService.StartCommand(
                 "a01-done", 1, 77L, TaskCode.TRANSACTION_SEARCH));
@@ -366,6 +501,13 @@ class WorkflowStartMySqlIT {
 
     private WorkflowStartService.StartCommand command(String requestId) {
         return new WorkflowStartService.StartCommand(requestId, 1, TaskCode.LOAN_INQUIRY);
+    }
+
+    private WorkflowStartService.B01PrepareResult prepareB01(
+            String requestId, long customerId, long chatRoomId,
+            WorkflowStartService.B01PrepareMode mode, Long workItemId) {
+        return starts.prepareB01(new WorkflowStartService.B01PrepareCommand(
+                requestId, customerId, chatRoomId, mode, workItemId));
     }
 
     private ToolActor actor(long customerId) {
