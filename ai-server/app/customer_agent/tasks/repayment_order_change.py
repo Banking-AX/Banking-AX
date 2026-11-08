@@ -4,6 +4,8 @@ import hashlib
 import re
 from typing import Any, Literal, TypedDict
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.types import Command, interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from ..contracts import SpringToolGateway, TaskDefinition
@@ -44,6 +46,8 @@ class B01GraphState(TypedDict):
 class B01GraphRunResult(TypedDict):
     state: B01GraphState
     taskAction: dict[str, object] | None
+    interrupted: bool
+    interrupt: dict[str, object] | None
 
 
 class _LoanCandidateModel(BaseModel):
@@ -158,17 +162,46 @@ class B01GraphWorkflow:
     REQUIRED_DOCUMENTS = ["채무변제 충당순서 변경 신청서(B01-01)"]
 
     def __init__(self, gateway: SpringToolGateway, customer_id: int,
-                 operation_request_id: str) -> None:
+                 operation_request_id: str,
+                 checkpointer: BaseCheckpointSaver | None = None) -> None:
         if customer_id <= 0 or not operation_request_id.strip():
             raise ValueError("B-01 Graph requires authenticated customer and request identifiers")
         self.gateway = gateway
         self.customer_id = customer_id
         self.operation_request_id = operation_request_id
+        self.checkpointer = checkpointer
 
     def run(self, state: B01GraphState) -> B01GraphRunResult:
-        final_state = self._graph().invoke(dict(state))
+        graph = self._graph()
+        config = self._config(state["work_item_id"])
+        if self.checkpointer is not None:
+            snapshot = graph.get_state(config)
+            if snapshot.values:
+                return self._result(dict(snapshot.values), bool(snapshot.next))
+        final_state = graph.invoke(dict(state), config=config)
+        return self._result(final_state, "__interrupt__" in final_state)
+
+    def resume(self, work_item_id: int, customer_input: str) -> B01GraphRunResult:
+        if self.checkpointer is None:
+            raise RuntimeError("B01_CHECKPOINTER_REQUIRED")
+        if work_item_id <= 0 or not customer_input.strip():
+            raise ValueError("B-01 resume requires a WorkItem and customer input")
+        graph = self._graph()
+        config = self._config(work_item_id)
+        snapshot = graph.get_state(config)
+        if not snapshot.values:
+            raise ValueError("B01_CHECKPOINT_NOT_FOUND")
+        if not snapshot.next:
+            return self._result(dict(snapshot.values), False)
+        final_state = graph.invoke(Command(resume=customer_input.strip()), config=config)
+        return self._result(final_state, "__interrupt__" in final_state)
+
+    def _result(self, raw_state: dict[str, Any], interrupted: bool) -> B01GraphRunResult:
+        final_state: B01GraphState = {
+            key: value for key, value in raw_state.items() if key != "__interrupt__"
+        }  # type: ignore[assignment]
         action = None
-        if (final_state.get("eligibility_status") == "ELIGIBLE"
+        if (not interrupted and final_state.get("eligibility_status") == "ELIGIBLE"
                 and final_state.get("required_documents")
                 and final_state.get("awaiting_input") is None):
             work_item_id = final_state["work_item_id"]
@@ -177,7 +210,17 @@ class B01GraphWorkflow:
                 "workItemId": work_item_id,
                 "path": f"/tasks/b01/{work_item_id}",
             }
-        return {"state": final_state, "taskAction": action}
+        interrupt_payload = None
+        raw_interrupts = raw_state.get("__interrupt__")
+        if raw_interrupts:
+            first = raw_interrupts[0]
+            value = getattr(first, "value", None)
+            if isinstance(value, dict):
+                interrupt_payload = value
+        if interrupted and interrupt_payload is None and final_state.get("pending_question"):
+            interrupt_payload = self._interrupt_payload(final_state)
+        return {"state": final_state, "taskAction": action,
+                "interrupted": interrupted, "interrupt": interrupt_payload}
 
     def _graph(self):
         from langgraph.graph import END, START, StateGraph
@@ -192,13 +235,14 @@ class B01GraphWorkflow:
         graph.add_edge("extract_b01_request", "resolve_target_loan")
         graph.add_conditional_edges(
             "resolve_target_loan", self._after_resolve,
-            {"check": "check_b01_eligibility", "respond": "respond_b01"})
+            {"check": "check_b01_eligibility", "wait": "resolve_target_loan",
+             "respond": "respond_b01"})
         graph.add_conditional_edges(
             "check_b01_eligibility", self._after_eligibility,
             {"documents": "prepare_required_docs", "respond": "respond_b01"})
         graph.add_edge("prepare_required_docs", "respond_b01")
         graph.add_edge("respond_b01", END)
-        return graph.compile()
+        return graph.compile(checkpointer=self.checkpointer)
 
     def extract_b01_request(self, state: B01GraphState) -> dict[str, object]:
         message = state["user_message"].strip()
@@ -217,30 +261,41 @@ class B01GraphWorkflow:
         return update
 
     def resolve_target_loan(self, state: B01GraphState) -> dict[str, object]:
-        try:
-            request_id = self._tool_request_id("loans")
-            raw = self.gateway.b01_loans({
-                "requestId": request_id,
-                "customerId": self.customer_id,
-                "workItemId": state["work_item_id"],
-            })
-            envelope = _LoanCandidatesEnvelope.model_validate(raw)
-            self._require_response(envelope.requestId, request_id, envelope.workItemId,
-                                   state["work_item_id"])
-        except (RuntimeError, ValidationError, ValueError):
-            return {"response": "대출 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
+        working: B01GraphState = dict(state)  # type: ignore[assignment]
+        resumed_update: dict[str, object] = {}
+        if (self.checkpointer is not None and state.get("awaiting_input") is not None
+                and state.get("pending_question") and state.get("loan_candidates")):
+            customer_input = interrupt(self._interrupt_payload(state))
+            resumed_update = self._apply_customer_input(state, str(customer_input))
+            working.update(resumed_update)  # type: ignore[typeddict-item]
+            if working.get("awaiting_input") is not None:
+                return resumed_update
 
-        candidates: list[B01LoanCandidate] = [candidate.model_dump() for candidate in envelope.data.loans]
+        candidates = working.get("loan_candidates") or []
+        if not candidates:
+            try:
+                request_id = self._tool_request_id("loans", working["work_item_id"])
+                raw = self.gateway.b01_loans({
+                    "requestId": request_id,
+                    "customerId": self.customer_id,
+                    "workItemId": working["work_item_id"],
+                })
+                envelope = _LoanCandidatesEnvelope.model_validate(raw)
+                self._require_response(envelope.requestId, request_id, envelope.workItemId,
+                                       working["work_item_id"])
+            except (RuntimeError, ValidationError, ValueError):
+                return {"response": "대출 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
+            candidates = [candidate.model_dump() for candidate in envelope.data.loans]
         if not candidates:
             return {"loan_candidates": [], "response": "변경 신청 대상이 될 수 있는 보유 대출이 없습니다."}
 
-        selected_id = state.get("selected_loan_id")
+        selected_id = working.get("selected_loan_id")
         candidate_ids = {candidate["loanId"] for candidate in candidates}
         if selected_id is not None and selected_id not in candidate_ids:
             return self._loan_question(candidates, "선택한 대출을 현재 보유 대출에서 확인할 수 없습니다.")
 
         if selected_id is None:
-            match, confirmation = self._match_candidate(state, candidates)
+            match, confirmation = self._match_candidate(working, candidates)
             if match is not None and not confirmation:
                 selected_id = match["loanId"]
             elif match is not None:
@@ -256,7 +311,7 @@ class B01GraphWorkflow:
             else:
                 return self._loan_question(candidates)
 
-        requested_order = state.get("requested_repayment_order")
+        requested_order = working.get("requested_repayment_order")
         if requested_order is None:
             return {
                 "loan_candidates": candidates,
@@ -266,17 +321,17 @@ class B01GraphWorkflow:
             }
 
         try:
-            request_id = self._tool_request_id("selection")
+            request_id = self._tool_request_id("selection", working["work_item_id"])
             raw = self.gateway.b01_selection({
                 "requestId": request_id,
                 "customerId": self.customer_id,
-                "workItemId": state["work_item_id"],
+                "workItemId": working["work_item_id"],
                 "selectedLoanId": selected_id,
                 "requestedRepaymentOrder": requested_order,
             })
             envelope = _SelectionEnvelope.model_validate(raw)
             self._require_response(envelope.requestId, request_id, envelope.workItemId,
-                                   state["work_item_id"])
+                                   working["work_item_id"])
             if (envelope.data.selectedLoanId != selected_id
                     or envelope.data.requestedRepaymentOrder != requested_order):
                 raise ValueError("B-01 selection response differs from the request")
@@ -286,7 +341,7 @@ class B01GraphWorkflow:
                 "selected_loan_id": selected_id,
                 "response": "선택 정보를 저장하지 못했습니다. 현재 신청 정보는 변경되지 않았습니다.",
             }
-        return {
+        return {**resumed_update,
             "loan_candidates": candidates,
             "selected_loan_id": selected_id,
             "pending_question": None,
@@ -295,7 +350,7 @@ class B01GraphWorkflow:
 
     def check_b01_eligibility(self, state: B01GraphState) -> dict[str, object]:
         try:
-            request_id = self._tool_request_id("eligibility")
+            request_id = self._tool_request_id("eligibility", state["work_item_id"])
             raw = self.gateway.b01_eligibility({
                 "requestId": request_id,
                 "customerId": self.customer_id,
@@ -338,13 +393,100 @@ class B01GraphWorkflow:
                 "SMS 본인확인이 필요하며, 이 안내는 최종 변경 승인을 의미하지 않습니다.")}
         return {"response": "B-01 신청 정보를 확인하지 못했습니다. 다시 요청해 주세요."}
 
-    @staticmethod
-    def _after_resolve(state: B01GraphState) -> Literal["check", "respond"]:
+    def _after_resolve(self, state: B01GraphState) -> Literal["check", "wait", "respond"]:
+        if (self.checkpointer is not None and state.get("awaiting_input") is not None
+                and state.get("pending_question")):
+            return "wait"
         if (state.get("response") is None and state.get("awaiting_input") is None
                 and state.get("selected_loan_id") is not None
                 and state.get("requested_repayment_order") is not None):
             return "check"
         return "respond"
+
+    def _apply_customer_input(self, state: B01GraphState,
+                              customer_input: str) -> dict[str, object]:
+        awaiting = state.get("awaiting_input")
+        candidates = state.get("loan_candidates") or []
+        if awaiting == "LOAN_SELECTION":
+            selected = self._selection_from_input(customer_input, candidates)
+            if selected is None:
+                return self._loan_question(candidates, "선택한 대출을 확인할 수 없습니다.")
+            update: dict[str, object] = {
+                "selected_loan_id": selected["loanId"],
+                "pending_question": None,
+                "awaiting_input": None,
+            }
+            if state.get("requested_repayment_order") is None:
+                update.update({
+                    "pending_question": "변경할 충당순서를 선택해 주세요. 원금 우선 또는 이자 우선 중 하나를 말씀해 주세요.",
+                    "awaiting_input": "REPAYMENT_ORDER_SELECTION",
+                })
+            return update
+        if awaiting == "LOAN_CONFIRMATION":
+            answer = self._confirmation(customer_input)
+            if answer is True:
+                update = {"pending_question": None, "awaiting_input": None}
+                if state.get("requested_repayment_order") is None:
+                    update.update({
+                        "pending_question": "변경할 충당순서를 선택해 주세요. 원금 우선 또는 이자 우선 중 하나를 말씀해 주세요.",
+                        "awaiting_input": "REPAYMENT_ORDER_SELECTION",
+                    })
+                return update
+            if answer is False:
+                return self._loan_question(candidates, "다른 대출을 선택해 주세요.")
+            return {
+                "pending_question": "선택한 대출이 맞으면 예, 아니면 아니오라고 답해 주세요.",
+                "awaiting_input": "LOAN_CONFIRMATION",
+            }
+        if awaiting == "REPAYMENT_ORDER_SELECTION":
+            order = self._extract_order(customer_input)
+            if order is None:
+                return {
+                    "pending_question": "원금 우선 또는 이자 우선 중 하나를 명확히 말씀해 주세요.",
+                    "awaiting_input": "REPAYMENT_ORDER_SELECTION",
+                }
+            return {"requested_repayment_order": order,
+                    "pending_question": None, "awaiting_input": None}
+        raise ValueError("B01_AWAITING_INPUT_INVALID")
+
+    @classmethod
+    def _selection_from_input(cls, value: str,
+                              candidates: list[B01LoanCandidate]) -> B01LoanCandidate | None:
+        number = re.fullmatch(r"\s*(\d+)\s*번?\s*", value)
+        if number:
+            index = int(number.group(1)) - 1
+            return candidates[index] if 0 <= index < len(candidates) else None
+        normalized = cls._normalize(value)
+        matches = [candidate for candidate in candidates
+                   if normalized == cls._normalize(candidate["loanName"])
+                   or normalized == cls._normalize(candidate["loanNoMasked"])
+                   or normalized in cls._normalize(candidate["loanName"])]
+        return matches[0] if len(matches) == 1 else None
+
+    @staticmethod
+    def _confirmation(value: str) -> bool | None:
+        normalized = re.sub(r"[\s.!?]", "", value).lower()
+        if normalized in {"예", "네", "응", "맞아", "맞습니다", "yes", "y"}:
+            return True
+        if normalized in {"아니오", "아니요", "아니", "틀려", "no", "n"}:
+            return False
+        return None
+
+    @staticmethod
+    def _interrupt_payload(state: B01GraphState) -> dict[str, object]:
+        return {
+            "awaitingInput": state.get("awaiting_input"),
+            "question": state.get("pending_question"),
+            "loanCandidates": [{
+                "number": index,
+                "loanName": candidate["loanName"],
+                "loanNoMasked": candidate["loanNoMasked"],
+            } for index, candidate in enumerate(state.get("loan_candidates") or [], 1)],
+        }
+
+    @staticmethod
+    def _config(work_item_id: int) -> dict[str, dict[str, str]]:
+        return {"configurable": {"thread_id": b01_thread_id(work_item_id)}}
 
     @staticmethod
     def _after_eligibility(state: B01GraphState) -> Literal["documents", "respond"]:
@@ -410,8 +552,9 @@ class B01GraphWorkflow:
             "awaiting_input": "LOAN_SELECTION",
         }
 
-    def _tool_request_id(self, stage: str) -> str:
-        digest = hashlib.sha256(self.operation_request_id.encode("utf-8")).hexdigest()[:32]
+    def _tool_request_id(self, stage: str, work_item_id: int) -> str:
+        source = f"{self.operation_request_id}:{work_item_id}"
+        digest = hashlib.sha256(source.encode("utf-8")).hexdigest()[:32]
         return f"b01-{stage}-{digest}"
 
     @staticmethod

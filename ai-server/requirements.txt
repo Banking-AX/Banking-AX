@@ -7,3 +7,5 @@ sentence-transformers>=3,<6
 openai>=1.50,<3
 python-dotenv>=1,<2
 langgraph>=0.2,<2
+langgraph-checkpoint>=3,<4
+langgraph-checkpoint-sqlite>=3.0,<3.1
