@@ -75,11 +75,18 @@ class B01CheckpointResumeTests(unittest.TestCase):
                  request_id: str = "operation-initial") -> B01GraphWorkflow:
         return B01GraphWorkflow(gateway, 7, request_id, store.saver)
 
+    @staticmethod
+    def state(work_item_id: int, chat_room_id: int, message: str,
+              request_id: str = "operation-initial"):
+        return initialize_b01_state(
+            work_item_id, chat_room_id, message,
+            customer_id=7, action_request_id=request_id)
+
     def test_multiple_loans_interrupt_and_second_choice_resumes_without_relookup(self) -> None:
         gateway = CheckpointGateway(self.loans)
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
-            first = workflow.run(initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘"))
+            first = workflow.run(self.state(1001, 77, "원금 우선으로 바꿔줘"))
 
             self.assertTrue(first["interrupted"])
             self.assertEqual("LOAN_SELECTION", first["interrupt"]["awaitingInput"])
@@ -99,7 +106,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
         gateway = CheckpointGateway(self.loans)
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
-            workflow.run(initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘"))
+            workflow.run(self.state(1001, 77, "원금 우선으로 바꿔줘"))
             invalid = workflow.resume(1001, "9번")
 
             self.assertTrue(invalid["interrupted"])
@@ -116,7 +123,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
 
     def test_confirmation_yes_confirms_existing_candidate(self) -> None:
         gateway = CheckpointGateway(self.loans)
-        state = initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘")
+        state = self.state(1001, 77, "원금 우선으로 바꿔줘")
         state["loan_reference"] = "직장인"
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
@@ -130,7 +137,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
 
     def test_confirmation_no_returns_to_loan_selection(self) -> None:
         gateway = CheckpointGateway(self.loans)
-        state = initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘")
+        state = self.state(1001, 77, "원금 우선으로 바꿔줘")
         state["loan_reference"] = "직장인"
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
@@ -149,7 +156,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
         gateway = CheckpointGateway([self.loans[0]])
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
-            first = workflow.run(initialize_b01_state(1001, 77, "충당순서를 변경하고 싶어"))
+            first = workflow.run(self.state(1001, 77, "충당순서를 변경하고 싶어"))
 
             self.assertTrue(first["interrupted"])
             self.assertEqual("REPAYMENT_ORDER_SELECTION", first["interrupt"]["awaitingInput"])
@@ -168,7 +175,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
         first_gateway = CheckpointGateway(self.loans)
         with B01CheckpointStore(self.db_path) as first_store:
             first = self.workflow(first_gateway, first_store).run(
-                initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘"))
+                self.state(1001, 77, "원금 우선으로 바꿔줘"))
             self.assertTrue(first["interrupted"])
         self.assertEqual(0o600, os.stat(self.db_path).st_mode & 0o777)
 
@@ -182,7 +189,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
 
     def test_same_start_and_resume_requests_do_not_repeat_tools(self) -> None:
         gateway = CheckpointGateway(self.loans)
-        initial = initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘")
+        initial = self.state(1001, 77, "원금 우선으로 바꿔줘")
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
             first = workflow.run(initial)
@@ -202,12 +209,12 @@ class B01CheckpointResumeTests(unittest.TestCase):
         with B01CheckpointStore(self.db_path) as store:
             first_workflow = self.workflow(gateway, store, "operation-1001")
             second_workflow = self.workflow(gateway, store, "operation-1002")
-            first_workflow.run(initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘"))
-            second_workflow.run(initialize_b01_state(1002, 78, "원금 우선으로 바꿔줘"))
+            first_workflow.run(self.state(1001, 77, "원금 우선으로 바꿔줘", "operation-1001"))
+            second_workflow.run(self.state(1002, 78, "원금 우선으로 바꿔줘", "operation-1002"))
 
             first_done = first_workflow.resume(1001, "1번")
             second_still_waiting = second_workflow.run(
-                initialize_b01_state(1002, 78, "원금 우선으로 바꿔줘"))
+                self.state(1002, 78, "원금 우선으로 바꿔줘", "operation-1002"))
 
         self.assertEqual(501, first_done["state"]["selected_loan_id"])
         self.assertTrue(second_still_waiting["interrupted"])
@@ -219,7 +226,7 @@ class B01CheckpointResumeTests(unittest.TestCase):
         gateway.eligible = False
         with B01CheckpointStore(self.db_path) as store:
             workflow = self.workflow(gateway, store)
-            workflow.run(initialize_b01_state(1001, 77, "원금 우선으로 바꿔줘"))
+            workflow.run(self.state(1001, 77, "원금 우선으로 바꿔줘"))
             result = workflow.resume(1001, "1번")
 
         self.assertEqual("INELIGIBLE", result["state"]["eligibility_status"])

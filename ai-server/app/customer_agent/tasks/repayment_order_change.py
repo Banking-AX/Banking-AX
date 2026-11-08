@@ -29,7 +29,11 @@ B01AwaitingInput = Literal[
 
 class B01GraphState(TypedDict):
     work_item_id: int
+    customer_id: int | None
     chat_room_id: int
+    action_request_id: str | None
+    prepare_outcome: str | None
+    last_operation_request_id: str | None
     user_message: str
     pending_question: str | None
     awaiting_input: B01AwaitingInput
@@ -40,6 +44,7 @@ class B01GraphState(TypedDict):
     eligibility_status: Literal["ELIGIBLE", "INELIGIBLE"] | None
     ineligible_reasons: list[str]
     required_documents: list[str]
+    tool_error: str | None
     response: str | None
 
 
@@ -130,12 +135,18 @@ class _EligibilityEnvelope(_B01ToolEnvelope):
 
 
 def initialize_b01_state(work_item_id: int, chat_room_id: int,
-                         user_message: str) -> B01GraphState:
+                         user_message: str, customer_id: int | None = None,
+                         action_request_id: str | None = None,
+                         prepare_outcome: str | None = None) -> B01GraphState:
     if work_item_id <= 0 or chat_room_id <= 0:
         raise ValueError("B-01 state requires positive WorkItem and chat room identifiers")
     return {
         "work_item_id": work_item_id,
+        "customer_id": customer_id,
         "chat_room_id": chat_room_id,
+        "action_request_id": action_request_id,
+        "prepare_outcome": prepare_outcome,
+        "last_operation_request_id": action_request_id,
         "user_message": user_message,
         "pending_question": None,
         "awaiting_input": None,
@@ -146,6 +157,7 @@ def initialize_b01_state(work_item_id: int, chat_room_id: int,
         "eligibility_status": None,
         "ineligible_reasons": [],
         "required_documents": [],
+        "tool_error": None,
         "response": None,
     }
 
@@ -172,6 +184,9 @@ class B01GraphWorkflow:
         self.checkpointer = checkpointer
 
     def run(self, state: B01GraphState) -> B01GraphRunResult:
+        if (self.checkpointer is not None
+                and state.get("customer_id") != self.customer_id):
+            raise ValueError("B01_CHECKPOINT_OWNERSHIP_MISMATCH")
         graph = self._graph()
         config = self._config(state["work_item_id"])
         if self.checkpointer is not None:
@@ -191,10 +206,25 @@ class B01GraphWorkflow:
         snapshot = graph.get_state(config)
         if not snapshot.values:
             raise ValueError("B01_CHECKPOINT_NOT_FOUND")
+        if snapshot.values.get("customer_id") != self.customer_id:
+            raise ValueError("B01_CHECKPOINT_OWNERSHIP_MISMATCH")
         if not snapshot.next:
             return self._result(dict(snapshot.values), False)
-        final_state = graph.invoke(Command(resume=customer_input.strip()), config=config)
+        final_state = graph.invoke(Command(
+            resume=customer_input.strip(),
+            update={"last_operation_request_id": self.operation_request_id},
+        ), config=config)
         return self._result(final_state, "__interrupt__" in final_state)
+
+    def current(self, work_item_id: int) -> B01GraphRunResult:
+        if self.checkpointer is None:
+            raise RuntimeError("B01_CHECKPOINTER_REQUIRED")
+        snapshot = self._graph().get_state(self._config(work_item_id))
+        if not snapshot.values:
+            raise ValueError("B01_CHECKPOINT_NOT_FOUND")
+        if snapshot.values.get("customer_id") != self.customer_id:
+            raise ValueError("B01_CHECKPOINT_OWNERSHIP_MISMATCH")
+        return self._result(dict(snapshot.values), bool(snapshot.next))
 
     def _result(self, raw_state: dict[str, Any], interrupted: bool) -> B01GraphRunResult:
         final_state: B01GraphState = {
@@ -252,6 +282,7 @@ class B01GraphWorkflow:
             "eligibility_status": None,
             "ineligible_reasons": [],
             "required_documents": [],
+            "tool_error": None,
             "response": None,
         }
         if state.get("requested_repayment_order") is None:
@@ -284,7 +315,8 @@ class B01GraphWorkflow:
                 self._require_response(envelope.requestId, request_id, envelope.workItemId,
                                        working["work_item_id"])
             except (RuntimeError, ValidationError, ValueError):
-                return {"response": "대출 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
+                return {"tool_error": "B01_LOAN_LOOKUP_UNAVAILABLE",
+                        "response": "대출 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
             candidates = [candidate.model_dump() for candidate in envelope.data.loans]
         if not candidates:
             return {"loan_candidates": [], "response": "변경 신청 대상이 될 수 있는 보유 대출이 없습니다."}
@@ -339,6 +371,7 @@ class B01GraphWorkflow:
             return {
                 "loan_candidates": candidates,
                 "selected_loan_id": selected_id,
+                "tool_error": "B01_SELECTION_UNAVAILABLE",
                 "response": "선택 정보를 저장하지 못했습니다. 현재 신청 정보는 변경되지 않았습니다.",
             }
         return {**resumed_update,
@@ -363,7 +396,8 @@ class B01GraphWorkflow:
                     or envelope.data.requestedRepaymentOrder != state.get("requested_repayment_order")):
                 raise ValueError("B-01 eligibility response differs from the saved selection")
         except (RuntimeError, ValidationError, ValueError):
-            return {"response": "변경 가능 여부를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
+            return {"tool_error": "B01_ELIGIBILITY_UNAVAILABLE",
+                    "response": "변경 가능 여부를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
 
         if envelope.data.eligibilityStatus == "INELIGIBLE":
             return {

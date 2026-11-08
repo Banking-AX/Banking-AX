@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 from typing import get_args, get_type_hints
 from unittest.mock import patch
 
@@ -13,6 +15,7 @@ from app.customer_agent.intent_classifier import (
     RequestKind,
     TaskCode,
 )
+from app.customer_agent.b01_checkpoint import B01CheckpointStore
 from app.customer_agent.registry import TaskRegistry
 from app.customer_agent.router import create_router
 from app.customer_agent.tasks.repayment_order_change import B01GraphState
@@ -51,6 +54,7 @@ class RecordingGateway:
         self.outcome = outcome
         self.status = status
         self.b01_requests: list[dict[str, object]] = []
+        self.selection_requests: list[dict[str, object]] = []
         self.failure: Exception | None = None
 
     def b01_prepare(self, request: dict[str, object]) -> dict[str, object]:
@@ -78,8 +82,47 @@ class RecordingGateway:
     def workflow_start(self, request: dict[str, object]) -> dict[str, object]:
         raise AssertionError("B-01 entry must use the dedicated prepare API")
 
+    def b01_loans(self, request: dict[str, object]) -> dict[str, object]:
+        return self._tool_envelope(request, {"loans": [{
+            "loanId": 501, "loanName": "직장인대출",
+            "loanNoMasked": "210-***-000001", "repaymentOrder": "INTEREST_FIRST",
+        }]})
+
+    def b01_selection(self, request: dict[str, object]) -> dict[str, object]:
+        self.selection_requests.append(request)
+        return self._tool_envelope(request, {
+            "workItemId": request["workItemId"],
+            "selectedLoanId": request["selectedLoanId"],
+            "requestedRepaymentOrder": request["requestedRepaymentOrder"],
+            "changed": True, "replayed": False, "workItemVersion": 1,
+        })
+
+    def b01_eligibility(self, request: dict[str, object]) -> dict[str, object]:
+        selection = self.selection_requests[-1]
+        return self._tool_envelope(request, {
+            "workItemId": request["workItemId"],
+            "selectedLoanId": selection["selectedLoanId"],
+            "requestedRepaymentOrder": selection["requestedRepaymentOrder"],
+            "eligibilityStatus": "ELIGIBLE", "reasonCode": "ELIGIBLE",
+            "reasonMessage": "대출 규칙 사전검증을 통과했습니다.",
+        })
+
+    @staticmethod
+    def _tool_envelope(request: dict[str, object], data: dict[str, object]) -> dict[str, object]:
+        return {"requestId": request["requestId"], "taskCode": "REPAYMENT_ORDER_CHANGE",
+                "workItemId": request["workItemId"], "caseId": None, "revision": None,
+                "data": data, "error": None}
+
 
 class B01GraphEntryTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.store = B01CheckpointStore(Path(self.temporary.name) / "router.sqlite3").open()
+
+    def tearDown(self) -> None:
+        self.store.close()
+        self.temporary.cleanup()
+
     def client(self, gateway: RecordingGateway, enabled: bool = True) -> TestClient:
         app = FastAPI()
         app.include_router(create_router(
@@ -88,12 +131,13 @@ class B01GraphEntryTests(unittest.TestCase):
             gateway,
             natural_start_enabled=True,
             b01_graph_entry_enabled=enabled,
+            b01_checkpoint_store=self.store,
             internal_token="agent-test-token",
         ), prefix="/api/v1")
         return TestClient(app)
 
     @staticmethod
-    def post(client: TestClient, message: str = "충당순서 변경", request_id: str = "b01-entry-1"):
+    def post(client: TestClient, message: str = "원금 우선으로 변경", request_id: str = "b01-entry-1"):
         return client.post(
             "/api/v1/customer-agent/messages/start",
             headers={"X-Customer-Agent-Token": "agent-test-token"},
@@ -111,21 +155,10 @@ class B01GraphEntryTests(unittest.TestCase):
         self.assertEqual(1001, body["workflow"]["workItemId"])
         self.assertEqual("b01:1001", body["b01Entry"]["threadId"])
         self.assertEqual("CREATED", body["b01Entry"]["prepareOutcome"])
-        self.assertEqual({
-            "work_item_id": 1001,
-            "chat_room_id": 77,
-            "user_message": "충당순서 변경",
-            "pending_question": None,
-            "awaiting_input": None,
-            "loan_reference": None,
-            "loan_candidates": [],
-            "selected_loan_id": None,
-            "requested_repayment_order": None,
-            "eligibility_status": None,
-            "ineligible_reasons": [],
-            "required_documents": [],
-            "response": None,
-        }, body["b01Entry"]["state"])
+        self.assertEqual(7, body["b01Entry"]["state"]["customer_id"])
+        self.assertEqual(501, body["b01Entry"]["state"]["selected_loan_id"])
+        self.assertEqual("PRINCIPAL_FIRST", body["b01Entry"]["state"]["requested_repayment_order"])
+        self.assertEqual("ELIGIBLE", body["b01Entry"]["state"]["eligibility_status"])
         self.assertEqual("신청 화면으로 이동", body["taskAction"]["label"])
         self.assertEqual([{
             "requestId": "b01-entry-1",
@@ -217,9 +250,9 @@ class B01GraphEntryTests(unittest.TestCase):
 
         self.assertEqual(200, first.status_code)
         self.assertEqual(200, second.status_code)
-        self.assertEqual(["stable-b01-request", "stable-b01-request"],
+        self.assertEqual(["stable-b01-request"],
                          [item["requestId"] for item in gateway.b01_requests])
-        self.assertEqual([7, 7], [item["customerId"] for item in gateway.b01_requests])
+        self.assertEqual([7], [item["customerId"] for item in gateway.b01_requests])
         self.assertEqual("b01:1001", second.json()["b01Entry"]["threadId"])
 
 
