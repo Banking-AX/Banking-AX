@@ -45,6 +45,19 @@ public class B01ProgressService {
         return saveSelectionState(customerId, workItemId, command, true);
     }
 
+    @Transactional(readOnly = true)
+    public B01EligibilityService.LoanRuleResult precheckSavedSelection(long customerId, long workItemId) {
+        LockedWorkItem item = lock(customerId, workItemId, false, false, true);
+        ObjectNode draft = draft(item.draft());
+        Long selectedLoanId = positiveLong(draft, "selectedLoanId");
+        String requestedOrder = text(draft, "requestedRepaymentOrder");
+        if (selectedLoanId == null || requestedOrder == null) {
+            throw new DomainException("B01_SELECTION_REQUIRED",
+                    "Select a loan and repayment order before eligibility can be checked.");
+        }
+        return eligibility.precheck(customerId, workItemId, selectedLoanId, requestedOrder);
+    }
+
     private SelectionSaveResult saveSelectionState(long customerId, long workItemId,
             SelectionCommand command, boolean distinguishOnHold) {
         if (command == null) throw new DomainException("INVALID_REQUEST", "Selection details are required.");
@@ -240,7 +253,7 @@ public class B01ProgressService {
         if (rows.isEmpty()) {
             if (distinguishOnHold && ownedOnHold(customerId, workItemId)) {
                 throw new DomainException("WORK_ITEM_RESUME_REQUIRED",
-                        "The B-01 work item must be resumed before changing the selection.");
+                        "The B-01 work item must be resumed before continuing.");
             }
             throw unavailable();
         }

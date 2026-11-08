@@ -245,6 +245,109 @@ class B01LoanListMySqlIT {
     }
 
     @Test
+    void eligibilityToolChecksTheSavedSelectionWithoutChangingDatabaseState() throws Exception {
+        progress.saveSelectionForTool(1, 100,
+                new B01ProgressService.SelectionCommand("eligibility-selection", 501, "PRINCIPAL_FIRST"));
+        String loanBefore = jdbc.queryForObject("select json_object('order',repayment_order,'version',version) "
+                + "from loan where id=501", String.class);
+        String draftBefore = jdbc.queryForObject("select draft_data from work_item where id=100", String.class);
+        int versionBefore = jdbc.queryForObject("select version from work_item where id=100", Integer.class);
+
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"eligibility-1\",\"workItemId\":100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value("eligibility-1"))
+                .andExpect(jsonPath("$.taskCode").value("REPAYMENT_ORDER_CHANGE"))
+                .andExpect(jsonPath("$.workItemId").value(100))
+                .andExpect(jsonPath("$.data.selectedLoanId").value(501))
+                .andExpect(jsonPath("$.data.requestedRepaymentOrder").value("PRINCIPAL_FIRST"))
+                .andExpect(jsonPath("$.data.eligibilityStatus").value("ELIGIBLE"))
+                .andExpect(jsonPath("$.data.reasonCode").value("ELIGIBLE"))
+                .andExpect(jsonPath("$.data.reasonMessage").isNotEmpty())
+                .andExpect(jsonPath("$.data.balance").doesNotExist())
+                .andExpect(jsonPath("$.data.loanNo").doesNotExist());
+
+        assertThat(jdbc.queryForObject("select json_object('order',repayment_order,'version',version) "
+                + "from loan where id=501", String.class)).isEqualTo(loanBefore);
+        assertThat(jdbc.queryForObject("select draft_data from work_item where id=100", String.class))
+                .isEqualTo(draftBefore);
+        assertThat(jdbc.queryForObject("select version from work_item where id=100", Integer.class))
+                .isEqualTo(versionBefore);
+    }
+
+    @Test
+    void eligibilityToolReturnsEachExistingLoanRuleResult() throws Exception {
+        assertRule("rule-not-accelerated", "update loan set acceleration_declared=false where id=501",
+                "PRINCIPAL_FIRST", "NOT_ACCELERATED");
+        assertRule("rule-outsourced", "update loan set outsourced=true where id=501",
+                "PRINCIPAL_FIRST", "OUTSOURCED_LOAN");
+        assertRule("rule-agreement", "update loan set agreement_loan=true where id=501",
+                "PRINCIPAL_FIRST", "AGREEMENT_LOAN");
+        assertRule("rule-already-applied", "update loan set repayment_order='INTEREST_FIRST' where id=501",
+                "INTEREST_FIRST", "ALREADY_APPLIED");
+    }
+
+    @Test
+    void eligibilityToolRequiresACompleteCurrentSelection() throws Exception {
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"missing-all\",\"workItemId\":100}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("B01_SELECTION_REQUIRED"));
+
+        jdbc.update("update work_item set draft_data=json_object('selectedLoanId',501) where id=100");
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"missing-order\",\"workItemId\":100}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("B01_SELECTION_REQUIRED"));
+    }
+
+    @Test
+    void eligibilityToolRejectsUnavailableWorkItemsLoansAndUntrustedCallers() throws Exception {
+        jdbc.update("update work_item set draft_data=json_object('selectedLoanId',501,"
+                + "'requestedRepaymentOrder','PRINCIPAL_FIRST') where id in (200,300,400,600)");
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"held\",\"workItemId\":400}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("WORK_ITEM_RESUME_REQUIRED"));
+        for (long workItemId : new long[]{200, 300, 600, 999}) {
+            http.perform(post("/api/v1/tools/b01/eligibility")
+                            .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"requestId\":\"invalid-" + workItemId
+                                    + "\",\"workItemId\":" + workItemId + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("WORK_ITEM_NOT_AVAILABLE"));
+        }
+
+        jdbc.update("update work_item set draft_data=json_object('selectedLoanId',601,"
+                + "'requestedRepaymentOrder','PRINCIPAL_FIRST') where id=100");
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"foreign-loan\",\"workItemId\":100}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("LOAN_NOT_AVAILABLE"));
+
+        String body = "{\"requestId\":\"auth\",\"workItemId\":100}";
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .header("X-Actor-Id", 1).header("X-Actor-Role", "CUSTOMER")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnauthorized());
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "STAFF", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void selectionRetriesAndEquivalentNewRequestsDoNotIncrementVersion() throws Exception {
         var first = progress.saveSelectionForTool(1, 100,
                 new B01ProgressService.SelectionCommand("selection-retry", 501, "PRINCIPAL_FIRST"));
@@ -479,5 +582,21 @@ class B01LoanListMySqlIT {
     private static String selection(String requestId, long workItemId, long loanId, String order) {
         return "{\"requestId\":\"" + requestId + "\",\"workItemId\":" + workItemId
                 + ",\"selectedLoanId\":" + loanId + ",\"requestedRepaymentOrder\":\"" + order + "\"}";
+    }
+
+    private void assertRule(String requestId, String loanMutation, String requestedOrder,
+                            String expectedReason) throws Exception {
+        jdbc.update("update loan set acceleration_declared=true,outsourced=false,agreement_loan=false,"
+                + "repayment_order='INTEREST_FIRST' where id=501");
+        jdbc.update(loanMutation);
+        progress.saveSelectionForTool(1, 100,
+                new B01ProgressService.SelectionCommand(requestId + "-selection", 501, requestedOrder));
+        http.perform(post("/api/v1/tools/b01/eligibility")
+                        .headers(toolHeaders(1, "CUSTOMER", "b01-loan-tool-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"" + requestId + "\",\"workItemId\":100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.eligibilityStatus").value("INELIGIBLE"))
+                .andExpect(jsonPath("$.data.reasonCode").value(expectedReason));
     }
 }

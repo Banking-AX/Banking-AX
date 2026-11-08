@@ -59,6 +59,21 @@ public class B01LoanToolController {
                 request.requestId(), "REPAYMENT_ORDER_CHANGE", request.workItemId(), null, null, result);
     }
 
+    @PostMapping("/eligibility")
+    public ApiEnvelope<B01EligibilityService.LoanRuleResult> checkEligibility(
+            @RequestHeader("X-Actor-Id") long actorId,
+            @RequestHeader("X-Actor-Role") ActorRole role,
+            @RequestHeader("X-Tool-Gateway-Token") String gatewayToken,
+            @RequestBody LoanRequest request) {
+        authenticator.verify(gatewayToken);
+        requireCustomer(actorId, role);
+        validate(request);
+        B01EligibilityService.LoanRuleResult result =
+                progress.precheckSavedSelection(actorId, request.workItemId());
+        return ApiEnvelope.success(
+                request.requestId(), "REPAYMENT_ORDER_CHANGE", request.workItemId(), null, null, result);
+    }
+
     private static void validate(LoanRequest request) {
         if (request == null || request.workItemId() <= 0 || request.requestId() == null
                 || request.requestId().isBlank() || request.requestId().length() > 90) {
