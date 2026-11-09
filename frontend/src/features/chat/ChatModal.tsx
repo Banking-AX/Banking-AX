@@ -488,7 +488,7 @@ export function ChatModal() {
           </button>
         </div>
         <p id="chat-input-hint" aria-live="polite" className="chat-hint">{hint}</p>
-        <p className="chat-footnote">{pending ? '응답 생성 중에는 입력이 잠겨요. 업무 전용 화면으로 이동한 동안에도 채팅 입력은 받지 않아요.' : 'AI 안내는 참고용이에요. 서명·인증·동의는 직접 해 주세요.'}</p>
+        <p className="chat-footnote">{pending ? '응답 생성 중에는 입력이 잠겨요. 업무 전용 화면으로 이동한 동안에도 채팅 입력은 받지 않아요.' : ''}</p>
       </footer>
     </section>, slot)
 }
