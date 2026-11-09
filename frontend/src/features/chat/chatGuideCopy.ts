@@ -37,7 +37,6 @@ export function b01Guide(server?: Partial<typeof B01_GUIDE>) {
 export function c02Guide(server?: Partial<typeof C02_GUIDE>) {
   return {
     knowTitle: serverOr(server?.knowTitle, C02_GUIDE.knowTitle), know: serverOr(server?.know, C02_GUIDE.know),
-    staffCheckNote: serverOr(server?.staffCheckNote, C02_GUIDE.staffCheckNote),
   }
 }
 

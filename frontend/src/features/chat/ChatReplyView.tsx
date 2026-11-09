@@ -134,7 +134,7 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
   if (reply.kind === 'started' && reply.taskCode === 'INHERITANCE_DEPOSIT') {
     // ChatInherit.dc.html: guidance box and the button to the C-02 intake page (server workItemId).
     const guide = c02Guide()
-    return <BotMessage label="AI 금융 도우미" time={time} note={guide.staffCheckNote} after={<>
+    return <BotMessage label="AI 금융 도우미" time={time} after={<>
       <div className="chat-task-know">
         <div className="chat-task-know__title">{guide.knowTitle}</div>
         <ul className="chat-task-know__list">
