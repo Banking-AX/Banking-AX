@@ -1,0 +1,37 @@
+/* Chat reply content (docs/design-ref/ChatSystem.dc.html, ChatLookup.dc.html, ChatMulti.dc.html).
+   Loaded before styles.css (see chat-dock.css); overrides of styles.css rules use more specific selectors. */
+
+/* Content placed below the bubble (pills, task list) uses the boards' 8px rhythm. */
+.chat-bot .chat-bot__body--stack { gap: 8px; }
+
+/* Supported-task pills under the "지원하지 않는 업무" answer. */
+.chat-reply-pills { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-reply-pill { padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #D5E3F5; color: var(--color-primary-dark); font-size: 13px; }
+
+/* Composite request: the classifier's split, inside the answer (not the dock's progress strip). */
+.chat-reply-tasks { margin: 0; padding: 0; list-style: none; background: #FFFFFF; border: 1px solid #D5E3F5; border-radius: 12px; overflow: hidden; }
+.chat-reply-task { display: flex; align-items: center; gap: 12px; padding: 11px 16px; }
+.chat-reply-task + .chat-reply-task { border-top: 1px solid var(--color-line); }
+.chat-reply-task__number { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 12px; font-weight: var(--font-weight-bold); display: flex; align-items: center; justify-content: center; }
+.chat-reply-task__name { flex: 1 1 0; min-width: 0; font-size: 14px; }
+.chat-reply-task .chat-card__badge { flex: 0 0 auto; }
+
+/* A-02 loan card: summary row and one row per loan. */
+.chat-bot__body .chat-loan-bubble { border-color: #D5E3F5; border-radius: 12px; }
+.chat-loan-bubble .chat-loan-summary { background: #F7FAFE; border-bottom: 1px solid var(--color-line); }
+.chat-loan-list { margin: 0; padding: 0; list-style: none; }
+.chat-loan-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+.chat-loan-row + .chat-loan-row { border-top: 1px solid #F0F1F3; }
+.chat-loan-row__text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chat-loan-row__name { font-size: 14px; overflow-wrap: anywhere; }
+.chat-loan-row__meta { font-size: 12px; color: var(--color-text-sub); overflow-wrap: anywhere; }
+.chat-loan-badge { flex: 0 0 auto; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: var(--font-weight-bold); }
+.chat-loan-badge--overdue { background: #FDECEA; border: 1px solid #F5C2BC; color: #B42318; }
+.chat-loan-badge--ok { background: #E6F4EC; border: 1px solid #BFE0CC; color: #1B6B42; }
+
+/* B-01 reconnect candidates: work item number and status on two lines, the continue button at the end. */
+.chat-b01-reconnect__name { display: flex; flex-direction: column; gap: 2px; }
+.chat-b01-reconnect__meta { font-size: 13px; color: #4B5563; }
+.chat-reply-task .chat-b-button--outline { flex: 0 0 auto; }
+.chat-reply-task .chat-b-button--outline:disabled { border-color: #9CA3AF; color: #6B7280; cursor: not-allowed; }
+.chat-b01-notice { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; background: #F7FAFE; border: 1px solid #D5E3F5; border-radius: 12px; font-size: 14px; line-height: 1.6; }

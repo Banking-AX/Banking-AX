@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { C02CaseIntake, C02Document, C02DocumentSlot } from '../../api/taskApi'
-import { caseNumber, reservationNumber, casePill, hasCurrentReview, groupDocuments, slotKey, timelineSteps, uploadProgress, visitConfirmation, visitLabel } from './c02CaseView'
+import { caseNumber, reservationNumber, casePill, hasCurrentReview, groupDocuments, isVisitLocked, seoulStamp, slotKey, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel } from './c02CaseView'
 
 describe('hasCurrentReview', () => {
   it('does not treat a NOT_RUN placeholder as a finished precheck', () => {
@@ -15,6 +15,40 @@ describe('hasCurrentReview', () => {
   it('rejects a run for another revision or no run', () => {
     expect(hasCurrentReview({ revision: 5, agentRunStatus: 'SUCCEEDED' }, 6)).toBe(false)
     expect(hasCurrentReview(null, 6)).toBe(false)
+  })
+})
+
+describe('visit cancel lock', () => {
+  // Visit at 2026-10-23 14:00 Korea time (05:00 UTC); the cancel deadline is 24 hours earlier.
+  const startsAt = '2026-10-23T05:00:00Z'
+  const deadline = Date.parse('2026-10-22T05:00:00Z')
+  const minute = 60 * 1000
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('locks from exactly 24 hours before the visit', () => {
+    expect(visitCancelDeadline(startsAt)).toBe(deadline)
+    expect(isVisitLocked(startsAt, deadline - minute)).toBe(false)
+    expect(isVisitLocked(startsAt, deadline)).toBe(true)
+    expect(isVisitLocked(startsAt, deadline + minute)).toBe(true)
+  })
+
+  it('gives the same lock result and Korea-time labels in any browser time zone', () => {
+    const localHours = new Set<number>()
+    const results = ['Asia/Seoul', 'America/New_York', 'UTC', 'Pacific/Kiritimati'].map(zone => {
+      vi.stubEnv('TZ', zone)
+      localHours.add(new Date(startsAt).getHours())
+      return {
+        before: isVisitLocked(startsAt, deadline - minute), at: isVisitLocked(startsAt, deadline), after: isVisitLocked(startsAt, deadline + minute),
+        visit: seoulStamp(Date.parse(startsAt)), until: seoulStamp(visitCancelDeadline(startsAt)),
+      }
+    })
+    // The process time zone really changed (local hours differ), yet every result is identical.
+    expect(localHours.size).toBe(4)
+    for (const result of results) expect(result).toEqual({ before: false, at: true, after: true, visit: '2026.10.23(금) 14:00', until: '2026.10.22(목) 14:00' })
+  })
+
+  it('shows a dash for an unreadable time', () => {
+    expect(seoulStamp(visitCancelDeadline('not-a-date'))).toBe('—')
   })
 })
 

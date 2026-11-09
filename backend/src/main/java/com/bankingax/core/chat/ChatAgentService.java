@@ -6,8 +6,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Map;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -35,17 +35,24 @@ public class ChatAgentService {
         ChatService.ChatMessageView customerMessage =
                 chats.saveCustomerMessage(customerId, chatRoomId, messageRequestId, content);
 
-        List<String> recentMessages = recentMessages(
-                chats.listMessages(customerId, chatRoomId), customerMessage.seq());
+        List<ChatService.ChatMessageView> messages = chats.listMessages(customerId, chatRoomId);
+        List<String> recentMessages = recentMessages(messages, customerMessage.seq());
         CustomerAgentClient.AgentResponse result = agent.start(new CustomerAgentClient.AgentRequest(
                 operationRequestId, customerId, chatRoomId, content, recentMessages));
         validateResponse(operationRequestId, customerId, result);
 
         ChatService.ChatMessageView agentMessage = null;
         if (result.answer() != null && !result.answer().isBlank()) {
+            String agentRequestId = agentMessageRequestId(operationRequestId);
+            String metadata = actionMetadata(result);
+            for (ChatService.ChatMessageView message : messages) {
+                if (agentRequestId.equals(message.requestId())) {
+                    metadata = message.citations();
+                    break;
+                }
+            }
             agentMessage = chats.saveAgentMessage(
-                    customerId, chatRoomId, agentMessageRequestId(operationRequestId), result.answer(),
-                    actionMetadata(result));
+                    customerId, chatRoomId, agentRequestId, result.answer(), metadata);
         }
         boolean completed = result.executionStatus() != null
                 && "DONE".equals(result.executionStatus().workItemStatus())
@@ -55,15 +62,37 @@ public class ChatAgentService {
     }
 
     private String actionMetadata(CustomerAgentClient.AgentResponse result) {
-        if (result.taskAction() == null || result.taskAction().isNull()) {
+        ObjectNode metadata = json.createObjectNode();
+        if (result.taskAction() != null && !result.taskAction().isNull()) {
+            metadata.set("taskAction", result.taskAction());
+        }
+        if (result.b01ReconnectAction() != null) {
+            metadata.set("b01ReconnectAction", json.valueToTree(result.b01ReconnectAction()));
+        }
+        if (hasCompletedLoanInquiryWithResults(result)) {
+            metadata.set("uiAction", json.createObjectNode()
+                    .put("type", "OPEN_CUSTOMER_LOANS")
+                    .put("taskCode", "LOAN_INQUIRY"));
+        }
+        if (metadata.isEmpty()) {
             return null;
         }
         try {
-            return json.writeValueAsString(Map.of("taskAction", result.taskAction()));
+            return json.writeValueAsString(metadata);
         } catch (JsonProcessingException exception) {
             throw new DomainException(
                     "CUSTOMER_AGENT_INVALID_RESPONSE", "Customer Agent action could not be stored.");
         }
+    }
+
+    private static boolean hasCompletedLoanInquiryWithResults(CustomerAgentClient.AgentResponse result) {
+        return result.executionStatus() != null
+                && "LOAN_INQUIRY".equals(result.executionStatus().taskCode())
+                && "DONE".equals(result.executionStatus().workItemStatus())
+                && "COMPLETED".equals(result.executionStatus().workflowStatus())
+                && result.loanInquiry() != null
+                && result.loanInquiry().path("loans").isArray()
+                && !result.loanInquiry().path("loans").isEmpty();
     }
 
     private static List<String> recentMessages(

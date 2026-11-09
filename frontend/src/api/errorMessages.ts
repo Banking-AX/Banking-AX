@@ -77,6 +77,8 @@ const MESSAGES: Record<string, string> = {
   B01_NOT_READY_TO_EXECUTE: '동의, 서명, 문자 인증을 먼저 완료해 주세요.',
   B01_REVALIDATION_FAILED: '대출 상태가 바뀌어 변경할 수 없어요. 영업점에 문의해 주세요.',
   B01_APPLICATION_CHANGED: '신청 내용이 바뀌었어요. 처음부터 다시 진행해 주세요.',
+  B01_RECONNECT_STATE_FAILED: '진행 중인 신청을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  B01_RECONNECT_SELECTION_REQUIRED: '이어할 신청을 고르거나 새 신청을 선택해 주세요.',
   LOAN_NOT_AVAILABLE: '선택한 대출을 확인할 수 없어요. 목록을 새로 불러와 주세요.',
   INVALID_REPAYMENT_ORDER: '변경할 충당순서가 올바르지 않아요.',
   WORK_ITEM_NOT_VALIDATABLE: '지금은 이 업무를 진행할 수 없는 상태예요.',

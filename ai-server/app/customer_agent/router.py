@@ -2,21 +2,32 @@ from __future__ import annotations
 
 import os
 import hmac
+import re
+from contextlib import asynccontextmanager
 from decimal import Decimal
 from typing import Literal
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from .contracts import SpringToolGateway
+from .b01_checkpoint import B01CheckpointStore
 from .registry import TaskRegistry
 from .tasks.loan_inquiry import LoanInquiryAnswerTask, LoanInquiryTask
 from .tasks.transaction_search import TransactionSearchTask
 from .tasks.housing_savings_close import HousingSavingsCloseTask
 from .tasks.debt_adjustment import DebtAdjustmentTask
-from .tasks.repayment_order_change import RepaymentOrderChangeTask
+from .tasks.repayment_order_change import (
+    B01GraphRunResult,
+    B01GraphState,
+    B01GraphWorkflow,
+    RepaymentOrderChangeTask,
+    b01_thread_id,
+    initialize_b01_state,
+)
 from app.tasks.c02 import InheritanceDepositTask, SpringC02ValidationGateway
 from .tool_gateway import SpringHttpToolGateway, SpringToolHttpError
 from .intent_classifier import (
+    ClassifiedTask,
     IntentClassifier,
     IntentClassification,
     IntentOutputValidationError,
@@ -76,7 +87,7 @@ class WorkflowStartData(BaseModel):
     workflowId: int = Field(gt=0)
     workItemId: int = Field(gt=0)
     taskCode: TaskCode
-    status: Literal["ACTIVE", "DONE", "COMPLETED"]
+    status: Literal["ACTIVE", "ON_HOLD", "DONE", "COMPLETED"]
 
 
 class WorkflowStartEnvelope(BaseModel):
@@ -151,19 +162,97 @@ class CustomerTaskAction(BaseModel):
     actionRequestId: str = Field(min_length=1, max_length=90)
 
 
+class B01ReconnectCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    workItemId: int = Field(gt=0)
+    status: Literal["ACTIVE", "ON_HOLD"]
+    originalChatRoomId: int | None = Field(default=None, gt=0)
+    originalChatRoomAvailable: bool
+
+    @model_validator(mode="after")
+    def validate_original_chat(self) -> "B01ReconnectCandidate":
+        if self.originalChatRoomAvailable and self.originalChatRoomId is None:
+            raise ValueError("An available original chat room must have an id")
+        return self
+
+
+class B01ReconnectAction(BaseModel):
+    type: Literal["SELECT_B01_RECONNECT"] = "SELECT_B01_RECONNECT"
+    allowStartNew: bool
+    candidates: list[B01ReconnectCandidate] = Field(min_length=1)
+
+
+class B01PrepareData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    outcome: Literal[
+        "CREATED", "REQUEST_REPLAYED", "SAME_CHAT_REUSED",
+        "RECONNECT_CONFIRMATION_REQUIRED", "EXISTING_RECONNECTED",
+        "ACTIVE_WORK_ITEM_CONFLICT",
+    ]
+    workItem: WorkflowStartData
+    candidates: list[B01ReconnectCandidate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "B01PrepareData":
+        if self.outcome == "RECONNECT_CONFIRMATION_REQUIRED":
+            if not self.candidates:
+                raise ValueError("B-01 reconnect candidates are required")
+            ids = [candidate.workItemId for candidate in self.candidates]
+            if len(ids) != len(set(ids)):
+                raise ValueError("B-01 reconnect candidate ids must be unique")
+        elif self.candidates:
+            raise ValueError("B-01 reconnect candidates are only valid for reconnect confirmation")
+        return self
+
+
+class B01PrepareEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    requestId: str
+    taskCode: Literal["REPAYMENT_ORDER_CHANGE"]
+    workItemId: int = Field(gt=0)
+    caseId: None
+    revision: None
+    data: B01PrepareData
+    error: None
+
+    @model_validator(mode="after")
+    def validate_consistency(self) -> "B01PrepareEnvelope":
+        if self.workItemId != self.data.workItem.workItemId:
+            raise ValueError("B-01 prepare envelope WorkItem fields do not match")
+        if self.data.workItem.taskCode is not TaskCode.REPAYMENT_ORDER_CHANGE:
+            raise ValueError("B-01 prepare returned a different task")
+        return self
+
+
+class B01GraphEntry(BaseModel):
+    threadId: str = Field(pattern=r"^b01:[1-9][0-9]*$")
+    prepareOutcome: Literal["CREATED", "REQUEST_REPLAYED", "SAME_CHAT_REUSED", "EXISTING_RECONNECTED"] | None = None
+    state: dict[str, object]
+    interrupted: bool = False
+    awaitingInput: Literal[
+        "LOAN_SELECTION", "LOAN_CONFIRMATION", "REPAYMENT_ORDER_SELECTION",
+    ] | None = None
+
+
 class CustomerNaturalStartResponse(BaseModel):
     requestId: str
     customerId: int
     outcome: Literal[
         "STARTED", "INFORMATION_ONLY", "CLARIFICATION_REQUIRED", "UNSUPPORTED",
         "NO_EXECUTABLE_TASK", "COMPOSITE_NOT_SUPPORTED", "TASK_NOT_AUTOSTART_ENABLED",
-        "TASK_ACTION_AVAILABLE",
+        "TASK_ACTION_AVAILABLE", "B01_RECONNECT_CONFIRMATION_REQUIRED",
+        "B01_ACTIVE_WORK_ITEM_CONFLICT",
     ]
     classification: IntentClassification
     workflow: WorkflowStartData | None = None
     loanInquiry: LoanInquiryData | None = None
     executionStatus: ExecutionStatus | None = None
     taskAction: CustomerTaskAction | None = None
+    b01ReconnectAction: B01ReconnectAction | None = None
+    b01Entry: B01GraphEntry | None = None
     answer: str | None = None
     answerStatus: Literal["GENERATED", "FAILED", "NOT_APPLICABLE"] = "NOT_APPLICABLE"
 
@@ -187,13 +276,30 @@ def build_intent_classifier(registry: TaskRegistry) -> IntentClassifier:
 def create_router(registry: TaskRegistry | None = None, intent_classifier: IntentClassifier | None = None,
                   workflow_gateway: SpringToolGateway | None = None,
                   natural_start_enabled: bool | None = None,
+                  b01_graph_entry_enabled: bool | None = None,
+                  b01_checkpoint_store: B01CheckpointStore | None = None,
                   internal_token: str | None = None) -> APIRouter:
-    router = APIRouter(tags=["customer-agent"])
+    start_enabled = natural_start_enabled if natural_start_enabled is not None else (
+        os.getenv("CUSTOMER_AGENT_WORKFLOW_START_ENABLED", "false").strip().lower() == "true")
+    b01_entry_enabled = b01_graph_entry_enabled if b01_graph_entry_enabled is not None else (
+        os.getenv("CUSTOMER_AGENT_B01_GRAPH_ENTRY_ENABLED", "false").strip().lower() == "true")
+    selected_checkpoint_store = b01_checkpoint_store or B01CheckpointStore()
+    owns_checkpoint_store = b01_checkpoint_store is None
+
+    @asynccontextmanager
+    async def lifespan(_: object):
+        if b01_entry_enabled:
+            selected_checkpoint_store.open()
+        try:
+            yield
+        finally:
+            if owns_checkpoint_store:
+                selected_checkpoint_store.close()
+
+    router = APIRouter(tags=["customer-agent"], lifespan=lifespan)
     selected_registry = registry or build_registry()
     selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
     selected_workflow_gateway = workflow_gateway or SpringHttpToolGateway()
-    start_enabled = natural_start_enabled if natural_start_enabled is not None else (
-        os.getenv("CUSTOMER_AGENT_WORKFLOW_START_ENABLED", "false").strip().lower() == "true")
     def require_internal_token(gateway_token: str | None) -> None:
         expected_internal_token = (internal_token if internal_token is not None else
                                    os.getenv("CUSTOMER_AGENT_INTERNAL_TOKEN", "")).strip()
@@ -236,6 +342,33 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 request: CustomerNaturalStartRequest,
                 gateway_token: str | None = Header(default=None, alias="X-Customer-Agent-Token")) -> dict:
             require_internal_token(gateway_token)
+            if b01_entry_enabled:
+                selected_checkpoint_store.open()
+                replay = selected_checkpoint_store.find_request(
+                    request.customerId, request.chatRoomId, request.requestId)
+                if replay is not None:
+                    workflow = B01GraphWorkflow(
+                        selected_workflow_gateway, request.customerId, request.requestId,
+                        selected_checkpoint_store.saver)
+                    with selected_checkpoint_store.execution_lock(replay.work_item_id):
+                        result = workflow.current(replay.work_item_id)
+                    return _b01_graph_response(
+                        request, _b01_followup_classification(), result)
+
+                pending = selected_checkpoint_store.find_pending(
+                    request.customerId, request.chatRoomId)
+                if pending is not None and not _clearly_requests_another_task(request.message):
+                    workflow = B01GraphWorkflow(
+                        selected_workflow_gateway, request.customerId, request.requestId,
+                        selected_checkpoint_store.saver)
+                    try:
+                        with selected_checkpoint_store.execution_lock(pending.work_item_id):
+                            result = workflow.resume(pending.work_item_id, request.message)
+                    except (RuntimeError, ValueError) as exc:
+                        raise HTTPException(409, "B01_RESUME_CONFLICT") from exc
+                    return _b01_graph_response(
+                        request, _b01_followup_classification(), result)
+
             try:
                 classification = selected_classifier.classify(request.message, request.recentMessages)
             except IntentOutputValidationError as exc:
@@ -243,7 +376,7 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
             except IntentProviderError as exc:
                 raise HTTPException(503, "INTENT_CLASSIFICATION_UNAVAILABLE") from exc
 
-            outcome = _non_start_outcome(classification)
+            outcome = _non_start_outcome(classification, b01_entry_enabled)
             if outcome is not None:
                 action = (CustomerTaskAction(
                     taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=request.requestId)
@@ -255,6 +388,10 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                     answerStatus="GENERATED").model_dump(mode="json")
 
             target = classification.executionTargets[0]
+            if target is TaskCode.REPAYMENT_ORDER_CHANGE:
+                return _prepare_b01_entry(
+                    request, classification, selected_workflow_gateway,
+                    selected_checkpoint_store)
             try:
                 raw = selected_workflow_gateway.workflow_start({
                     "requestId": request.requestId,
@@ -332,7 +469,8 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
     return router
 
 
-def _non_start_outcome(classification: IntentClassification) -> str | None:
+def _non_start_outcome(classification: IntentClassification,
+                       b01_graph_entry_enabled: bool = False) -> str | None:
     if classification.requiresClarification:
         return "CLARIFICATION_REQUIRED"
     if classification.unsupported:
@@ -349,13 +487,154 @@ def _non_start_outcome(classification: IntentClassification) -> str | None:
     if len(classification.executionTargets) != 1:
         return "NO_EXECUTABLE_TASK"
     # B-01 must be explicitly started through the structured chat action.
-    if classification.executionTargets[0] is TaskCode.REPAYMENT_ORDER_CHANGE:
+    if (classification.executionTargets[0] is TaskCode.REPAYMENT_ORDER_CHANGE
+            and not b01_graph_entry_enabled):
         return "TASK_ACTION_AVAILABLE"
     # C-01 must enter through its dedicated start API, which creates the Case
     # together with intake data. Do not create an orphan WorkItem here.
     if classification.executionTargets[0] is TaskCode.DEBT_ADJUSTMENT:
         return "TASK_NOT_AUTOSTART_ENABLED"
     return None
+
+
+def _prepare_b01_entry(request: CustomerNaturalStartRequest,
+                       classification: IntentClassification,
+                       gateway: SpringToolGateway,
+                       checkpoint_store: B01CheckpointStore) -> dict:
+    try:
+        raw = gateway.b01_prepare({
+            "requestId": request.requestId,
+            "customerId": request.customerId,
+            "chatRoomId": request.chatRoomId,
+            "mode": "DISCOVER",
+            "includeCandidates": True,
+        })
+        envelope = B01PrepareEnvelope.model_validate(raw)
+        if envelope.requestId != request.requestId:
+            raise ValueError("B-01 prepare response does not match the request")
+    except (ValidationError, ValueError) as exc:
+        raise HTTPException(502, "B01_PREPARE_INVALID_RESPONSE") from exc
+    except SpringToolHttpError as exc:
+        if exc.status_code == 409 and exc.error_code == "DUPLICATE_REQUEST_CONFLICT":
+            raise HTTPException(409, "DUPLICATE_REQUEST_CONFLICT") from exc
+        raise HTTPException(503, "B01_PREPARE_UNAVAILABLE") from exc
+    except RuntimeError as exc:
+        raise HTTPException(503, "B01_PREPARE_UNAVAILABLE") from exc
+
+    prepare_outcome = envelope.data.outcome
+    if prepare_outcome == "RECONNECT_CONFIRMATION_REQUIRED":
+        candidates = envelope.data.candidates
+        return CustomerNaturalStartResponse(
+            requestId=request.requestId,
+            customerId=request.customerId,
+            outcome="B01_RECONNECT_CONFIRMATION_REQUIRED",
+            classification=classification,
+            answer=("진행 중인 채무변제충당순서 변경 업무가 있습니다. "
+                    "이어할 업무를 선택하거나 새 신청 가능 여부를 확인해 주세요."),
+            b01ReconnectAction=B01ReconnectAction(
+                allowStartNew=all(candidate.status == "ON_HOLD" for candidate in candidates),
+                candidates=candidates,
+            ),
+            answerStatus="GENERATED",
+        ).model_dump(mode="json")
+    if prepare_outcome == "ACTIVE_WORK_ITEM_CONFLICT":
+        return CustomerNaturalStartResponse(
+            requestId=request.requestId,
+            customerId=request.customerId,
+            outcome="B01_ACTIVE_WORK_ITEM_CONFLICT",
+            classification=classification,
+            answer=("다른 채팅방에서 진행 중인 업무가 있어 새 신청을 시작할 수 없습니다. "
+                    "기존 업무를 확인해 주세요."),
+            answerStatus="GENERATED",
+        ).model_dump(mode="json")
+
+    work_item = envelope.data.workItem
+    if work_item.status != "ACTIVE":
+        return CustomerNaturalStartResponse(
+            requestId=request.requestId,
+            customerId=request.customerId,
+            outcome="TASK_ACTION_AVAILABLE",
+            classification=classification,
+            workflow=work_item,
+            taskAction=CustomerTaskAction(
+                taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=request.requestId),
+            answer="중단된 신청이 있습니다. 신청 화면에서 기존 업무를 확인하고 이어서 진행해 주세요.",
+            answerStatus="GENERATED",
+        ).model_dump(mode="json")
+
+    state: B01GraphState = initialize_b01_state(
+        work_item.workItemId, request.chatRoomId, request.message,
+        customer_id=request.customerId, action_request_id=request.requestId,
+        prepare_outcome=prepare_outcome)
+    workflow = B01GraphWorkflow(
+        gateway, request.customerId, request.requestId, checkpoint_store.saver)
+    with checkpoint_store.execution_lock(work_item.workItemId):
+        result = workflow.run(state)
+    return _b01_graph_response(
+        request, classification, result, workflow=work_item,
+        prepare_outcome=prepare_outcome)
+
+
+def _b01_graph_response(request: CustomerNaturalStartRequest,
+                        classification: IntentClassification,
+                        result: B01GraphRunResult,
+                        workflow: WorkflowStartData | None = None,
+                        prepare_outcome: str | None = None) -> dict:
+    state = result["state"]
+    if result["interrupted"]:
+        answer = state.get("pending_question")
+        if not isinstance(answer, str) or not answer.strip():
+            raise RuntimeError("B01_INTERRUPT_QUESTION_MISSING")
+    else:
+        answer = state.get("response")
+    action = None
+    if result["taskAction"] is not None:
+        action_request_id = state.get("action_request_id") or request.requestId
+        action = CustomerTaskAction(
+            taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=action_request_id)
+    outcome = "TASK_ACTION_AVAILABLE" if action is not None else "STARTED"
+    return CustomerNaturalStartResponse(
+        requestId=request.requestId,
+        customerId=request.customerId,
+        outcome=outcome,
+        classification=classification,
+        workflow=workflow,
+        taskAction=action,
+        b01Entry=B01GraphEntry(
+            threadId=b01_thread_id(state["work_item_id"]),
+            prepareOutcome=prepare_outcome or state.get("prepare_outcome"),
+            state=state,
+            interrupted=result["interrupted"],
+            awaitingInput=state.get("awaiting_input"),
+        ),
+        answer=answer,
+        answerStatus="FAILED" if state.get("tool_error") else "GENERATED",
+    ).model_dump(mode="json")
+
+
+def _b01_followup_classification() -> IntentClassification:
+    task = ClassifiedTask(
+        order=1,
+        taskCode=TaskCode.REPAYMENT_ORDER_CHANGE,
+        requestKind=RequestKind.ACTION,
+        executionAvailable=True,
+    )
+    return IntentClassification(
+        tasks=[task],
+        executionTargets=[TaskCode.REPAYMENT_ORDER_CHANGE],
+        requiresClarification=False,
+        clarificationQuestion=None,
+        unsupported=False,
+        unsupportedReason=None,
+    )
+
+
+def _clearly_requests_another_task(message: str) -> bool:
+    compact = re.sub(r"\s+", "", message)
+    return any(token in compact for token in (
+        "거래내역", "대출조회", "대출정보", "대출잔액",
+        "청약통장", "채무조정", "상속예금",
+    ))
 
 
 def _non_start_answer(outcome: str, classification: IntentClassification) -> str:

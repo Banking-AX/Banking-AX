@@ -23,6 +23,30 @@ public class B01EligibilityService {
     }
 
     /**
+     * Checks only the loan rules that are available before an application is uploaded.
+     * Document, consent, signature and SMS checks remain in the full validation flow.
+     */
+    public LoanRuleResult precheck(long customerId, long workItemId, long loanId,
+                                   String requestedRepaymentOrder) {
+        requirePort();
+        RequestedOrder requested = requestedOrder(requestedRepaymentOrder);
+        String workItemStatus = queries.ownedWorkItemStatus(customerId, workItemId)
+                .orElseThrow(B01EligibilityService::unavailable);
+        if ("ON_HOLD".equals(workItemStatus)) {
+            throw new DomainException("WORK_ITEM_RESUME_REQUIRED",
+                    "The B-01 work item must be resumed before eligibility can be checked.");
+        }
+        if (!"ACTIVE".equals(workItemStatus)) throw unavailable();
+
+        B01ValidationQueryPort.LoanRecord loan = queries.ownedLoan(customerId, loanId)
+                .orElseThrow(() -> new DomainException("LOAN_NOT_AVAILABLE", "The selected loan is not available."));
+        RuleCode ruleCode = rule(loan, requested);
+        return new LoanRuleResult(workItemId, loan.id(), requested.name(),
+                ruleCode == RuleCode.ELIGIBLE ? EligibilityStatus.ELIGIBLE : EligibilityStatus.INELIGIBLE,
+                ruleCode, reason(ruleCode));
+    }
+
+    /**
      * Validation reached through the B-01 customer flow must be bound to the
      * exact current application file, never merely the most recent extraction
      * for a work item.
@@ -134,6 +158,16 @@ public class B01EligibilityService {
         return RuleCode.ELIGIBLE;
     }
 
+    private static String reason(RuleCode code) {
+        return switch (code) {
+            case NOT_ACCELERATED -> "기한의 이익이 상실된 대출만 신청할 수 있습니다.";
+            case OUTSOURCED_LOAN -> "외부기관 위탁대출은 신청할 수 없습니다.";
+            case AGREEMENT_LOAN -> "협약대출은 신청할 수 없습니다.";
+            case ALREADY_APPLIED -> "현재 충당순서와 요청한 충당순서가 같습니다.";
+            case ELIGIBLE -> "대출 규칙 사전검증을 통과했습니다. 서류 및 본인확인 절차가 추가로 필요합니다.";
+        };
+    }
+
     private static RequestedOrder requestedOrder(String value) {
         try { return RequestedOrder.valueOf(value); }
         catch (RuntimeException exception) {
@@ -152,6 +186,7 @@ public class B01EligibilityService {
     }
 
     enum RequestedOrder { INTEREST_FIRST, PRINCIPAL_FIRST }
+    public enum EligibilityStatus { ELIGIBLE, INELIGIBLE }
     public enum RuleCode { NOT_ACCELERATED, OUTSOURCED_LOAN, AGREEMENT_LOAN, ALREADY_APPLIED, ELIGIBLE }
     public enum MismatchCode { OCR_NOT_AVAILABLE, OCR_NOT_SUCCEEDED, OCR_RESULT_INVALID,
         OCR_LOAN_COUNT_INVALID, ACCOUNT_NUMBER_MISMATCH, BALANCE_MISMATCH,
@@ -172,5 +207,8 @@ public class B01EligibilityService {
                                    OcrCheck ocr, ImageCheck image, VerificationState verification,
                                    boolean automaticProcessingAllowed,
                                    String householdLoanClassification) { }
+    public record LoanRuleResult(long workItemId, long selectedLoanId, String requestedRepaymentOrder,
+                                 EligibilityStatus eligibilityStatus, RuleCode reasonCode,
+                                 String reasonMessage) { }
     private record OcrEvaluation(OcrCheck check, B01OcrPort.OcrResult result) { }
 }

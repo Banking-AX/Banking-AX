@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRun, type ChatMessage, type ChatRoom } from './chat'
+import { b01ReconnectNextStep, chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRun, type B01ReconnectResult, type ChatMessage, type ChatRoom } from './chat'
 import { setAccessToken } from './client'
 
 const room: ChatRoom = {
@@ -105,6 +105,45 @@ describe('Spring chat BFF client', () => {
     })
   })
 
+  it('restores only the A02 loan-page action from persisted UI metadata', () => {
+    const agent = message(13, 2, 'AGENT', '대출계좌 3건을 조회했습니다.')
+    agent.citations = JSON.stringify({ uiAction: {
+      type: 'OPEN_CUSTOMER_LOANS', taskCode: 'LOAN_INQUIRY',
+    } })
+
+    expect(replyFromChatMessage(agent)).toEqual({
+      kind: 'loanDetailsAction', answer: agent.content,
+    })
+  })
+
+  it('ignores malformed or server-directed loan-page metadata', () => {
+    const malformed = message(14, 2, 'AGENT', '조회 결과')
+    malformed.citations = JSON.stringify({ uiAction: {
+      type: 'OPEN_CUSTOMER_LOANS', taskCode: 'OTHER', url: 'https://example.invalid',
+    } })
+
+    expect(replyFromChatMessage(malformed)).toEqual({ kind: 'message', answer: malformed.content })
+  })
+
+  it('does not create a loan-page action for an empty A02 result', () => {
+    const run: AgentRun = {
+      customerMessage: message(20, 1, 'CUSTOMER', '내 대출정보 조회해 줘'),
+      agentMessage: message(21, 2, 'AGENT', '조회된 대출계좌가 없습니다.'),
+      agentResult: {
+        requestId: 'op-empty', customerId: 1, outcome: 'STARTED', classification: {},
+        workflow: { workflowId: 30, workItemId: 31, taskCode: 'LOAN_INQUIRY', status: 'COMPLETED' },
+        loanInquiry: { loans: [] },
+        executionStatus: { workflowId: 30, workItemId: 31, taskCode: 'LOAN_INQUIRY', workItemStatus: 'DONE', workflowStatus: 'COMPLETED' },
+        taskAction: null, answer: '조회된 대출계좌가 없습니다.', answerStatus: 'GENERATED',
+      },
+      financialOperationCompleted: true, agentMessageSaved: true,
+    }
+
+    expect(replyFromAgentRun(run)).toEqual({
+      kind: 'loans', loans: [], answer: '조회된 대출계좌가 없습니다.',
+    })
+  })
+
   it('restores messages in server sequence order', async () => {
     setAccessToken('customer-token')
     vi.stubGlobal('fetch', vi.fn(async () => new Response(envelope([
@@ -131,5 +170,158 @@ describe('Spring chat BFF client', () => {
     expect(replyFromAgentRun(run)).toEqual({
       kind: 'started', taskCode: 'TRANSACTION_SEARCH', workItemId: 21, answer: '업무를 준비했습니다.',
     })
+  })
+
+  it('keeps a STARTED B-01 graph answer in the chat without a page link before ELIGIBLE', () => {
+    const b01Run = (outcome: AgentRun['agentResult']['outcome'], taskAction: AgentRun['agentResult']['taskAction']): AgentRun => ({
+      customerMessage: message(50, 1, 'CUSTOMER', '충당순서 변경할래'),
+      agentMessage: message(51, 2, 'AGENT', '변경할 대출을 골라 주세요.'),
+      agentResult: {
+        requestId: 'op-b01-graph', customerId: 1, outcome, classification: {},
+        workflow: { workflowId: 60, workItemId: 61, taskCode: 'REPAYMENT_ORDER_CHANGE', status: 'ACTIVE' },
+        loanInquiry: null, executionStatus: null, taskAction,
+        answer: '변경할 대출을 골라 주세요.', answerStatus: 'GENERATED',
+      },
+      financialOperationCompleted: false, agentMessageSaved: true,
+    })
+
+    // Loan selection question and INELIGIBLE answers: plain text only.
+    expect(replyFromAgentRun(b01Run('STARTED', null))).toEqual({ kind: 'message', answer: '변경할 대출을 골라 주세요.' })
+    // ELIGIBLE: the application page is reached only through the server taskAction.
+    const action = { taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'op-b01-graph' } as const
+    expect(replyFromAgentRun(b01Run('TASK_ACTION_AVAILABLE', action))).toEqual({
+      kind: 'taskAction', answer: '변경할 대출을 골라 주세요.', action,
+    })
+  })
+})
+
+const reconnectAction = {
+  type: 'SELECT_B01_RECONNECT', allowStartNew: false,
+  candidates: [
+    { workItemId: 18, status: 'ACTIVE', originalChatRoomId: 5, originalChatRoomAvailable: true },
+    { workItemId: 3, status: 'ON_HOLD', originalChatRoomId: null, originalChatRoomAvailable: false },
+  ],
+}
+
+const reconnectRun = (action: unknown): AgentRun => ({
+  customerMessage: message(40, 1, 'CUSTOMER', '충당순서 변경 신청할래'),
+  agentMessage: message(41, 2, 'AGENT', '진행 중인 충당순서 변경 업무가 있습니다.'),
+  agentResult: {
+    requestId: 'op-reconnect', customerId: 1, outcome: 'B01_RECONNECT_CONFIRMATION_REQUIRED', classification: {},
+    workflow: null, loanInquiry: null, executionStatus: null, taskAction: null, b01ReconnectAction: action,
+    answer: '진행 중인 충당순서 변경 업무가 있습니다.', answerStatus: 'GENERATED',
+  },
+  financialOperationCompleted: false, agentMessageSaved: true,
+})
+
+const reconnectResult = (overrides: Partial<B01ReconnectResult> = {}): B01ReconnectResult => ({
+  outcome: 'EXISTING_SELECTED', workItemId: 18, workItemStatus: 'ACTIVE',
+  originalChatRoomId: 5, originalChatRoomAvailable: true, navigationTarget: 'ORIGINAL_CHAT', ...overrides,
+})
+
+describe('B-01 reconnect action', () => {
+  it('shows ACTIVE and ON_HOLD candidates from the first agent answer', () => {
+    expect(replyFromAgentRun(reconnectRun(reconnectAction))).toEqual({
+      kind: 'b01Reconnect', answer: '진행 중인 충당순서 변경 업무가 있습니다.', action: reconnectAction,
+    })
+  })
+
+  it('restores the same candidates from persisted citations after a reload', () => {
+    const agent = message(41, 2, 'AGENT', '진행 중인 충당순서 변경 업무가 있습니다.')
+    agent.citations = JSON.stringify({ b01ReconnectAction: reconnectAction })
+
+    expect(replyFromChatMessage(agent)).toEqual({ kind: 'b01Reconnect', answer: agent.content, action: reconnectAction })
+  })
+
+  it('ignores malformed actions instead of guessing buttons', () => {
+    const invalid = [
+      { ...reconnectAction, type: 'OTHER' },
+      { ...reconnectAction, candidates: [] },
+      { ...reconnectAction, candidates: [{ ...reconnectAction.candidates[0], status: 'DONE' }] },
+      { ...reconnectAction, candidates: [reconnectAction.candidates[0], reconnectAction.candidates[0]] },
+      { ...reconnectAction, candidates: [{ ...reconnectAction.candidates[0], originalChatRoomId: null }] },
+      { ...reconnectAction, allowStartNew: 'true' },
+    ]
+    for (const action of invalid) {
+      expect(replyFromAgentRun(reconnectRun(action)).kind).toBe('message')
+      const agent = message(41, 2, 'AGENT', '안내')
+      agent.citations = JSON.stringify({ b01ReconnectAction: action })
+      expect(replyFromChatMessage(agent)).toEqual({ kind: 'message', answer: '안내' })
+    }
+  })
+
+  it('keeps the existing B-01 taskAction and A-02 uiAction when no reconnect action is stored', () => {
+    const agent = message(42, 2, 'AGENT', '신청 화면에서 진행해 주세요.')
+    agent.citations = JSON.stringify({ taskAction: {
+      taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'action-1',
+    } })
+    expect(replyFromChatMessage(agent).kind).toBe('taskAction')
+    agent.citations = JSON.stringify({ uiAction: { type: 'OPEN_CUSTOMER_LOANS', taskCode: 'LOAN_INQUIRY' } })
+    expect(replyFromChatMessage(agent).kind).toBe('loanDetailsAction')
+  })
+
+  it('posts the chosen workItemId to the room reconnect API without a customer id', async () => {
+    setAccessToken('customer-token')
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(envelope(reconnectResult()), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const request = { requestId: 'b01-reconnect-001', choice: 'CONTINUE_EXISTING', workItemId: 18 } as const
+    await expect(chatApi.reconnectB01(9, request)).resolves.toEqual(reconnectResult())
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/customer/chat/rooms/9/b01/reconnect')
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('POST')
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
+    expect(body).toEqual(request)
+    expect(body).not.toHaveProperty('customerId')
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe('Bearer customer-token')
+  })
+
+  it('sends START_NEW with a null workItemId', async () => {
+    setAccessToken('customer-token')
+    const created = reconnectResult({ outcome: 'NEW_CREATED', workItemId: 50, originalChatRoomId: 9, navigationTarget: 'START_B01_GRAPH' })
+    const fetchMock = vi.fn(async () => new Response(envelope(created), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(chatApi.reconnectB01(9, { requestId: 'b01-reconnect-002', choice: 'START_NEW', workItemId: null })).resolves.toEqual(created)
+    expect(JSON.parse(String((fetchMock.mock.calls[0] as unknown[])[1] && ((fetchMock.mock.calls[0] as unknown[])[1] as RequestInit).body))).toEqual({
+      requestId: 'b01-reconnect-002', choice: 'START_NEW', workItemId: null,
+    })
+  })
+
+  it('surfaces the server rejection of a foreign or finished work item', async () => {
+    setAccessToken('customer-token')
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      requestId: null, taskCode: null, workItemId: null, caseId: null, revision: null, data: null,
+      error: { code: 'WORK_ITEM_NOT_AVAILABLE', message: 'The B-01 work item is not available.', retryable: false, traceId: 't' },
+    }), { status: 400 })))
+
+    await expect(chatApi.reconnectB01(9, { requestId: 'r', choice: 'CONTINUE_EXISTING', workItemId: 999 }))
+      .rejects.toMatchObject({ code: 'WORK_ITEM_NOT_AVAILABLE', status: 400 })
+  })
+
+  it('rejects responses whose outcome and navigation target disagree', async () => {
+    setAccessToken('customer-token')
+    for (const bad of [
+      reconnectResult({ navigationTarget: 'START_B01_GRAPH' }),
+      reconnectResult({ outcome: 'NEW_CREATED', navigationTarget: 'ORIGINAL_CHAT' }),
+      reconnectResult({ originalChatRoomId: null }),
+      { ...reconnectResult(), navigationTarget: 'https://example.invalid' },
+    ]) {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(envelope(bad), { status: 200 })))
+      await expect(chatApi.reconnectB01(9, { requestId: 'r', choice: 'CONTINUE_EXISTING', workItemId: 18 }))
+        .rejects.toMatchObject({ code: 'INVALID_RESPONSE' })
+    }
+  })
+
+  it('maps each outcome to an in-app step built from ids', () => {
+    expect(b01ReconnectNextStep(reconnectResult())).toEqual({ type: 'openRoom', roomId: 5, workItemId: 18 })
+    expect(b01ReconnectNextStep(reconnectResult({ originalChatRoomAvailable: false, navigationTarget: 'B01_TASK' })))
+      .toEqual({ type: 'openTask', workItemId: 18 })
+    for (const outcome of ['NEW_CREATED', 'SAME_CHAT_REUSED', 'REQUEST_REPLAYED'] as const) {
+      expect(b01ReconnectNextStep(reconnectResult({ outcome, workItemId: 50, navigationTarget: 'START_B01_GRAPH' })))
+        .toEqual({ type: 'startGraph', workItemId: 50 })
+    }
+    expect(b01ReconnectNextStep(reconnectResult({ outcome: 'ACTIVE_WORK_ITEM_CONFLICT' })))
+      .toEqual({ type: 'conflict', workItemId: 18 })
   })
 })

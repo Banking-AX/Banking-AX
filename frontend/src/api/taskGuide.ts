@@ -1,4 +1,4 @@
-import { apiFetchWithoutAuthRetry } from './client'
+import { apiFetch } from './client'
 
 export type TaskGuideStep = { key: 'CLASSIFY' | 'RETRIEVE' | 'SUMMARIZE'; label: string; status: string; detail: string }
 export type TaskGuideCitation = { docId: string; title: string; section: string }
@@ -14,7 +14,7 @@ export const taskGuideApi = {
   /** Omit taskCode to let the server's intent classifier match the sentence to one of the 6 tasks. */
   async guide(query: string, taskCode?: string): Promise<TaskGuide> {
     // FastAPI returns the guide itself rather than a Spring ApiEnvelope.
-    const body = await apiFetchWithoutAuthRetry<never>('/api/v1/rag/task-guide', { method: 'POST', body: JSON.stringify({ query, task_code: taskCode ?? null }) })
+    const body = await apiFetch<never>('/api/v1/rag/task-guide', { method: 'POST', body: JSON.stringify({ query, task_code: taskCode ?? null }) })
     return body as unknown as TaskGuide
   },
 }

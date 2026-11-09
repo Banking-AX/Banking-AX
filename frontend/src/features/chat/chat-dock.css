@@ -1,0 +1,37 @@
+/* AI dock overlay (docs/design-ref/Main.dc.html, ChatModal.dc.html, ChatExpanded.dc.html).
+   main.tsx imports App (and this file) before styles.css, so this file loads first. Rules that override a
+   styles.css rule therefore use a more specific selector instead of relying on order. */
+
+/* Fixed on the right over the page (mounted once in App). --chat-dock-top is the header bottom + 16px, set by ChatDockHost,
+   so the dock starts below the header and sticks 16px from the top once the header scrolls away. */
+.chat-dock-col { position: fixed; top: var(--chat-dock-top, 16px); right: 0; z-index: 40; width: 456px; }
+.chat-dock-inner { padding: 0 16px 16px 0; }
+.chat-dock-slot { height: min(780px, calc(100vh - var(--chat-dock-top, 16px) - 16px)); }
+
+/* Closed dock: only the round button (with the unread badge) remains, at every width. */
+.chat-dock-round { display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 40; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: var(--color-primary); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24); align-items: center; justify-content: center; cursor: pointer; }
+.chat-dock__collapse:focus-visible { outline: 2px solid #FFFFFF; outline-offset: -2px; }
+
+/* ChatModal.dc.html conversation: body 16/14/18 with the base 18px gap; bubbles, the 52px input and the footnote use the base chat rules. */
+.chat-dock-card .chat-body { padding: 16px 14px 18px; }
+.chat-dock-card .chat-footer { padding: 12px 14px 10px; }
+
+/* Picked-room view keeps the ChatExpanded.dc.html metrics. */
+.chat-dock-card--room .chat-body { gap: 14px; }
+/* The A-02 loan card keeps its own zero padding. */
+.chat-dock-card--room .chat-bubble:not(.chat-loan-bubble) { padding: 12px 14px; font-size: 15px; }
+.chat-dock-card--room .chat-composer { gap: 8px; }
+.chat-dock-card--room .chat-input { height: 48px; padding: 0 14px; font-size: 15px; }
+.chat-dock-card--room .chat-send { width: 48px; height: 48px; }
+.chat-dock-card--room .chat-footnote { margin-top: 8px; }
+
+@media (max-width: 1279px) {
+  .chat-dock-col { top: auto; bottom: 0; }
+  .chat-dock-slot { height: min(780px, calc(100vh - 32px)); }
+}
+@media (max-width: 1023px) {
+  .chat-dock-col { left: 0; width: auto; }
+  .chat-dock-inner { padding: 0 8px; }
+  .chat-dock-slot { height: 70vh; }
+  .chat-dock-col .chat-dock-card { border-radius: 16px 16px 0 0; }
+}

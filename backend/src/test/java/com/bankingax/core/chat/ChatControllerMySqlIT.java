@@ -129,7 +129,7 @@ class ChatControllerMySqlIT {
     }
 
     @Test
-    void runsA02AgentWithJwtPersistsBothMessagesAndReplaysIdempotently() {
+    void runsA02AgentWithJwtPersistsBothMessagesAndReplaysIdempotently() throws Exception {
         String token = login("chat_customer_one");
         long roomId = createRoom(token);
         when(customerAgent.start(any())).thenReturn(completedAgentResponse(roomId));
@@ -156,6 +156,16 @@ class ChatControllerMySqlIT {
         assertThat(jdbc.queryForObject(
                 "select count(*) from chat_message where chat_room_id=?", Integer.class, roomId))
                 .isEqualTo(2);
+        String citations = jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class,
+                roomId);
+        assertThat(json.readTree(citations).path("uiAction").path("type").asText())
+                .isEqualTo("OPEN_CUSTOMER_LOANS");
+        assertThat(json.readTree(citations).path("uiAction").path("taskCode").asText())
+                .isEqualTo("LOAN_INQUIRY");
+        assertThat(citations)
+                .doesNotContain("loanId", "loanNo", "balance", "interestRate", "loans");
 
         ArgumentCaptor<CustomerAgentClient.AgentRequest> request =
                 ArgumentCaptor.forClass(CustomerAgentClient.AgentRequest.class);
@@ -167,6 +177,28 @@ class ChatControllerMySqlIT {
             assertThat(sent.message()).isEqualTo("내 대출정보 조회해 줘");
             assertThat(sent.recentMessages()).doesNotContain("CUSTOMER: 내 대출정보 조회해 줘");
         });
+    }
+
+    @Test
+    void doesNotPersistLoanPageActionWhenA02ReturnsNoLoans() {
+        String token = login("chat_customer_one");
+        long roomId = createRoom(token);
+        when(customerAgent.start(any())).thenReturn(completedAgentResponse(roomId, false));
+
+        ResponseEntity<Map> response = exchange(
+                HttpMethod.POST,
+                "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs",
+                Map.of(
+                        "messageRequestId", "empty-a02-message",
+                        "operationRequestId", "agent-operation-1",
+                        "content", "내 대출정보 조회해 줘"),
+                token);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class,
+                roomId)).isNull();
     }
 
     @Test
@@ -195,6 +227,52 @@ class ChatControllerMySqlIT {
                 .isEqualTo("REPAYMENT_ORDER_CHANGE");
         assertThat(json.readTree(citations).path("taskAction").path("actionRequestId").asText())
                 .isEqualTo("b01-operation-1");
+
+        ResponseEntity<Map> restored = exchange(
+                HttpMethod.GET,
+                "/api/v1/customer/chat/rooms/" + roomId + "/messages",
+                null,
+                token);
+        assertThat(listData(restored)).anySatisfy(message -> {
+            assertThat(message.get("senderType")).isEqualTo("AGENT");
+            assertThat(message.get("citations")).isEqualTo(citations);
+        });
+    }
+
+    @Test
+    void persistsAndRestoresB01ReconnectActionWithoutFinancialData() throws Exception {
+        String token = login("chat_customer_one");
+        long roomId = createRoom(token);
+        when(customerAgent.start(any())).thenReturn(b01ReconnectResponse());
+
+        ResponseEntity<Map> response = exchange(
+                HttpMethod.POST,
+                "/api/v1/customer/chat/rooms/" + roomId + "/agent-runs",
+                Map.of(
+                        "messageRequestId", "b01-reconnect-message",
+                        "operationRequestId", "b01-reconnect-operation",
+                        "content", "충당순서 변경 신청할래"),
+                token);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> agentResult = nested(data(response), "agentResult");
+        Map<String, Object> action = nested(agentResult, "b01ReconnectAction");
+        assertThat(action.get("type")).isEqualTo("SELECT_B01_RECONNECT");
+        assertThat(action.get("allowStartNew")).isEqualTo(false);
+        assertThat((List<?>) action.get("candidates")).hasSize(2);
+
+        String citations = jdbc.queryForObject(
+                "select citations from chat_message where chat_room_id=? and sender_type='AGENT'",
+                String.class, roomId);
+        var stored = json.readTree(citations).path("b01ReconnectAction");
+        assertThat(stored.path("type").asText()).isEqualTo("SELECT_B01_RECONNECT");
+        assertThat(stored.path("allowStartNew").asBoolean()).isFalse();
+        assertThat(stored.path("candidates").get(0).path("workItemId").asLong()).isEqualTo(18);
+        assertThat(stored.path("candidates").get(0).path("status").asText()).isEqualTo("ACTIVE");
+        assertThat(stored.path("candidates").get(1).path("workItemId").asLong()).isEqualTo(3);
+        assertThat(stored.path("candidates").get(1).path("status").asText()).isEqualTo("ON_HOLD");
+        assertThat(citations).doesNotContain(
+                "loanNo", "balance", "interestRate", "customerId", "graphState", "token");
 
         ResponseEntity<Map> restored = exchange(
                 HttpMethod.GET,
@@ -335,15 +413,29 @@ class ChatControllerMySqlIT {
     }
 
     private CustomerAgentClient.AgentResponse completedAgentResponse(long roomId) {
+        return completedAgentResponse(roomId, true);
+    }
+
+    private CustomerAgentClient.AgentResponse completedAgentResponse(long roomId, boolean hasLoans) {
+        var loanInquiry = json.createObjectNode().put("chatRoomId", roomId);
+        var loans = loanInquiry.putArray("loans");
+        if (hasLoans) {
+            loans.addObject()
+                    .put("loanId", 7001)
+                    .put("loanNoMasked", "210-***-000001")
+                    .put("balance", 1000)
+                    .put("interestRate", 4.1);
+        }
         return new CustomerAgentClient.AgentResponse(
                 "agent-operation-1",
                 1,
                 "STARTED",
                 json.createObjectNode(),
                 new CustomerAgentClient.WorkflowView(501, 1001, "LOAN_INQUIRY", "ACTIVE"),
-                json.createObjectNode().put("chatRoomId", roomId),
+                loanInquiry,
                 new CustomerAgentClient.ExecutionStatus(
                         501, 1001, "LOAN_INQUIRY", "DONE", "COMPLETED"),
+                null,
                 null,
                 "대출계좌 3건을 조회했습니다.",
                 "GENERATED");
@@ -362,7 +454,30 @@ class ChatControllerMySqlIT {
                         .put("taskCode", "REPAYMENT_ORDER_CHANGE")
                         .put("label", "신청 화면으로 이동")
                         .put("actionRequestId", "b01-operation-1"),
+                null,
                 "채무변제충당순서 변경 신청을 도와드리겠습니다. 신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.",
+                "GENERATED");
+    }
+
+    private CustomerAgentClient.AgentResponse b01ReconnectResponse() {
+        return new CustomerAgentClient.AgentResponse(
+                "b01-reconnect-operation",
+                1,
+                "B01_RECONNECT_CONFIRMATION_REQUIRED",
+                json.createObjectNode(),
+                null,
+                null,
+                null,
+                null,
+                new CustomerAgentClient.B01ReconnectAction(
+                        "SELECT_B01_RECONNECT",
+                        false,
+                        List.of(
+                                new CustomerAgentClient.B01ReconnectCandidate(
+                                        18, "ACTIVE", 5L, true),
+                                new CustomerAgentClient.B01ReconnectCandidate(
+                                        3, "ON_HOLD", 1L, true))),
+                "진행 중인 충당순서 변경 업무가 있습니다.",
                 "GENERATED");
     }
 

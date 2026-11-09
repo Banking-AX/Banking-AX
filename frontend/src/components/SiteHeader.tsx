@@ -5,9 +5,11 @@ import { NotificationBell } from '../features/notifications/NotificationBell'
 // Menus without a route keep the design's appearance but do not navigate.
 const MAIN_MENU = ['조회', '이체', '금융상품', '공과금/법원', '뱅킹보안관리', '기타금융', '부가서비스', '사용자관리', '카드/증권']
 
-export function SiteHeader() {
+/** spot: dims the header except the account area and the login link; dimmed controls leave the Tab order. */
+export function SiteHeader({ spot = false }: { spot?: boolean }) {
   const { user, status, logout } = useAuth()
   const navigate = useNavigate()
+  const dimmedTabIndex = spot ? -1 : undefined
 
   const onLogout = async () => {
     try {
@@ -17,16 +19,16 @@ export function SiteHeader() {
     }
   }
 
-  return <header className="site-header">
+  return <header className={`site-header${spot ? ' site-header--spot' : ''}`}>
+    {spot && <div aria-hidden="true" className="site-header__spot"></div>}
     <div className="site-header__inner">
       <div className="site-header__top">
-        <Link to="/" className="site-header__brand">
+        <Link to="/" tabIndex={dimmedTabIndex} className="site-header__brand">
           <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="#FFFFFF"></rect><path d="M8 22 L12.5 10 L17 22 M9.8 17.5 H15.2" stroke="#2E70C3" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"></path><path d="M19 13 L24.5 21.5 M24.5 13 L19 21.5" stroke="#C9682A" strokeWidth="2.4" strokeLinecap="round"></path></svg>
           <span className="site-header__brand-name">SolBank</span>
         </Link>
-        <span className="site-header__demo-tag">교육용 시연</span>
         <nav aria-label="고객 구분" className="site-header__segment">
-          <Link to="/" aria-current="page" className="site-header__segment-link site-header__segment-link--active">개인</Link>
+          <Link to="/" aria-current="page" tabIndex={dimmedTabIndex} className="site-header__segment-link site-header__segment-link--active">개인</Link>
           <a className="site-header__segment-link" aria-disabled="true">기업</a>
           <a className="site-header__segment-link" aria-disabled="true">금융상품</a>
         </nav>
@@ -46,8 +48,8 @@ export function SiteHeader() {
             <NotificationBell role={user.role} />
             <button type="button" className="site-header__logout" onClick={onLogout}>로그아웃</button>
           </div>
-          : status === 'anonymous' && <Link to="/login" className="site-header__pill">로그인</Link>}
-        <button type="button" aria-label="통합검색" className="site-header__icon-button">
+          : status === 'anonymous' && <Link to="/login" className="site-header__pill site-header__login">로그인</Link>}
+        <button type="button" aria-label="통합검색" tabIndex={dimmedTabIndex} className="site-header__icon-button">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
         </button>
       </div>
@@ -55,7 +57,7 @@ export function SiteHeader() {
         <nav aria-label="주 메뉴" className="site-header__main-menu">
           {MAIN_MENU.map(label => <a key={label} className="site-header__main-link" aria-disabled="true">{label}</a>)}
         </nav>
-        <button type="button" aria-label="전체 메뉴" className="site-header__all-menu">
+        <button type="button" aria-label="전체 메뉴" tabIndex={dimmedTabIndex} className="site-header__all-menu">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
         </button>
       </div>

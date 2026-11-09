@@ -34,6 +34,32 @@ export function formatDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10).replaceAll('-', '.') : '—'
 }
 
+/** Same rule as the server's CHANGE_LOCK: a visit can be cancelled only until 24 hours before it starts. */
+export const VISIT_CHANGE_LOCK_MS = 24 * 60 * 60 * 1000
+
+/** Last instant (epoch ms) at which the visit can still be cancelled; NaN for an unreadable time. */
+export function visitCancelDeadline(startsAt: string): number {
+  return Date.parse(startsAt) - VISIT_CHANGE_LOCK_MS
+}
+
+/**
+ * Locked from exactly 24 hours before the visit (the server cancels only while starts_at > now + 24h).
+ * Instants are compared, so the browser's time zone does not change the result.
+ */
+export function isVisitLocked(startsAt: string, nowMs: number): boolean {
+  return nowMs >= visitCancelDeadline(startsAt)
+}
+
+// Korea time for visit times and the cancel deadline (no DST, so "24 hours before" is the same clock time a day earlier).
+const SEOUL_FORMAT = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/** "2026.10.23(금) 14:00" in Asia/Seoul whatever the browser's time zone is. */
+export function seoulStamp(epochMs: number): string {
+  if (Number.isNaN(epochMs)) return '—'
+  const part = Object.fromEntries(SEOUL_FORMAT.formatToParts(new Date(epochMs)).map(item => [item.type, item.value]))
+  return `${part.year}.${part.month}.${part.day}(${part.weekday}) ${part.hour}:${part.minute}`
+}
+
 const RESULT_PILL: Record<string, StatusPill> = {
   REVIEW_PASSED: { label: '진행 가능', tone: 'success' },
   REVIEW_REJECTED_REQUIREMENT: { label: '요건 미충족', tone: 'danger' },

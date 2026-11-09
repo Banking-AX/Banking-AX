@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { notificationApi, type NotificationItem, type NotificationSummary } from '../../api/notificationApi'
-import { taskBffEnabled } from '../../api/taskApi'
+import { c02Api, taskBffEnabled } from '../../api/taskApi'
 import { toUserMessage } from '../../api/errorMessages'
-import { badgeText, channelLabel, formatReceivedAt, relatedPath, taskLabel, toneOf } from './notificationView'
+import { badgeText, channelLabel, formatReceivedAt, needsCaseLookup, relatedPath, resolvedTaskCode, taskLabel, toneOf } from './notificationView'
 import { setUnreadCount } from './unreadStore'
 import './notifications.css'
 
@@ -40,6 +40,20 @@ export function NotificationsPage() {
 
   useEffect(() => { void load(filter) }, [filter, load])
 
+  // Fallback for notifications that carry a caseId but no taskCode (VISIT_CONFIRMED today): the customer's own
+  // C-02 case list decides whether the case links to the C-02 detail page. Loaded once, only when needed.
+  // Remove this lookup once the server fills taskCode for every C-02 notification.
+  const [c02CaseIds, setC02CaseIds] = useState<ReadonlySet<number> | undefined>(undefined)
+  const caseLookupNeeded = items.some(needsCaseLookup)
+  useEffect(() => {
+    if (!taskBffEnabled || !caseLookupNeeded || c02CaseIds) return
+    let active = true
+    c02Api.customerCases(`noti-c02-cases-${crypto.randomUUID()}`)
+      .then(response => { if (active) setC02CaseIds(new Set((response.data ?? []).map(row => row.caseId))) })
+      .catch(() => { if (active) setC02CaseIds(new Set()) })
+    return () => { active = false }
+  }, [caseLookupNeeded, c02CaseIds])
+
   const open = async (item: NotificationItem) => {
     setNotice(null)
     if (!item.readAt) {
@@ -53,7 +67,7 @@ export function NotificationsPage() {
         return
       }
     }
-    const target = relatedPath(item)
+    const target = relatedPath(item, c02CaseIds)
     if (target) navigate(target)
     else setNotice('이 알림과 연결된 상세 화면이 아직 없어요. 알림 내용으로 확인해 주세요.')
   }
@@ -92,7 +106,7 @@ export function NotificationsPage() {
     </section> : <ul className="noti-list">
       {items.map(item => {
         const { tone, icon } = toneOf(item.type)
-        const label = taskLabel(item.taskCode)
+        const label = taskLabel(resolvedTaskCode(item, c02CaseIds))
         const unavailable = relatedPath(item) === null
         return <li key={item.id}>
           <button type="button" className={`noti-item${item.readAt ? '' : ' noti-item--unread'}${unavailable ? ' noti-item--unavailable' : ''}`} onClick={() => void open(item)}>
@@ -116,7 +130,7 @@ export function NotificationsPage() {
     {loading && <p role="status" className="noti-loading">알림을 불러오고 있어요.</p>}
     {hasMore && !loading && <button type="button" className="noti-more" onClick={() => void load(filter, items[items.length - 1]?.id)}>이전 알림 더보기</button>}
 
-    <p className="noti-footnote">알림을 눌러야 읽음으로 바뀌어요(페이지를 여는 것만으로는 바뀌지 않아요). 조회(A) 업무는 알림·이메일을 보내지 않아요. 이 알림은 법적 통지가 아니에요. 교육용 시연 화면 · 가상 데이터.</p>
+    <p className="noti-footnote">알림을 눌러야 읽음으로 바뀌어요(페이지를 여는 것만으로는 바뀌지 않아요). 조회(A) 업무는 알림·이메일을 보내지 않아요. 이 알림은 법적 통지가 아니에요.</p>
     <span className="noti-sr" aria-live="polite">{badgeText(unread) ? `읽지 않은 알림 ${unread}건` : '읽지 않은 알림 없음'}</span>
   </main>
 }

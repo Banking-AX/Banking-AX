@@ -31,7 +31,7 @@ export function getSignSetup(docKey: SignDocKey, signerName: string): SignSetup 
   switch (docKey) {
     case 'b01': return {
       taskName: '채무변제 충당순서 변경', afterText: '서명 직후 최신 대출 조건을 다시 확인하고 충당순서를 변경해요',
-      note: '화면의 문서는 서명 내용 확인을 위해 재구성한 교육용 모형이며, 고객이 업로드한 PDF 원문 이미지가 아니에요.',
+      note: '화면의 문서는 서명 내용 확인을 위해 재구성한 화면이며, 고객이 업로드한 PDF 원문 이미지가 아니에요.',
       signer: signerName, backHref: '/tasks/b01/demo', doneHref: DONE_HREF, doneLabel: '변경 결과 보기',
       // B-01 uploads the signature PNG and the backend stores it as the mock signature record.
       storesSignature: true, demoPath: DEMO_M,
@@ -63,7 +63,7 @@ export function getSignSetup(docKey: SignDocKey, signerName: string): SignSetup 
       docs: [
         {
           name: '채무조정 요청서', ref: 'C01-04 공식 양식',
-          body: '신청인은 개인채무자보호법에 따른 채무조정을 요청하며, 기재 내용이 사실과 같음을 확인합니다. (모의 접수 · 법정 신청 아님)',
+          body: '신청인은 개인채무자보호법에 따른 채무조정을 요청하며, 기재 내용이 사실과 같음을 확인합니다.',
           fields: [field('신청인', signerName), field('대상 대출', 'AX 개인 신용대출 210-***-557731 · 원금 18,500,000원'), field('요청사유', '실직, 소득감소'), field('현재 월 소득', '2,800,000원'), field('희망 조정', '분할상환 유예 6개월', true)],
         },
         {
@@ -73,8 +73,8 @@ export function getSignSetup(docKey: SignDocKey, signerName: string): SignSetup 
         },
         {
           name: '개인(신용)정보 조회·수집·이용·제공 동의서', ref: 'C01-01 · 필수',
-          body: '채무조정 검토를 위해 신용정보 조회, 개인정보 수집·이용, 신용회복 관련 기관 제공에 동의합니다. (시연 문구)',
-          fields: [field('동의자', signerName), field('조회', '동의'), field('수집·이용', '동의'), field('제3자 제공', '동의'), field('보유 기간', '검토 종료 후 모의 기준')],
+          body: '채무조정 검토를 위해 신용정보 조회, 개인정보 수집·이용, 신용회복 관련 기관 제공에 동의합니다.',
+          fields: [field('동의자', signerName), field('조회', '동의'), field('수집·이용', '동의'), field('제3자 제공', '동의'), field('보유 기간', '검토 종료 시까지')],
         },
       ],
     }
@@ -91,8 +91,8 @@ export function getSignSetup(docKey: SignDocKey, signerName: string): SignSetup 
         },
         {
           name: '개인정보 수집·이용 동의서', ref: 'C02 · 필수',
-          body: '상속예금 사전검토를 위해 신청인과 상속인의 개인정보를 수집·이용하는 데 동의합니다. (시연 문구)',
-          fields: [field('동의자', signerName), field('수집 항목', '성명, 관계, 연락처, 제출 서류'), field('목적', '상속예금 사전검토'), field('보유 기간', '검토 종료 후 모의 기준')],
+          body: '상속예금 사전검토를 위해 신청인과 상속인의 개인정보를 수집·이용하는 데 동의합니다.',
+          fields: [field('동의자', signerName), field('수집 항목', '성명, 관계, 연락처, 제출 서류'), field('목적', '상속예금 사전검토'), field('보유 기간', '검토 종료 시까지')],
         },
       ],
     }

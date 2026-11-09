@@ -32,10 +32,6 @@ export function ChatBGuide({ time, ownerName, paragraphs, citations, loans, task
           <span className={`chat-b-badge${loan.eligible ? ' chat-b-badge--ok' : ''}`}>{loan.eligible ? '변경 신청 대상' : '변경 대상 아님'}</span>
         </div>)}
       </div>
-      <p className="chat-b-scenario">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="chat-b-scenario__icon"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 7.5h.01"></path></svg>
-        실제로는 영업점 방문이 필요한 업무예요. 이 프로젝트에서는 ‘규칙이 명확한 영업점 업무를 비대면으로 처리한다면’이라는 가정 시나리오로 보여드려요.
-      </p>
       {taskHref && <div className="chat-b-go">
         <Link to={taskHref} className="chat-b-button chat-b-button--primary">충당순서 변경 화면으로 이동
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>

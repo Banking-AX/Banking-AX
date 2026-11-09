@@ -109,11 +109,9 @@ export function VisitReservationPage() {
   const number = caseNumber(snapshot.caseId, snapshot.timeline?.createdAt)
   const eligible = snapshot.caseStatus === 'REVIEW_PASSED' && Boolean(snapshot.finalDecision)
   const header = <>
-    <div className="v17-vb__head">
-      <nav className="v17-vb__crumb" aria-label="현재 위치"><Link to="/work">업무 요청 기록</Link><span>›</span><Link to={detailHref}>상속예금 사전접수</Link><span>›</span><span className="is-current">방문 영업점 예약</span></nav>
-      <h1>방문 영업점 예약</h1>
-      <div className="v17-vb__chips"><span>{number} · 상속예금 해지 및 지급 사전접수</span>{eligible && <span className="is-ok">직원 검토 결과 진행 가능 · {formatDateTime(snapshot.timeline?.resultNotifiedAt)}</span>}</div>
-    </div>
+    <nav className="c02-breadcrumb" aria-label="현재 위치"><Link to="/tasks/c02">상속예금 접수 내역</Link><span>›</span><Link to={detailHref}>상속예금 사전접수</Link><span>›</span><b>방문 영업점 예약</b></nav>
+    <h1 className="c02-reserve__title">방문 영업점 예약</h1>
+    <div className="c02-pills"><span className="c02-chip">{number} · 상속예금 해지 및 지급 사전접수</span>{eligible && <span className="c02-pill c02-pill--success">직원 검토 결과 진행 가능 · {formatDateTime(snapshot.timeline?.resultNotifiedAt)}</span>}</div>
     {error && <p className="c02-alert" role="alert">{error}</p>}
   </>
 
@@ -138,36 +136,30 @@ export function VisitReservationPage() {
     </main>
   }
 
-  return <main className="v17-vb">{header}
-    <div className="v17-vb__cols">
-      <div className="v17-vb__main">
-        <section className="v17-vb__card"><h2>1. 영업점</h2>
-          {visibleBranches.length === 0 ? <p className="c02-notice">예약 가능한 영업점이 없어요.</p> : visibleBranches.map(item => { const on = branchId === item.id; return <button type="button" key={item.id} className={`v17-vb__branch${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => setBranchId(item.id)}>
-            <BuildingIcon /><span><strong>{item.name}</strong><span>{item.address} · 평일 10:00–16:00 (모의)</span></span><span className="v17-vb__branch-tag">상속예금 상담 가능</span>
-          </button> })}
+  return <main className="c02-detail">{header}
+    <div className="c02-reserve">
+      <div className="c02-detail__stack">
+        <section className="c02-detail__card"><h2>1. 영업점</h2>
+          <label className="c02-branch-search">영업점 검색<input value={branchQuery} onChange={event => setBranchQuery(event.target.value)} placeholder="지점명 또는 주소" /></label>
+          <div className="c02-branches">{visibleBranches.length === 0 ? <p className="c02-notice">예약 가능한 영업점이 없어요.</p> : visibleBranches.map(item => <button type="button" key={item.id} className={`c02-branch${branchId === item.id ? ' is-selected' : ''}`} aria-pressed={branchId === item.id} onClick={() => setBranchId(item.id)}><span><b>{item.name}</b><small>{item.address} · 평일 10:00–16:00</small></span><em>상속예금 상담 가능</em></button>)}</div>
         </section>
-        <section className="v17-vb__card"><h2>2. 방문 날짜</h2>
-          <div className="v17-vb__days">{days.map((item, index) => { const closed = isWeekend(item); const key = dayKey(item); const on = day === key; return <button type="button" key={key} disabled={closed} className={on ? 'is-on' : undefined} aria-pressed={on} onClick={() => setDay(key)}><span>{WEEKDAY[item.getDay()]}</span><strong>{item.getDate()}</strong><span>{closed ? '휴무' : index === 0 ? '내일' : ''}</span></button> })}</div>
+        <section className="c02-detail__card"><h2>2. 방문 날짜</h2>
+          <div className="c02-days">{days.map((item, index) => { const closed = isWeekend(item); const key = dayKey(item); return <button type="button" key={key} disabled={closed} className={day === key ? 'is-selected' : ''} aria-pressed={day === key} onClick={() => setDay(key)}><small>{WEEKDAY[item.getDay()]}</small><b>{item.getDate()}</b>{closed ? <small>휴무</small> : index === 0 ? <small>내일</small> : null}</button> })}</div>
         </section>
-        <section className="v17-vb__card"><div className="v17-vb__title"><h2>3. 방문 시간</h2><span>{selectedDay ? `${dayLabel(selectedDay)} · 1시간 단위` : '날짜를 먼저 골라 주세요'}</span></div>
-          <div className="v17-vb__hours">{!selectedDay ? null : slots === null ? <p className="c02-notice" role="status">예약 가능 시간을 확인하고 있어요.</p> : slots.length === 0 ? <p className="c02-notice">이 날짜에는 예약할 수 있는 시간이 없어요.</p> : slots.map(slot => { const value = new Date(slot.startsAt); const label = `${pad2(value.getHours())}:00`; const on = startsAt === slot.startsAt; return <button type="button" key={slot.startsAt} disabled={!slot.available} className={on ? 'is-on' : undefined} aria-pressed={on} onClick={() => setStartsAt(slot.startsAt)}><strong>{label}</strong>{!slot.available ? <span>마감</span> : slot.remaining !== undefined && <span>잔여 {slot.remaining}</span>}</button> })}</div>
-          <p className="v17-vb__fine">잔여는 지금 이 시간에 비어 있는 그 지점 담당 직원 수예요. 다른 고객이 먼저 예약하면 바뀔 수 있고, 예약 요청 때 서버가 다시 확인해요. 운영시간·슬롯 단위·예약 가능 기간은 시연용 모의값이에요.</p>
+        <section className="c02-detail__card"><div className="c02-card__title"><h2>3. 방문 시간</h2><span>{selectedDay ? `${dayLabel(selectedDay)} · 1시간 단위` : '날짜를 먼저 골라 주세요'}</span></div>
+          <div className="c02-hours">{!selectedDay ? null : slots === null ? <p className="c02-notice" role="status">예약 가능 시간을 확인하고 있어요.</p> : slots.length === 0 ? <p className="c02-notice">이 날짜에는 예약할 수 있는 시간이 없어요.</p> : slots.map(slot => { const value = new Date(slot.startsAt); const selected = startsAt === slot.startsAt; return <button type="button" key={slot.startsAt} disabled={!slot.available} className={selected ? 'is-selected' : ''} aria-pressed={selected} onClick={() => setStartsAt(slot.startsAt)}><b>{pad2(value.getHours())}:00</b>{!slot.available ? <small>마감</small> : slot.remaining !== undefined && <small>잔여 {slot.remaining}</small>}</button> })}</div>
+          <p className="c02-helper c02-helper--muted">잔여는 지금 이 시간에 비어 있는 그 지점 담당 직원 수예요. 다른 고객이 먼저 예약하면 바뀔 수 있고, 예약 요청 때 서버가 다시 확인해요.</p>
         </section>
       </div>
-      <aside className="v17-vb__side"><h2>선택한 일정</h2>
-        <dl><dt>영업점</dt><dd>{branch?.name ?? '—'}</dd><dt>날짜</dt><dd>{selectedDay ? dayLabel(selectedDay) : '—'}</dd><dt>시간</dt><dd>{startsAt ? `${pad2(new Date(startsAt).getHours())}:00` : '—'}</dd></dl>
-        {changing && existing && <p className="v17-vb__fine">현재 예약: {formatDateTime(existing.startsAt)} · {branches.find(item => item.id === existing.branchId)?.name ?? `지점 #${existing.branchId}`}. 새 시간이 확보되면 기존 시간과 담당 직원 배정이 풀리고, 확보되지 않으면 기존 예약이 그대로 유지돼요.</p>}
-        <span className="v17-vb__state">선택됨 · 아직 예약 확정 아님</span>
-        <p>고르기만 해서는 자리가 잡히지 않아요. 예약을 요청하면 서버가 자격과 정원을 다시 확인하고 그 지점의 담당 직원을 배정해요.</p>
-        <button type="button" className="v17-vb__request" disabled={!branch || !startsAt || busy} onClick={reserve}>{busy ? '요청 중' : changing && existing ? '이 시간으로 변경' : '예약 요청'}</button>
+      <aside className="c02-detail__card c02-reserve__summary"><h2>선택한 일정</h2>
+        <dl className="c02-modal__summary"><div><dt>영업점</dt><dd><b>{branch?.name ?? '—'}</b></dd></div><div><dt>날짜</dt><dd><b>{selectedDay ? dayLabel(selectedDay) : '—'}</b></dd></div><div><dt>시간</dt><dd><b>{startsAt ? `${pad2(new Date(startsAt).getHours())}:00` : '—'}</b></dd></div></dl>
+        {changing && existing && <p className="c02-helper c02-helper--muted">현재 예약: {formatDateTime(existing.startsAt)} · {branches.find(item => item.id === existing.branchId)?.name ?? `지점 #${existing.branchId}`}. 새 시간이 확보되면 기존 시간과 담당 직원 배정이 풀리고, 확보되지 않으면 기존 예약이 그대로 유지돼요.</p>}
+        <span className="c02-pill c02-pill--muted">선택됨 · 아직 예약 확정 아님</span>
+        <p className="c02-helper">고르기만 해서는 자리가 잡히지 않아요. 예약을 요청하면 서버가 자격과 정원을 다시 확인하고 그 지점의 담당 직원을 배정해요.</p>
+        <button type="button" className="c02-primary" disabled={!branch || !startsAt || busy} onClick={reserve}>{busy ? '요청 중' : changing && existing ? '이 시간으로 변경' : '예약 요청'}</button>
         {changing && existing && <button type="button" className="c02-secondary" disabled={busy} onClick={() => setChanging(false)}>변경 그만두기</button>}
-        <span className="v17-vb__fine">예약은 방문 24시간 전까지 변경·취소할 수 있어요. 예약은 예금 지급 가능 판정이 아니에요.</span>
+        <p className="c02-helper c02-helper--muted">예약은 방문 24시간 전까지 변경·취소할 수 있어요. 예약은 예금 지급 가능 판정이 아니에요.</p>
       </aside>
     </div>
-    <label className="v17-vb__search">영업점 검색<input value={branchQuery} onChange={event => setBranchQuery(event.target.value)} placeholder="지점명 또는 주소" /></label>
   </main>
-}
-
-function BuildingIcon() {
-  return <svg className="v17-vb__icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21V10l7-5 7 5v11M10 21v-5h4v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
