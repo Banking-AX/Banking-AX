@@ -1,6 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { C02CaseIntake, C02Document, C02DocumentSlot } from '../../api/taskApi'
-import { caseNumber, casePill, groupDocuments, isVisitLocked, seoulStamp, slotKey, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel } from './c02CaseView'
+import { caseNumber, reservationNumber, casePill, hasCurrentReview, groupDocuments, isVisitLocked, seoulStamp, slotKey, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel } from './c02CaseView'
+
+describe('hasCurrentReview', () => {
+  it('does not treat a NOT_RUN placeholder as a finished precheck', () => {
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'NOT_RUN' }, 6)).toBe(false)
+  })
+
+  it('accepts a run for the current revision, including a failed one that staff handle manually', () => {
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'SUCCEEDED' }, 6)).toBe(true)
+    expect(hasCurrentReview({ revision: 6, agentRunStatus: 'FAILED' }, 6)).toBe(true)
+  })
+
+  it('rejects a run for another revision or no run', () => {
+    expect(hasCurrentReview({ revision: 5, agentRunStatus: 'SUCCEEDED' }, 6)).toBe(false)
+    expect(hasCurrentReview(null, 6)).toBe(false)
+  })
+})
 
 describe('visit cancel lock', () => {
   // Visit at 2026-10-23 14:00 Korea time (05:00 UTC); the cancel deadline is 24 hours earlier.
@@ -82,12 +98,19 @@ describe('C-02 case view', () => {
   })
 
   it('labels a provisional absence as unconfirmed', () => {
-    expect(visitLabel({ visitStatus: 'ABSENT', delegationMethod: 'RECEIPT' })).toBe('불참 · 위임 (AX뱅크 앱 위임장)')
+    expect(visitLabel({ visitStatus: 'ABSENT', delegationMethod: 'RECEIPT' })).toBe('불참 · 위임 (SolBank 앱 위임장)')
     expect(visitConfirmation({ visitStatus: 'UNCONFIRMED_ABSENT' })).toBe('잠정 불참 · 미확인')
   })
 
   it('derives a display receipt number from id and creation date', () => {
     expect(caseNumber(2, '2026-10-20T01:42:00Z')).toMatch(/^C-202610(20|21)-002$/)
     expect(caseNumber(7, null)).toBe('C-00000000-007')
+  })
+})
+
+describe('reservationNumber', () => {
+  it('shows the fixed-width number staff and customers both quote', () => {
+    expect(reservationNumber(1)).toBe('V-000001')
+    expect(reservationNumber(1234567)).toBe('V-1234567')
   })
 })

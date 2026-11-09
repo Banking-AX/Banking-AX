@@ -3,6 +3,14 @@ import { ApiError } from './client'
 const DEFAULT_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'
 
 const MESSAGES: Record<string, string> = {
+  // Bank change feed
+  POLICY_SOURCE_NOT_CONFIGURED: '은행 변경정보 연동이 설정되지 않았어요.',
+  POLICY_SOURCE_UNAVAILABLE: '은행 변경정보 시스템에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  POLICY_SOURCE_SIGNATURE_INVALID: '은행 변경정보의 출처를 확인하지 못해 받지 않았어요.',
+  POLICY_SOURCE_RESPONSE_INVALID: '은행 변경정보의 형식이 올바르지 않아 받지 않았어요.',
+  POLICY_CHANGE_NOT_REVIEWABLE: '최신 버전만 검토할 수 있어요. 목록을 다시 확인해 주세요.',
+  POLICY_ALREADY_DECIDED: '이미 다른 검토 결과가 기록되어 있어요.',
+
   // Client
   NETWORK_ERROR: '네트워크 연결을 확인하고 다시 시도해 주세요.',
   INVALID_RESPONSE: '서버 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',

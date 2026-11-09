@@ -16,6 +16,7 @@ public class ApiExceptionHandler {
             // Do not turn that condition into a successful, fabricated document response.
             case "NOT_FOUND", "CASE_NOT_FOUND", "DOCUMENT_NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "DOCUMENT_STORAGE_UNAVAILABLE" -> HttpStatus.SERVICE_UNAVAILABLE;
+            case "RESERVATION_CONFLICT", "RESERVATION_ALREADY_EXISTS", "RESERVATION_SLOT_UNAVAILABLE" -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };
         String traceId = UUID.randomUUID().toString();

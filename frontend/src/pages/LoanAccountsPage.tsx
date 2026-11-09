@@ -73,7 +73,7 @@ export function LoanAccountsPage() {
           <div className="loan-intro">
             <nav aria-label="현재 위치" className="loan-breadcrumb"><Link to="/" className="loan-breadcrumb__link">홈</Link><span aria-hidden="true">›</span><span aria-current="page" className="loan-breadcrumb__current">대출계좌 정보 조회</span></nav>
             <div className="loan-title-row"><h1 className="loan-title">대출계좌 정보 조회</h1><span className="loan-badge">A · 조회</span></div>
-            <p className="loan-lead">고객님 명의의 AX뱅크 대출 잔액, 금리, 연체 상태를 한곳에서 확인해요. 조회만 하며 이메일·알림은 보내지 않아요.</p>
+            <p className="loan-lead">고객님 명의의 SolBank 대출 잔액, 금리, 연체 상태를 한곳에서 확인해요. 조회만 하며 이메일·알림은 보내지 않아요.</p>
           </div>
 
           {state.kind === 'loading' && <p role="status" className="loan-status">대출계좌 정보를 불러오고 있어요.</p>}
@@ -83,7 +83,7 @@ export function LoanAccountsPage() {
           </div>}
           {state.kind === 'ready' && <LoanList data={state.data} />}
 
-          <p className="loan-footnote">카드론 등 AX뱅크 대출이 아닌 상품은 조회되지 않아요</p>
+          <p className="loan-footnote">카드론 등 SolBank 대출이 아닌 상품은 조회되지 않아요</p>
           <div className="loan-actions">
             <Link to="/" className="loan-button loan-button--plain">홈으로</Link>
           </div>

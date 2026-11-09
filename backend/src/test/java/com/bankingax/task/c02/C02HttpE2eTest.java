@@ -32,6 +32,13 @@ import org.springframework.http.*;
 })
 @Import(C02HttpE2eTest.Config.class)
 class C02HttpE2eTest {
+  /** This context has no DataSource, but b01DocumentService requires a transaction manager. */
+  @org.springframework.boot.test.mock.mockito.MockBean org.springframework.transaction.PlatformTransactionManager transactions;
+  @org.springframework.test.context.DynamicPropertySource static void storage(org.springframework.test.context.DynamicPropertyRegistry properties) throws java.io.IOException {
+    String root=java.nio.file.Files.createTempDirectory("c02-http-e2e").toString();
+    properties.add("app.c02.file-storage-root",()->root);
+  }
+
   @LocalServerPort int port;
   @Autowired TestRestTemplate http;
   @Autowired CapturingOtpSender sender;
@@ -42,28 +49,34 @@ class C02HttpE2eTest {
     var prepare=post("/api/v1/c02/prepare",prepareBody(run),headers(1));
     assertEquals(HttpStatus.OK,prepare.getStatusCode());
     long caseId=((Number)prepare.getBody().get("caseId")).longValue();
+    int revision=0;
+    for(String slot:java.util.List.of("DECEDENT_DETAILED_FAMILY_RELATION:COMMON","DECEDENT_BASIC_CERTIFICATE:COMMON","HEIR_IDENTITY_CARD:h1")) {
+      var uploaded=upload(caseId,revision,run+"-doc-"+slot,slot);
+      assertEquals(HttpStatus.OK,uploaded.getStatusCode());
+      revision=((Number)uploaded.getBody().get("revision")).intValue();
+    }
     assertEquals(Boolean.TRUE,((Map<?,?>)((Map<?,?>)prepare.getBody().get("data")).get("caseView")).get("visitRequired"));
-    assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",0,"requestId",run+"-consent","consented",true,"mockSignatureCompleted",true),headers(1)).getStatusCode());
-    var issue=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",0,"requestId",run+"-issue"),headers(1));
+    assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",revision,"requestId",run+"-consent","consented",true,"mockSignatureCompleted",true),headers(1)).getStatusCode());
+    var issue=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",revision,"requestId",run+"-issue"),headers(1));
     assertEquals(HttpStatus.OK,issue.getStatusCode());
     String challengeId=(String)((Map<?,?>)issue.getBody().get("data")).get("challengeId");
     var verify=post("/api/v1/c02/verification/verify",Map.of("customerId",1,"requestId",run+"-verify","challengeId",challengeId,"otp",sender.codeFor("01012345678")),headers(1));
     assertEquals(HttpStatus.OK,verify.getStatusCode());
     String binding=(String)((Map<?,?>)verify.getBody().get("data")).get("bindingId");
-    Map<String,Object> submit=Map.of("customerId",1,"revision",0,"requestId",run+"-submit","bindingId",binding);
+    Map<String,Object> submit=Map.of("customerId",1,"revision",revision,"requestId",run+"-submit","bindingId",binding);
     var submitted=post("/api/v1/c02/"+caseId+"/submit",submit,headers(1));
     assertEquals(HttpStatus.OK,submitted.getStatusCode());
     Map<?,?> data=(Map<?,?>)submitted.getBody().get("data");
     assertEquals("SUBMITTED",data.get("caseStatus")); assertEquals("SUCCEEDED",data.get("agentRunStatus"),String.valueOf(data)); assertEquals("READY_FOR_STAFF",data.get("reviewStatus"));
     assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/submit",submit,headers(1)).getStatusCode());
-    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",0,"requestId",run+"-submit","bindingId","other"),headers(1)).getStatusCode());
-    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",0,"requestId",run+"-reused-binding","bindingId",binding),headers(1)).getStatusCode());
-    var staleIssue=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",0,"requestId",run+"-stale-issue"),headers(1));
+    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",revision,"requestId",run+"-submit","bindingId","other"),headers(1)).getStatusCode());
+    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",revision,"requestId",run+"-reused-binding","bindingId",binding),headers(1)).getStatusCode());
+    var staleIssue=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",revision,"requestId",run+"-stale-issue"),headers(1));
     String staleChallenge=(String)((Map<?,?>)staleIssue.getBody().get("data")).get("challengeId");
     var staleVerify=post("/api/v1/c02/verification/verify",Map.of("customerId",1,"requestId",run+"-stale-verify","challengeId",staleChallenge,"otp",sender.codeFor("01012345678")),headers(1));
     String staleBinding=(String)((Map<?,?>)staleVerify.getBody().get("data")).get("bindingId");
-    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",1,"requestId",run+"-stale","bindingId",staleBinding),headers(1)).getStatusCode());
-    assertEquals(HttpStatus.FORBIDDEN,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",0,"requestId",run+"-owner","consented",true,"mockSignatureCompleted",true),headers(2)).getStatusCode());
+    assertEquals(HttpStatus.BAD_REQUEST,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",revision+1,"requestId",run+"-stale","bindingId",staleBinding),headers(1)).getStatusCode());
+    assertEquals(HttpStatus.FORBIDDEN,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",revision,"requestId",run+"-owner","consented",true,"mockSignatureCompleted",true),headers(2)).getStatusCode());
   }
 
   @Test void staffClientRejectsWrongTokenAndUnavailableServer() {
@@ -82,6 +95,16 @@ class C02HttpE2eTest {
     try {
       assertThrows(DomainException.class, () -> new StaffAgentHttpClient("http://127.0.0.1:" + slow.getAddress().getPort(), "c02-e2e-staff-token", mapper).check("timeout", 1, 0, Map.of()));
     } finally { slow.stop(0); }
+  }
+
+  private ResponseEntity<Map> upload(long caseId,int revision,String requestId,String slot) {
+    var form=new org.springframework.util.LinkedMultiValueMap<String,Object>();
+    form.add("customerId","1"); form.add("revision",String.valueOf(revision)); form.add("requestId",requestId); form.add("documentSlotKey",slot);
+    var pdf=new HttpHeaders(); pdf.setContentType(MediaType.APPLICATION_PDF);
+    var bytes=new org.springframework.core.io.ByteArrayResource("%PDF-1.4\nsynthetic fixture".getBytes()) { @Override public String getFilename() { return "fixture.pdf"; } };
+    form.add("file",new HttpEntity<>(bytes,pdf));
+    var request=headers(1); request.setContentType(MediaType.MULTIPART_FORM_DATA);
+    return http.exchange("http://127.0.0.1:"+port+"/api/v1/c02/"+caseId+"/documents/upload",HttpMethod.POST,new HttpEntity<>(form,request),Map.class);
   }
 
   private ResponseEntity<Map> post(String path,Map<String,Object> body,HttpHeaders headers) { return http.exchange("http://127.0.0.1:"+port+path,HttpMethod.POST,new HttpEntity<>(body,headers),Map.class); }

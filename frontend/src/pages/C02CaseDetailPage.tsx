@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toUserMessageOr } from '../api/errorMessages'
-import { c02Api, taskBffEnabled, type Branch, type C02CustomerCaseSnapshot, type Reservation } from '../api/taskApi'
+import { c02Api, taskBffEnabled, type Branch, type C02CustomerCaseSnapshot, type C02Document, type Reservation } from '../api/taskApi'
 import { useChatDock } from '../features/chat/chatDockContext'
 import { c02ScreenGuide, type C02GuideKey } from '../features/chat/chatGuideCopy'
-import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, isVisitLocked, lastActivityAt, seoulStamp, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel, type StatusPill } from '../features/c02/c02CaseView'
+import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, isVisitLocked, lastActivityAt, seoulStamp, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel, type StatusPill, reservationNumber } from '../features/c02/c02CaseView'
 import '../features/t2/customer-pages.css'
 import '../features/c02/c02-case.css'
+import { C02CustomerCaseQa, C02SupplementCard } from '../features/c02/C02CaseQa'
 
 const RESULT_COPY = {
   PROCEED: { title: '직원 검토 결과 · 진행 가능', body: '방문 전 서류 확인을 마쳤어요. 이제 방문할 영업점과 시간을 예약할 수 있어요.', tone: 'success' },
@@ -51,6 +52,7 @@ export function C02CaseDetailPage() {
   const [reservation, setReservation] = useState<Reservation | null>(null)
   // The latest cancelled booking, shown only while the case has no active one (the server list keeps CANCELED rows).
   const [canceledReservation, setCanceledReservation] = useState<Reservation | null>(null)
+  const [expiredReservation, setExpiredReservation] = useState<Reservation | null>(null)
   const [branches, setBranches] = useState<Branch[]>([])
   const [error, setError] = useState<string | null>(null)
   const valid = Number.isSafeInteger(parsed) && parsed > 0
@@ -65,9 +67,11 @@ export function C02CaseDetailPage() {
           c02Api.branches(`c02-detail-branches-${Date.now()}`).catch(() => null),
         ])
         const mine = reservations?.data?.filter(item => item.caseId === parsed) ?? []
-        const active = mine.find(item => item.status !== 'CANCELED') ?? null
+        const active = mine.find(item => item.status !== 'CANCELED' && item.status !== 'EXPIRED') ?? null
         setReservation(active)
         setCanceledReservation(active ? null : mine.filter(item => item.status === 'CANCELED').sort((a, b) => b.id - a.id)[0] ?? null)
+        // NOTI-23: an unassigned booking that reached its time closes as EXPIRED; the Case can be booked again.
+        setExpiredReservation(mine.filter(item => item.status === 'EXPIRED').sort((a, b) => b.id - a.id)[0] ?? null)
         setBranches(branchRows?.data ?? [])
       }
     } catch (cause) { setError(toUserMessageOr(cause, '접수 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')) }
@@ -98,6 +102,15 @@ export function C02CaseDetailPage() {
     finally { setBusy(false); setConfirmVisitCancel(false); await load() }
   }
 
+  // DOC-09: lets the customer see for themselves that the right file went up.
+  const download = async (file: C02Document) => {
+    try {
+      const url = URL.createObjectURL(await c02Api.customerDocument(parsed, file.documentFileId))
+      const link = document.createElement('a'); link.href = url; link.download = file.fileName; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (cause) { setError(toUserMessageOr(cause, '파일을 내려받지 못했어요. 잠시 후 다시 시도해 주세요.')) }
+  }
+
   if (!valid) return <main className="c02-detail"><p className="c02-alert" role="alert">접수 번호가 올바르지 않아요.</p></main>
   if (!snapshot) return <main className="c02-detail">{error ? <p className="c02-alert" role="alert">{error}</p> : <p className="c02-notice" role="status">접수 정보를 불러오고 있어요.</p>}</main>
 
@@ -124,13 +137,16 @@ export function C02CaseDetailPage() {
     <section className="c02-detail__card c02-detail__head">
       <div className="c02-detail__titlebar"><div><span className="c02-tag">C · 직원 검토</span><h1>상속예금 해지 및 지급 사전접수</h1></div><div className="c02-pills">{pills.map(pill => <Pill key={pill.label} pill={pill} />)}</div></div>
       <dl className="c02-meta"><div><dt>접수번호</dt><dd className="c02-mono">{number}</dd></div><div><dt>접수 일시</dt><dd>{formatDateTime(snapshot.timeline?.submittedAt)}</dd></div><div><dt>업무 번호</dt><dd>#{snapshot.workItemId}</dd></div><div><dt>최근 변경</dt><dd>{formatDateTime(lastActivityAt(snapshot))}</dd></div></dl>
-      {snapshot.caseStatus === 'DRAFT' && <div className="c02-detail__actions"><Link className="c02-primary c02-link-button" to={`/tasks/c02/${snapshot.workItemId}`}>접수 이어서 작성</Link></div>}
+      {snapshot.caseStatus === 'DRAFT' && <div className="c02-detail__actions"><Link className="c02-primary c02-link-button" to={`/tasks/c02/${snapshot.workItemId}?edit=1`}>접수 이어서 작성</Link></div>}
       {snapshot.caseStatus === 'SUBMITTED' && <div className="c02-detail__actions c02-cancel">
         {confirmCancel
           ? <><span>접수를 취소할까요? 취소한 접수는 되돌릴 수 없고, 다시 신청하면 새 접수로 진행돼요.</span><button type="button" className="c02-danger" disabled={busy} onClick={() => void cancelCase()}>취소하기</button><button type="button" className="c02-secondary" disabled={busy} onClick={() => setConfirmCancel(false)}>돌아가기</button></>
           : <><button type="button" className="c02-danger" onClick={() => setConfirmCancel(true)}>접수 취소</button><span>직원이 검토를 시작하기 전까지만 취소할 수 있어요.</span></>}
       </div>}
     </section>
+
+    <C02CustomerCaseQa caseId={snapshot.caseId} caseStatus={snapshot.caseStatus} onChanged={() => void load()} />
+    {snapshot.caseStatus === 'SUBMITTED' && <C02SupplementCard caseId={snapshot.caseId} revision={snapshot.revision} rows={rows} onChanged={load} />}
 
     {decision && result && <section className={`c02-detail__card c02-result c02-result--${result.tone}`}>
       <header><span className="c02-result__icon" aria-hidden="true">{result.tone === 'success' ? '✓' : '!'}</span><div><h2>{result.title}</h2><p>{result.body}</p></div></header>
@@ -140,7 +156,7 @@ export function C02CaseDetailPage() {
         <small>담당 직원 확정 · {formatDateTime(snapshot.timeline?.resultNotifiedAt ?? snapshot.timeline?.decidedAt)} · 웹 알림 발송</small>
         {decision.outcome === 'PROCEED' && <>
           <strong>방문할 때 가져올 것</strong>
-          <ul className="c02-bring">{groups.visitOnly.map(row => <li key={row.key}><span>{row.title}</span><b>방문 시 필수</b></li>)}<li><span>업로드한 서류의 원본 (3개월 이내 발급)</span><b>방문 시 필수</b></li>{heirs.filter(heir => heir.visitStatus === 'UNCONFIRMED_ABSENT').map(heir => <li key={heir.personRef} className="is-conditional"><span>{heir.name}님이 오지 못하는 경우: 신분증 사본, 인감증명서(본인발급용·3개월 이내), 인감 날인 위임장 — 또는 AX뱅크 앱 위임장 접수번호</span><b>불참 시</b></li>)}</ul>
+          <ul className="c02-bring">{groups.visitOnly.map(row => <li key={row.key}><span>{row.title}</span><b>방문 시 필수</b></li>)}<li><span>업로드한 서류의 원본 (3개월 이내 발급)</span><b>방문 시 필수</b></li>{heirs.filter(heir => heir.visitStatus === 'UNCONFIRMED_ABSENT').map(heir => <li key={heir.personRef} className="is-conditional"><span>{heir.name}님이 오지 못하는 경우: 신분증 사본, 인감증명서(본인발급용·3개월 이내), 인감 날인 위임장 — 또는 SolBank 앱 위임장 접수번호</span><b>불참 시</b></li>)}</ul>
           <p className="c02-notice">‘진행 가능’과 방문 예약은 예금 지급이 확정되었다는 뜻이 아니에요. 실제 지급 여부는 방문했을 때 영업점에서 원본을 확인한 뒤 정해져요.</p>
         </>}
         {decision.outcome !== 'PROCEED' && <p className="c02-notice">이 결과는 사전 검토 결과이며 법정 통지·최종 결정이 아니에요. 다시 신청하면 새 접수로 진행돼요.</p>}
@@ -153,27 +169,27 @@ export function C02CaseDetailPage() {
         ? <p>{decision ? '이 접수는 방문 예약 대상이 아니에요.' : '직원 검토 결과를 기다리고 있어요. 결과가 ‘진행 가능’이면 알림을 받은 뒤 방문할 영업점과 시간을 예약할 수 있어요. 지금은 예약 정보가 없어요.'}</p>
         : reservation
           ? <>
-            {/* Hidden until the server provides them: the assigned staff member's name, the branch phone number,
-                manual-assignment guidance and [예약 변경] (no change API on main; only cancel exists). */}
+            {/* Hidden until the server provides them: the assigned staff member's name and the branch phone number. */}
             <dl className="c02-modal__summary">
+              <div><dt>예약번호</dt><dd><b>{reservationNumber(reservation.id)}</b></dd></div>
               <div><dt>영업점</dt><dd><b>{visitBranch}</b></dd></div>
               <div><dt>방문 일시</dt><dd><b>{seoulStamp(visitStartsAt)}</b></dd></div>
-              <div><dt>취소 가능</dt><dd>{seoulStamp(visitDeadline)}까지</dd></div>
+              <div><dt>변경·취소 가능</dt><dd>{seoulStamp(visitDeadline)}까지</dd></div>
             </dl>
             <p>{visitState === 'locked'
               ? '방문까지 24시간이 남지 않았어요. 준비서류를 챙겨 예약 시간에 방문해 주세요.'
-              : reservation.status === 'CONFIRMED' ? '예약이 확정되었어요. 담당 직원이 방문 전에 접수 내용과 서류를 미리 확인해요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
+              : reservation.status === 'NEEDS_MANUAL_ASSIGNMENT' ? '자동 배정이 되지 않아 영업점이 담당 직원을 직접 배정하고 있어요. 배정 전에는 예약 확정이 아니에요.' : reservation.status === 'CONFIRMED' ? '예약이 확정되었어요. 담당 직원이 방문 전에 접수 내용과 서류를 미리 확인해요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
             <div className="c02-detail__actions c02-cancel">
               {visitState === 'locked'
-                ? <><button type="button" className="c02-danger" disabled>예약 취소</button><span>방문 24시간 전부터는 취소할 수 없어요. 예약한 영업점에 문의해 주세요.</span></>
+                ? <><button type="button" className="c02-secondary" disabled>예약 변경</button><button type="button" className="c02-danger" disabled>예약 취소</button><span>방문 24시간 전부터는 변경·취소할 수 없어요. 예약한 영업점에 문의해 주세요.</span></>
                 : confirmVisitCancel
                   ? <><span role="alert">예약을 취소할까요? 접수 검토 결과(진행 가능)는 그대로 남고, 다시 예약할 수 있어요.</span><button type="button" className="c02-secondary" disabled={busy} onClick={() => setConfirmVisitCancel(false)}>돌아가기</button><button type="button" className="c02-danger" disabled={busy} onClick={() => void cancelVisit(reservation.id)}>예약 취소</button></>
-                  : <button type="button" className="c02-danger" onClick={() => setConfirmVisitCancel(true)}>예약 취소</button>}
+                  : <><button type="button" className="c02-secondary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}&change=1`)}>예약 변경</button><button type="button" className="c02-danger" onClick={() => setConfirmVisitCancel(true)}>예약 취소</button></>}
             </div>
           </>
           : visitState === 'canceled'
             ? <div className="c02-reservation__row"><p>예약을 취소했어요. 접수 검토 결과는 그대로이니 다시 예약할 수 있어요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>다시 예약</button></div>
-            : <div className="c02-reservation__row"><p>아직 예약하지 않았어요. 가까운 영업점과 방문 시간을 골라 주세요. 예약하면 그 지점의 담당 직원이 배정돼요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>방문 영업점 예약</button></div>}
+            : <div className="c02-reservation__row"><p>{expiredReservation && `${formatDateTime(expiredReservation.startsAt)} 방문 예약은 담당 직원이 배정되지 않은 채 시간이 지나 만료됐어요. 예약 확정이 아니었고, 다시 예약할 수 있어요. `}아직 예약하지 않았어요. 가까운 영업점과 방문 시간을 골라 주세요. 예약하면 그 지점의 담당 직원이 배정돼요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>방문 영업점 예약</button></div>}
     </section>
 
     <div className="c02-detail__grid">
@@ -186,7 +202,7 @@ export function C02CaseDetailPage() {
           {heirs.some(heir => heir.visitStatus === 'UNCONFIRMED_ABSENT') && <p className="c02-helper c02-helper--muted">방문 여부 확인 질문에 답이 없어, 준비서류를 안내하기 위해 <b>잠정 불참</b>으로 표시했어요. 확정된 불참이 아니며, 최종 확인은 직원이 해요.</p>}
         </section>
         <section className="c02-detail__card"><div className="c02-card__title"><h2>접수 진행 현황</h2><span>필수정보 <b>입력 완료</b> · 업로드 서류 <b>{rows.filter(row => row.uploaded).length}/{rows.length}</b>{progress.missingRequired > 0 ? ` · 필수 ${progress.missingRequired}건 미제출` : ''}</span></div>
-          <div className="c02-table-wrap"><table className="c02-table"><thead><tr><th>서류 · 제출자</th><th>제출됨</th><th>시스템 확인</th><th>직원 확인</th></tr></thead><tbody>{rows.map(row => <tr key={row.key}><td>{row.title}</td><td className="c02-center">{row.uploaded ? <b className="c02-ok">✓</b> : '—'}</td><td className="c02-small">{row.uploaded?.status === 'SYSTEM_VALIDATED' ? '형식 확인' : '해당 없음 · 원문 확인'}</td><td className="c02-small">{row.uploaded?.status === 'HUMAN_VERIFIED' ? <b className="c02-ok">확인 완료</b> : decision ? '검토 결과에 반영' : '대기'}</td></tr>)}</tbody></table></div>
+          <div className="c02-table-wrap"><table className="c02-table"><thead><tr><th>서류 · 제출자</th><th>제출됨</th><th>시스템 확인</th><th>직원 확인</th></tr></thead><tbody>{rows.map(row => <tr key={row.key}><td>{row.title}{row.uploaded && <button type="button" className="c02-qa__open" onClick={() => void download(row.uploaded!)}>내 파일 받기</button>}</td><td className="c02-center">{row.uploaded ? <b className="c02-ok">✓</b> : '—'}</td><td className="c02-small">{row.uploaded?.status === 'SYSTEM_VALIDATED' ? '형식 확인' : '해당 없음 · 원문 확인'}</td><td className="c02-small">{row.uploaded?.status === 'HUMAN_VERIFIED' ? <b className="c02-ok">확인 완료</b> : decision ? '검토 결과에 반영' : '대기'}</td></tr>)}</tbody></table></div>
           <p className="c02-helper c02-helper--muted">일반 증명서는 내용을 자동으로 읽지 않아 시스템 확인 대상이 아니에요. 직원이 원문을 확인해요.</p>
         </section>
       </div>

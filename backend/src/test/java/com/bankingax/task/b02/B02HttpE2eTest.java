@@ -22,6 +22,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /** Real HTTP test server; OTP plaintext stays only in this test bean. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
@@ -30,6 +32,8 @@ import org.springframework.http.*;
 })
 @Import(B02HttpE2eTest.Config.class)
 class B02HttpE2eTest {
+    /** This context has no DataSource, but b01DocumentService requires a transaction manager. */
+    @MockBean PlatformTransactionManager transactions;
   @LocalServerPort int port;
   @Autowired TestRestTemplate http;
   @Autowired CapturingOtpSender sender;

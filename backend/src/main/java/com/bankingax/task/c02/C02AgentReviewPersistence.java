@@ -89,7 +89,13 @@ public class C02AgentReviewPersistence {
     private static String required(Map<String,Object> item, String name) { String value = nullableText(item,name); if (value == null || value.isBlank()) throw new DomainException("STAFF_AGENT_INVALID_RESPONSE", "Missing review field: " + name, true); return value; }
     private static String text(Map<String,Object> item,String name,String fallback) { String value=nullableText(item,name); return value == null ? fallback : value; }
     private static String nullableText(Map<String,Object> item,String name) { Object value=item.get(name); return value == null ? null : String.valueOf(value); }
-    private static Long nullableLong(Map<String,Object> item,String name) { Object value=item.get(name); return value instanceof Number n ? n.longValue() : value == null ? null : Long.valueOf(String.valueOf(value)); }
+    /** No conditional expression here: mixing long and null in one made some compilers unbox null. */
+    private static Long nullableLong(Map<String,Object> item,String name) {
+        Object value=item.get(name);
+        if (value == null) return null;
+        if (value instanceof Number n) return n.longValue();
+        return Long.valueOf(String.valueOf(value));
+    }
     private static Long number(Object value) { return value instanceof Number n ? n.longValue() : null; }
     @SuppressWarnings("unchecked") private static String evidenceText(Map<String,Object> item,String name) { Object evidence=item.get("evidence"); return evidence instanceof Map<?,?> map && map.get(name)!=null ? String.valueOf(map.get(name)) : null; }
     private String asJson(Object value) { try { return json.writeValueAsString(value); } catch (JsonProcessingException e) { throw new DomainException("STAFF_AGENT_INVALID_RESPONSE", "Review evidence is not serializable.", true); } }

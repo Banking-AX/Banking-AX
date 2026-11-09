@@ -1,0 +1,344 @@
+{
+  "scope": "offline synthetic benchmark; no DB, HTTP, OCR, or provider calls",
+  "precheck": {
+    "caseCount": 30,
+    "scenarioCounts": {
+      "NORMAL": 6,
+      "DOCUMENT_MISSING": 6,
+      "OCR_MISMATCH": 6,
+      "UNREADABLE": 6,
+      "STAFF_CONFIRMATION": 6
+    },
+    "expectedSignalCount": 24,
+    "actualSignalCount": 24,
+    "falsePositiveSignals": 0,
+    "falseNegativeSignals": 0,
+    "deterministicRuleItems": 18,
+    "staffReviewItems": 54,
+    "latencyMs": {
+      "p50": 0.004,
+      "p95": 0.006
+    },
+    "cases": [
+      {
+        "id": "normal-1",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.015
+      },
+      {
+        "id": "missing-1",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0124
+      },
+      {
+        "id": "ocr-mismatch-1",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0064
+      },
+      {
+        "id": "unreadable-1",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0052
+      },
+      {
+        "id": "staff-only-1",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0052
+      },
+      {
+        "id": "normal-2",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.0031
+      },
+      {
+        "id": "missing-2",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0043
+      },
+      {
+        "id": "ocr-mismatch-2",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0042
+      },
+      {
+        "id": "unreadable-2",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0042
+      },
+      {
+        "id": "staff-only-2",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0043
+      },
+      {
+        "id": "normal-3",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.0029
+      },
+      {
+        "id": "missing-3",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0037
+      },
+      {
+        "id": "ocr-mismatch-3",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0039
+      },
+      {
+        "id": "unreadable-3",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0037
+      },
+      {
+        "id": "staff-only-3",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0037
+      },
+      {
+        "id": "normal-4",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.0027
+      },
+      {
+        "id": "missing-4",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "ocr-mismatch-4",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0039
+      },
+      {
+        "id": "unreadable-4",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0037
+      },
+      {
+        "id": "staff-only-4",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "normal-5",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.0027
+      },
+      {
+        "id": "missing-5",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "ocr-mismatch-5",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0046
+      },
+      {
+        "id": "unreadable-5",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0039
+      },
+      {
+        "id": "staff-only-5",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "normal-6",
+        "scenario": "NORMAL",
+        "expectedCategories": [],
+        "actualCategories": [],
+        "elapsedMs": 0.0027
+      },
+      {
+        "id": "missing-6",
+        "scenario": "DOCUMENT_MISSING",
+        "expectedCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "actualCategories": [
+          "DOCUMENT_MISSING"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "ocr-mismatch-6",
+        "scenario": "OCR_MISMATCH",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "unreadable-6",
+        "scenario": "UNREADABLE",
+        "expectedCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "actualCategories": [
+          "DOCUMENT_NEEDS_SUPPLEMENT"
+        ],
+        "elapsedMs": 0.0036
+      },
+      {
+        "id": "staff-only-6",
+        "scenario": "STAFF_CONFIRMATION",
+        "expectedCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "actualCategories": [
+          "VISIT_ATTENDANCE"
+        ],
+        "elapsedMs": 0.0037
+      }
+    ]
+  },
+  "staffAgent": {
+    "mode": "Fake LLM only",
+    "calls": 30,
+    "latencyMs": {
+      "p50": 3.823,
+      "p95": 5.86
+    },
+    "structuredOutputRate": "30/30",
+    "unsafeFakeDecisionTermsInFinalOutput": false,
+    "unsafeFakeMethod": "LLM",
+    "failureInjectedMethod": "RULE_FALLBACK",
+    "failureInjectedModel": null
+  }
+}

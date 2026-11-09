@@ -1,0 +1,10 @@
+{
+ "mode": "실제 승인 문서에 대한 충돌 감지 점검. LLM 없음",
+ "chunks": 242,
+ "crossDocumentPairs": 4895,
+ "flagged": 0,
+ "details": [],
+ "searchesTried": 55,
+ "searchesWithConflict": 0,
+ "searchDetails": []
+}

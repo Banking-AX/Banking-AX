@@ -37,7 +37,11 @@ class C02IntegrationTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['status'], 'SUCCEEDED')
             self.assertEqual(response.json()['reviewStatus'], 'READY_FOR_STAFF')
-            stale = client.post('/api/v1/staff-agent/check', headers={'X-Staff-Agent-Token': 'staff-test-token'}, json={**payload, 'requestId': 'c02-staff-stale', 'revision': 2})
+            # A newer revision (answer or supplement) is re-checked; going back to an older one is stale.
+            newer = client.post('/api/v1/staff-agent/check', headers={'X-Staff-Agent-Token': 'staff-test-token'}, json={**payload, 'requestId': 'c02-staff-newer', 'revision': 2})
+            self.assertEqual(newer.json()['status'], 'SUCCEEDED')
+            self.assertEqual(newer.json()['revision'], 2)
+            stale = client.post('/api/v1/staff-agent/check', headers={'X-Staff-Agent-Token': 'staff-test-token'}, json={**payload, 'requestId': 'c02-staff-stale', 'revision': 1})
             self.assertEqual(stale.json()['error']['code'], 'STALE_REVISION')
             unknown = client.post('/api/v1/staff-agent/check', headers={'X-Staff-Agent-Token': 'staff-test-token'}, json={**payload, 'requestId': 'unknown', 'caseId': 502, 'taskCode': 'NOT_REGISTERED'})
             self.assertEqual(unknown.json()['error']['code'], 'CHECK_NOT_REGISTERED')

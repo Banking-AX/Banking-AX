@@ -139,12 +139,12 @@ class DocumentExtractionScopeMigrationMySqlIT {
         ocrPersistence.extract(101, 700, 1, "SHINHAN_INHERITANCE_APPLICATION",
                 "00000000-0000-0000-0000-000000000101.pdf");
 
-        var snapshot = ocrPersistence.snapshot(700, 1);
+        var snapshot = ocrPersistence.snapshot(700);
         assertThat(snapshot).hasSize(1);
         assertThat(snapshot.get(0))
                 .containsEntry("documentFileId", 101L)
-                .containsEntry("method", "MOCK")
-                .containsEntry("status", "SUCCEEDED");
+                .containsEntry("method", "NONE")
+                .containsEntry("status", "NOT_APPLICABLE");
     }
 
     private void migrateToLatest() {

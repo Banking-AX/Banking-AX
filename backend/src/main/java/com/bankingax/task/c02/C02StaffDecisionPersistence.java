@@ -18,11 +18,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class C02StaffDecisionPersistence {
     private final JdbcTemplate jdbc;
 
-    public C02StaffDecisionPersistence(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final org.springframework.beans.factory.ObjectProvider<C02DocumentReviewService> documentReviews;
 
-    @Transactional
+    @org.springframework.beans.factory.annotation.Autowired
+    public C02StaffDecisionPersistence(JdbcTemplate jdbc, org.springframework.beans.factory.ObjectProvider<C02DocumentReviewService> documentReviews) {
+        this.jdbc = jdbc;
+        this.documentReviews = documentReviews;
+    }
+
+    /** Without the document-review service (tests that build this directly) there is no document gate. */
+    C02StaffDecisionPersistence(JdbcTemplate jdbc) { this.jdbc = jdbc; this.documentReviews = null; }
+
     public StoredDecision persist(long staffId, long caseId, int revision, String requestId,
                                   String outcome, String message, String targetStatus) {
+        return persist(staffId, caseId, revision, requestId, outcome, message, targetStatus, null);
+    }
+
+    /**
+     * PROCEED while a submitted file is still unchecked or marked for supplement is allowed only with an exception reason,
+     * which is kept on the decision event with the open counts. Other outcomes are not gated.
+     */
+    @Transactional
+    public StoredDecision persist(long staffId, long caseId, int revision, String requestId,
+                                  String outcome, String message, String targetStatus, String exceptionReason) {
         StoredDecision replay = findByRequestId(requestId);
         if (replay != null) {
             if (replay.caseId != caseId || replay.staffId != staffId || replay.revision != revision
@@ -43,6 +61,16 @@ public class C02StaffDecisionPersistence {
         }
         Integer finalCount = jdbc.queryForObject("select count(*) from staff_review where case_id=? and decided_at is not null", Integer.class, caseId);
         if (finalCount != null && finalCount > 0) throw new DomainException("STAFF_DECISION_ALREADY_RECORDED", "A final staff decision is already recorded for this C-02 case.");
+        String reason = exceptionReason == null || exceptionReason.isBlank() ? null : exceptionReason.trim();
+        if (reason != null && reason.length() > 500) throw new DomainException("VALIDATION_ERROR", "The exception reason is limited to 500 characters.");
+        C02DocumentReviewService reviews = documentReviews == null ? null : documentReviews.getIfAvailable();
+        C02DocumentReviewService.Summary open = reviews == null ? null : reviews.summaries(List.of(caseId)).get(caseId);
+        boolean unresolved = open != null && (open.supplement() > 0 || open.unreviewed() > 0);
+        if ("PROCEED".equals(outcome) && unresolved && reason == null)
+            throw new DomainException("DOCUMENT_CHECKS_OPEN", "보완 필요 " + open.supplement() + "건, 미확인 " + open.unreviewed() + "건이 남아 있어요. 진행 가능으로 등록하려면 예외 사유를 적어 주세요.");
+        if (!"PROCEED".equals(outcome) || !unresolved) reason = null;
+        // Recorded, not gated: the spec sets no rule for deciding with a question still unanswered.
+        Integer openQuestions = jdbc.queryForObject("select count(*) from clarification where case_id=? and status='OPEN'", Integer.class, caseId);
 
         // A review opened by startReview is closed by the deciding staff member; otherwise one row records both.
         int closed = jdbc.update("update staff_review set staff_id=?, decided_at=UTC_TIMESTAMP(6), result=?, opinion_final=?, version=version+1 where case_id=? and revision=? and decided_at is null order by id desc limit 1",
@@ -55,9 +83,16 @@ public class C02StaffDecisionPersistence {
         jdbc.update("insert into notification(customer_id,case_id,work_item_id,type,title,content,dedup_key) values(?,?,?,?,?,?,?)",
             c.customerId, caseId, c.workItemId, notificationType(outcome), notificationTitle(outcome),
             message == null || message.isBlank() ? DEFAULT_RESULT_CONTENT : message, dedupKey);
-        jdbc.update("insert into event_log(entity_type,entity_id,event_type,from_value,to_value,actor_type,actor_id,request_id,payload) values('SERVICE_CASE',?,'C02_STAFF_DECIDED',?,?,'STAFF',?,?,JSON_OBJECT('revision',?,'outcome',?,'message',?))",
-            String.valueOf(caseId), c.caseStatus, targetStatus, staffId, requestId, revision, outcome, message);
+        jdbc.update("insert into event_log(entity_type,entity_id,event_type,from_value,to_value,actor_type,actor_id,request_id,payload) values('SERVICE_CASE',?,'C02_STAFF_DECIDED',?,?,'STAFF',?,?,JSON_OBJECT('revision',?,'outcome',?,'message',?,'exceptionReason',?,'openSupplement',?,'openUnreviewed',?,'openClarifications',?))",
+            String.valueOf(caseId), c.caseStatus, targetStatus, staffId, requestId, revision, outcome, message, reason,
+            open == null ? null : open.supplement(), open == null ? null : open.unreviewed(), openQuestions);
         return new StoredDecision(caseId, c.customerId, c.workItemId, staffId, revision, outcome, message, targetStatus, dedupKey);
+    }
+
+    /** STAFF-21: questions the customer has not answered yet. */
+    public int openClarifications(long caseId) {
+        Integer open = jdbc.queryForObject("select count(*) from clarification where case_id=? and status='OPEN'", Integer.class, caseId);
+        return open == null ? 0 : open;
     }
 
     /** Spec 11-3 type codes for the staff outcome notification. */

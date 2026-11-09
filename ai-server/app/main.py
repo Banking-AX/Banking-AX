@@ -4,13 +4,15 @@ import os
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from app.caller_auth import Caller, rag_caller, require_audience, require_staff_service
 from app.customer_agent.router import create_router
 from app.document_analysis.router import create_router as create_document_analysis_router
+from app.mock_bank_policy.router import create_router as create_mock_bank_policy_router
 from app.staff_agent.router import create_router as create_staff_router
 from .retrieve import search
 from .settings import BACKEND, INDEX, MODE, SEARCH_TIMEOUT_SECONDS
@@ -20,6 +22,8 @@ app = FastAPI(title='Shinhan SW Agent RAG PoC', version='1.0.0')
 app.include_router(create_router(), prefix='/api/v1')
 app.include_router(create_document_analysis_router(), prefix='/api/v1')
 app.include_router(create_staff_router(), prefix='/api/v1')
+# Outside /api/v1 on purpose: this is the fictional bank's system, not a Banking-AX API.
+app.include_router(create_mock_bank_policy_router())
 
 class StaffCandidate(BaseModel):
     staffId: int
@@ -31,7 +35,7 @@ class StaffRankingRequest(BaseModel):
     candidates: list[StaffCandidate] = Field(default_factory=list, max_length=100)
     taskCode: str = Field(min_length=1, max_length=40)
 
-@app.post('/api/v1/staff-ranking')
+@app.post('/api/v1/staff-ranking', dependencies=[Depends(require_staff_service)])
 def staff_ranking(req: StaffRankingRequest):
     # Ranking only: Spring pre-filters candidates and counts their workload; the only inputs are the
     # task code and that workload (no experience/skill guesses, no LLM, no final decision).
@@ -150,7 +154,8 @@ def health():
 
 
 @app.post('/api/v1/rag/search', response_model=SearchResponse, responses=ERROR_RESPONSES)
-def rag_search(req: SearchRequest):
+def rag_search(req: SearchRequest, caller: Caller = Depends(rag_caller)):
+    require_audience(req.audience, caller)
     try:
         results = _run_search(req)
     except Exception as exc:
@@ -178,7 +183,7 @@ class TaskGuideRequest(BaseModel):
 
 
 @app.post('/api/v1/rag/task-guide')
-def rag_task_guide(req: TaskGuideRequest):
+def rag_task_guide(req: TaskGuideRequest, _caller: Caller = Depends(rag_caller)):
     """Matched bank task + short guide from verified passages; informational only, no side effects."""
     from .task_guide import _classify_with_existing_classifier, build_guide, default_llm
     llm = default_llm()
@@ -196,9 +201,9 @@ def rag_task_guide(req: TaskGuideRequest):
 
 
 @app.post('/api/v1/rag/answer')
-def rag_answer(req: SearchRequest):
+def rag_answer(req: SearchRequest, caller: Caller = Depends(rag_caller)):
     """Optional LLM answer with retrieval citation ids, not a finance decision maker."""
-    r = rag_search(req)
+    r = rag_search(req, caller)
     if not isinstance(r, dict):
         return r
     if not r['results']:

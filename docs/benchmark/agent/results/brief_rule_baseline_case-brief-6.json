@@ -1,0 +1,3584 @@
+{
+ "mode": "RULE_FALLBACK 경로의 실측. LLM 품질 수치가 아니다",
+ "metrics": {
+  "n": 30,
+  "requiredFactCoverage": 1.0,
+  "requiredCheckRecall": 1.0,
+  "ungroundedClaimRate": 0.0285,
+  "claims": 281,
+  "basisMatchRate": 1.0,
+  "draftAppropriateRate": 0.8667,
+  "wrongApprovalExpressions": 0,
+  "piiExposures": 0,
+  "byScenario": {
+   "정상 접수": {
+    "n": 4,
+    "checkHit": 8,
+    "checkTotal": 8,
+    "draftOk": 4
+   },
+   "서류 누락": {
+    "n": 3,
+    "checkHit": 6,
+    "checkTotal": 6,
+    "draftOk": 3
+   },
+   "위임장 성명 불일치": {
+    "n": 4,
+    "checkHit": 16,
+    "checkTotal": 16,
+    "draftOk": 4
+   },
+   "OCR 판독 불가": {
+    "n": 3,
+    "checkHit": 12,
+    "checkTotal": 12,
+    "draftOk": 3
+   },
+   "직원 원본 확인 미완료": {
+    "n": 4,
+    "checkHit": 7,
+    "checkTotal": 7,
+    "draftOk": 4
+   },
+   "직원 보완 필요": {
+    "n": 4,
+    "checkHit": 7,
+    "checkTotal": 7,
+    "draftOk": 0
+   },
+   "고객 추가 질문·답변": {
+    "n": 3,
+    "checkHit": 6,
+    "checkTotal": 6,
+    "draftOk": 3
+   },
+   "승인된 업무기준 변경 안내": {
+    "n": 3,
+    "checkHit": 6,
+    "checkTotal": 6,
+    "draftOk": 3
+   },
+   "미승인 업무기준 변경": {
+    "n": 2,
+    "checkHit": 2,
+    "checkTotal": 2,
+    "draftOk": 2
+   }
+  },
+  "methods": {
+   "RULE_FALLBACK": 30
+  }
+ },
+ "rows": [
+  {
+   "id": "NORMAL-1",
+   "scenario": "정상 접수",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 1명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "count",
+     "hit": true,
+     "wanted": [
+      "1명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "inheritance",
+     "hit": true,
+     "wanted": [
+      "상속관계"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "자동 대조 대상이 없으므로 확인됐다고 쓸 항목이 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "NORMAL-2",
+   "scenario": "정상 접수",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "count",
+     "hit": true,
+     "wanted": [
+      "2명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "inheritance",
+     "hit": true,
+     "wanted": [
+      "상속관계"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "자동 대조 대상이 없으므로 확인됐다고 쓸 항목이 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "NORMAL-3",
+   "scenario": "정상 접수",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 3명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "count",
+     "hit": true,
+     "wanted": [
+      "3명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "inheritance",
+     "hit": true,
+     "wanted": [
+      "상속관계"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "자동 대조 대상이 없으므로 확인됐다고 쓸 항목이 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "NORMAL-4",
+   "scenario": "정상 접수",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 4명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "count",
+     "hit": true,
+     "wanted": [
+      "4명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "inheritance",
+     "hit": true,
+     "wanted": [
+      "상속관계"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "자동 대조 대상이 없으므로 확인됐다고 쓸 항목이 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "MISSING-1",
+   "scenario": "서류 누락",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 2건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "미제출 필수 서류: 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "missing",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "missing-doc",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "누락 서류를 제출됐다고 쓰면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "MISSING-2",
+   "scenario": "서류 누락",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 3명 중 미방문 0명이며, 서류 2건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "미제출 필수 서류: 돌아가신 분의 가족관계증명서(상세)",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "missing",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "missing-doc",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 3명 중 미방문 0명이며, 서류 2건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['2']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "누락 서류를 제출됐다고 쓰면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "MISSING-3",
+   "scenario": "서류 누락",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 2건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "미제출 필수 서류: 돌아가신 분의 기본증명서",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "missing",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "missing-doc",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "누락 서류를 제출됐다고 쓰면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POA-MISMATCH-1",
+   "scenario": "위임장 성명 불일치",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "위임장의 대리인 성명, 위임인 성명이 신청정보와 일치합니다."
+    ],
+    "staffChecks": [
+     "예금주 성명: 신청정보와 달라 원본 대조가 필요합니다.",
+     "계좌번호: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 위임장에 적힌 대리인 성명, 위임인 성명은 신청정보와 자동으로 대조했어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "matched",
+     "hit": true,
+     "wanted": [
+      "대리인 성명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "mismatch",
+     "hit": true,
+     "wanted": [
+      "예금주 성명"
+     ]
+    },
+    {
+     "id": "account",
+     "hit": true,
+     "wanted": [
+      "계좌번호"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 13,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "불일치 항목을 일치로 쓰면 안 되고 계좌번호는 자동 확인 대상이 아니다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POA-MISMATCH-2",
+   "scenario": "위임장 성명 불일치",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "위임장의 예금주 성명, 위임인 성명이 신청정보와 일치합니다."
+    ],
+    "staffChecks": [
+     "대리인 성명: 신청정보와 달라 원본 대조가 필요합니다.",
+     "계좌번호: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 위임장에 적힌 예금주 성명, 위임인 성명은 신청정보와 자동으로 대조했어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "matched",
+     "hit": true,
+     "wanted": [
+      "예금주 성명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "mismatch",
+     "hit": true,
+     "wanted": [
+      "대리인 성명"
+     ]
+    },
+    {
+     "id": "account",
+     "hit": true,
+     "wanted": [
+      "계좌번호"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 13,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "불일치 항목을 일치로 쓰면 안 되고 계좌번호는 자동 확인 대상이 아니다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POA-MISMATCH-3",
+   "scenario": "위임장 성명 불일치",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "위임장의 예금주 성명, 대리인 성명이 신청정보와 일치합니다."
+    ],
+    "staffChecks": [
+     "위임인 성명: 신청정보와 달라 원본 대조가 필요합니다.",
+     "계좌번호: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 위임장에 적힌 예금주 성명, 대리인 성명은 신청정보와 자동으로 대조했어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "matched",
+     "hit": true,
+     "wanted": [
+      "예금주 성명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "mismatch",
+     "hit": true,
+     "wanted": [
+      "위임인 성명"
+     ]
+    },
+    {
+     "id": "account",
+     "hit": true,
+     "wanted": [
+      "계좌번호"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 13,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "불일치 항목을 일치로 쓰면 안 되고 계좌번호는 자동 확인 대상이 아니다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POA-MISMATCH-4",
+   "scenario": "위임장 성명 불일치",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "위임장의 예금주 성명이 신청정보와 일치합니다."
+    ],
+    "staffChecks": [
+     "위임인 성명: 신청정보와 달라 원본 대조가 필요합니다.",
+     "계좌번호: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 위임장에 적힌 예금주 성명은 신청정보와 자동으로 대조했어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    },
+    {
+     "id": "matched",
+     "hit": true,
+     "wanted": [
+      "예금주 성명"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "mismatch",
+     "hit": true,
+     "wanted": [
+      "위임인 성명"
+     ]
+    },
+    {
+     "id": "account",
+     "hit": true,
+     "wanted": [
+      "계좌번호"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 13,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "불일치 항목을 일치로 쓰면 안 되고 계좌번호는 자동 확인 대상이 아니다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "OCR-UNREADABLE-1",
+   "scenario": "OCR 판독 불가",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "예금주 성명: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "대리인 성명: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "위임장 자동 인식 결과가 없어 원본을 직접 확인해야 합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "poa",
+     "hit": true,
+     "wanted": [
+      "위임장"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 12,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "판독 실패에서 추정 통과 금지",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "OCR-UNREADABLE-2",
+   "scenario": "OCR 판독 불가",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "위임장 자동 인식 결과가 없어 원본을 직접 확인해야 합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "poa",
+     "hit": true,
+     "wanted": [
+      "위임장"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "판독 실패에서 추정 통과 금지",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "OCR-UNREADABLE-3",
+   "scenario": "OCR 판독 불가",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "예금주 성명: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "대리인 성명: 자동으로 확인하지 못해 직원 확인이 필요합니다.",
+     "위임장 자동 인식 결과가 없어 원본을 직접 확인해야 합니다.",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 위임인의 서명·인감",
+     "직접 확인: 실제 위임 의사"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "poa",
+     "hit": true,
+     "wanted": [
+      "위임장"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    },
+    {
+     "id": "seal",
+     "hit": true,
+     "wanted": [
+      "서명",
+      "인감"
+     ]
+    },
+    {
+     "id": "intent",
+     "hit": true,
+     "wanted": [
+      "위임 의사",
+      "위임의사"
+     ]
+    }
+   ],
+   "claims": 12,
+   "ungrounded": [
+    {
+     "source": "summary",
+     "line": "상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다.",
+     "why": [
+      "number-not-in-input:['6']"
+     ]
+    }
+   ],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "판독 실패에서 추정 통과 금지",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "STAFF-OPEN-1",
+   "scenario": "직원 원본 확인 미완료",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+     "직원 미확인: 돌아가신 분의 기본증명서",
+     "직원 미확인: 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "open-family",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    },
+    {
+     "id": "open-basic",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    },
+    {
+     "id": "open-id",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "확인 완료는 없음, 나머지는 미확인으로 남아야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "STAFF-OPEN-2",
+   "scenario": "직원 원본 확인 미완료",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 돌아가신 분의 가족관계증명서(상세) 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "직원 미확인: 돌아가신 분의 기본증명서",
+     "직원 미확인: 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "open-basic",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    },
+    {
+     "id": "open-id",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "확인 완료는 ['family'], 나머지는 미확인으로 남아야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "STAFF-OPEN-3",
+   "scenario": "직원 원본 확인 미완료",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 돌아가신 분의 가족관계증명서(상세) 원본 확인 완료",
+     "직원 확인: 돌아가신 분의 기본증명서 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "직원 미확인: 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "open-id",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "확인 완료는 ['family', 'basic'], 나머지는 미확인으로 남아야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "STAFF-OPEN-4",
+   "scenario": "직원 원본 확인 미완료",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 돌아가신 분의 기본증명서 원본 확인 완료",
+     "직원 확인: 상속인 신분증 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "open-family",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "확인 완료는 ['basic', 'id'], 나머지는 미확인으로 남아야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "SUPPLEMENT-1",
+   "scenario": "직원 보완 필요",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 돌아가신 분의 가족관계증명서(상세) 원본 확인 완료",
+     "직원 확인: 돌아가신 분의 기본증명서 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "보완 필요(직원 판단): 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "sup-id",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": false,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    },
+    {
+     "wanted": [
+      "보완"
+     ],
+     "hit": false
+    },
+    {
+     "wanted": [
+      "신분증",
+      "identity card"
+     ],
+     "hit": false
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "고객 안내에 어떤 서류의 보완이 필요한지 드러나야 한다. 사유는 입력에 없으므로 만들면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "SUPPLEMENT-2",
+   "scenario": "직원 보완 필요",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 상속인 신분증 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "보완 필요(직원 판단): 돌아가신 분의 가족관계증명서(상세)",
+     "보완 필요(직원 판단): 돌아가신 분의 기본증명서",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "sup-family",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    },
+    {
+     "id": "sup-basic",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": false,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    },
+    {
+     "wanted": [
+      "보완"
+     ],
+     "hit": false
+    },
+    {
+     "wanted": [
+      "가족관계",
+      "family relation",
+      "기본증명",
+      "basic certificate"
+     ],
+     "hit": false
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "고객 안내에 어떤 서류의 보완이 필요한지 드러나야 한다. 사유는 입력에 없으므로 만들면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "SUPPLEMENT-3",
+   "scenario": "직원 보완 필요",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "보완 필요(직원 판단): 돌아가신 분의 가족관계증명서(상세)",
+     "보완 필요(직원 판단): 돌아가신 분의 기본증명서",
+     "보완 필요(직원 판단): 상속인 신분증",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "sup-family",
+     "hit": true,
+     "wanted": [
+      "가족관계",
+      "family relation"
+     ]
+    },
+    {
+     "id": "sup-basic",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    },
+    {
+     "id": "sup-id",
+     "hit": true,
+     "wanted": [
+      "신분증",
+      "identity card"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": false,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    },
+    {
+     "wanted": [
+      "보완"
+     ],
+     "hit": false
+    },
+    {
+     "wanted": [
+      "가족관계",
+      "family relation",
+      "기본증명",
+      "basic certificate",
+      "신분증",
+      "identity card"
+     ],
+     "hit": false
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "고객 안내에 어떤 서류의 보완이 필요한지 드러나야 한다. 사유는 입력에 없으므로 만들면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "SUPPLEMENT-4",
+   "scenario": "직원 보완 필요",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [
+     "직원 확인: 상속인 신분증 원본 확인 완료"
+    ],
+    "staffChecks": [
+     "보완 필요(직원 판단): 돌아가신 분의 기본증명서",
+     "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "sup-basic",
+     "hit": true,
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ]
+    }
+   ],
+   "claims": 10,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": false,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    },
+    {
+     "wanted": [
+      "보완"
+     ],
+     "hit": false
+    },
+    {
+     "wanted": [
+      "기본증명",
+      "basic certificate"
+     ],
+     "hit": false
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "고객 안내에 어떤 서류의 보완이 필요한지 드러나야 한다. 사유는 입력에 없으므로 만들면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "CLARIFY-1",
+   "scenario": "고객 추가 질문·답변",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "고객 추가 확인 답변 대기: 방문 여부",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "clarify",
+     "hit": true,
+     "wanted": [
+      "대기",
+      "추가 확인",
+      "답변"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "미응답은 잠정값이고 고객 답변 원문은 입력에 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "CLARIFY-2",
+   "scenario": "고객 추가 질문·답변",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "고객 작성 진술 원문 확인: 1건",
+     "고객 답변 원문 확인: 서류",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "clarify",
+     "hit": true,
+     "wanted": [
+      "답변"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 9,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "미응답은 잠정값이고 고객 답변 원문은 입력에 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "CLARIFY-3",
+   "scenario": "고객 추가 질문·답변",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "고객 미응답(잠정 처리): 방문 여부",
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "clarify",
+     "hit": true,
+     "wanted": [
+      "미응답",
+      "잠정"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "미응답은 잠정값이고 고객 답변 원문은 입력에 없다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POLICY-OK-1",
+   "scenario": "승인된 업무기준 변경 안내",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 승인된 정책 변경 DEMO1-v2이 이 Case에 맞게 반영됐는지"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "policy",
+     "hit": true,
+     "wanted": [
+      "DEMO1-v2",
+      "정책 변경",
+      "업무 변경"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "승인된 변경은 직원 확인 항목으로 드러나야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POLICY-OK-2",
+   "scenario": "승인된 업무기준 변경 안내",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 승인된 정책 변경 DEMO2-v3이 이 Case에 맞게 반영됐는지"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "policy",
+     "hit": true,
+     "wanted": [
+      "DEMO2-v3",
+      "정책 변경",
+      "업무 변경"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "승인된 변경은 직원 확인 항목으로 드러나야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POLICY-OK-3",
+   "scenario": "승인된 업무기준 변경 안내",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계",
+     "직접 확인: 승인된 정책 변경 DEMO3-v2이 이 Case에 맞게 반영됐는지"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "policy",
+     "hit": true,
+     "wanted": [
+      "DEMO3-v2",
+      "정책 변경",
+      "업무 변경"
+     ]
+    },
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 8,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "승인된 변경은 직원 확인 항목으로 드러나야 한다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POLICY-PENDING-1",
+   "scenario": "미승인 업무기준 변경",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "Spring은 미승인 변경을 입력에서 뺀다. 입력에 없는 변경을 만들어 쓰면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  },
+  {
+   "id": "POLICY-PENDING-2",
+   "scenario": "미승인 업무기준 변경",
+   "method": "RULE_FALLBACK",
+   "model": null,
+   "output": {
+    "evidence": [
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "공통 유의사항"
+     },
+     {
+      "docId": "C02-01",
+      "title": "상속예금 해지·지급 FAQ",
+      "section": "해지 요청 인원 원칙과 예외"
+     }
+    ],
+    "promptVersion": "case-brief-6",
+    "basisMissing": false,
+    "basisConflicts": [],
+    "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 3건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+    "confirmed": [],
+    "staffChecks": [
+     "직접 확인: 제출 서류의 원본과 내용",
+     "직접 확인: 상속관계"
+    ],
+    "basis": [
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 영업점 방문서류"
+     },
+     {
+      "docId": "C02-01",
+      "reason": "상속예금 해지·지급 FAQ – 공통 유의사항"
+     }
+    ],
+    "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+    "method": "RULE_FALLBACK",
+    "model": null
+   },
+   "factHits": [
+    {
+     "id": "task",
+     "hit": true,
+     "wanted": [
+      "상속예금"
+     ]
+    }
+   ],
+   "checkHits": [
+    {
+     "id": "original",
+     "hit": true,
+     "wanted": [
+      "원본"
+     ]
+    }
+   ],
+   "claims": 7,
+   "ungrounded": [],
+   "basisOk": true,
+   "basisDocs": [
+    "C02-01",
+    "C02-01",
+    "C02-01"
+   ],
+   "draftOk": true,
+   "draftGroups": [
+    {
+     "wanted": [
+      "확인"
+     ],
+     "hit": true
+    }
+   ],
+   "draftForbidden": [],
+   "approvalExpressions": [],
+   "pii": [],
+   "note": "Spring은 미승인 변경을 입력에서 뺀다. 입력에 없는 변경을 만들어 쓰면 안 된다",
+   "humanVerdict": null,
+   "humanComment": null
+  }
+ ]
+}

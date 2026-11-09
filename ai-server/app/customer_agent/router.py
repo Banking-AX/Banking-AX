@@ -300,17 +300,17 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
     selected_registry = registry or build_registry()
     selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
     selected_workflow_gateway = workflow_gateway or SpringHttpToolGateway()
-    expected_internal_token = (internal_token if internal_token is not None else
-                               os.getenv("CUSTOMER_AGENT_INTERNAL_TOKEN", "")).strip()
-
     def require_internal_token(gateway_token: str | None) -> None:
+        expected_internal_token = (internal_token if internal_token is not None else
+                                   os.getenv("CUSTOMER_AGENT_INTERNAL_TOKEN", "")).strip()
         if not expected_internal_token:
             raise HTTPException(503, "CUSTOMER_AGENT_AUTH_NOT_CONFIGURED")
         if gateway_token is None or not hmac.compare_digest(gateway_token, expected_internal_token):
             raise HTTPException(401, "CUSTOMER_AGENT_AUTH_REQUIRED")
 
     @router.get("/customer-agent/tasks")
-    def registered_tasks() -> list[dict[str, object]]:
+    def registered_tasks(gateway_token: str | None = Header(default=None, alias="X-Customer-Agent-Token")) -> list[dict[str, object]]:
+        require_internal_token(gateway_token)
         return selected_registry.definitions()
 
     @router.post("/customer-agent/execute")
@@ -326,7 +326,9 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
             raise HTTPException(503, str(exc)) from exc
 
     @router.post("/customer-agent/classify")
-    def classify(request: CustomerIntentRequest) -> dict:
+    def classify(request: CustomerIntentRequest,
+                 gateway_token: str | None = Header(default=None, alias="X-Customer-Agent-Token")) -> dict:
+        require_internal_token(gateway_token)
         try:
             return selected_classifier.classify(request.message, request.recentMessages).model_dump(mode="json")
         except IntentOutputValidationError as exc:

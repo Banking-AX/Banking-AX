@@ -1,0 +1,780 @@
+{
+ "mode": "실제 Spring·FastAPI·MySQL + 가짜 LLM. 모델 품질 측정이 아니다",
+ "counts": {
+  "PASS": 78,
+  "PARTIAL": 1
+ },
+ "rows": [
+  {
+   "area": "A-baseline",
+   "check": "변경 전 검토 의견 생성 (Spring→FastAPI→LLM→저장)",
+   "status": "PASS",
+   "evidence": "(200, None)"
+  },
+  {
+   "area": "A-baseline",
+   "check": "변경 전 입력에 승인 변경 없음",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "A-receive",
+   "check": "HMAC 서명 검증 후 v2 수신",
+   "status": "PASS",
+   "evidence": "{'fetched': 1, 'accepted': 1, 'stale': 0, 'outOfScope': 0, 'quarantined': 0, 'duplicate': 0}"
+  },
+  {
+   "area": "A-impact",
+   "check": "영향 Case 식별 (Spring 규칙, 합성 66건)",
+   "status": "PASS",
+   "evidence": "{'universe': 66, 'truth': 14, 'tp': 14, 'fp': 0, 'fn': 0, 'precision': 1.0, 'recall': 1.0, 'nonAffected': 52, 'falsePositiveRate': 0.0, 'unexpected': [], 'missed': []}"
+  },
+  {
+   "area": "A-analysis",
+   "check": "Agent가 변경 전후 원문과 RAG 근거를 입력받음",
+   "status": "PASS",
+   "evidence": "{'status': 'SUCCEEDED', 'basisDocs': ['C02-01', 'C02-02', 'C02-02']}"
+  },
+  {
+   "area": "A-analysis",
+   "check": "분석 결과에 변경 차이(diff) 제공",
+   "status": "PASS",
+   "evidence": "['추가: 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께']"
+  },
+  {
+   "area": "A-unapproved",
+   "check": "승인 전 approved 안내 없음, pending으로만 표시",
+   "status": "PASS",
+   "evidence": "{'approved': 0, 'pending': 1}"
+  },
+  {
+   "area": "A-unapproved",
+   "check": "승인 전 LLM 입력에 v2 없음",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "P0-agent",
+   "check": "수신·분석·의견 생성이 Case·결정·알림을 바꾸지 않음",
+   "status": "PASS",
+   "evidence": "fingerprint 동일"
+  },
+  {
+   "area": "P0-auth",
+   "check": "권한 없는 직원의 승인 차단",
+   "status": "PASS",
+   "evidence": "403"
+  },
+  {
+   "area": "A-approval",
+   "check": "직원 승인 저장, 같은 결정 재전송 일관",
+   "status": "PASS",
+   "evidence": "200"
+  },
+  {
+   "area": "A-approval",
+   "check": "다른 결정으로 덮어쓰기 거부",
+   "status": "PASS",
+   "evidence": "400"
+  },
+  {
+   "area": "A-approval",
+   "check": "승인 후 영향 Case에 안내 표시",
+   "status": "PASS",
+   "evidence": "[{'id': 14, 'sourceVersion': 'EDU-2026.2', 'summary': '[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가', 'effectiveState': 'SCHEDULED', 'effectiveAt': '2026-11-23T03:42:13Z', 'ruleChangeReviewRequired': False, 'newerBankVersion': None, 'reasonCodes': ['DELEGATION_METHOD_MATCH', 'REQUIRED_DOCUMENT_MATCH'], 'previousVersion': 'EDU-2026.1', 'before': '불참 상속인의 위임장은 인감 날인을 확인한다.', 'after': '불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.', 'addedCheckItems': ['위임장 작성일이 제출일 기준 30일 이내인지 확인']"
+  },
+  {
+   "area": "A-brief",
+   "check": "승인 후 재생성 입력에 v2 버전 전달",
+   "status": "PASS",
+   "evidence": "[{'sourceVersion': 'EDU-2026.2', 'summary': '[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가', 'effectiveState': 'SCHEDULED', 'effectiveAt': '2026-11-23T03:42:13Z', 'previousVersion': 'EDU-2026.1', 'before': '불참 상속인의 위임장은 인감 날인을 확인한다.', 'after': '불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.', 'addedCheckItems': ['위임장 작성일이 제출일 기준 30일 이내인지 확인'], 'source': {'documentId': 'EDU-DOC-001', 'title': '교육용 가상 업무기준 변경 안내'}, 'appliesTo': {'taskCode': 'INHERITANCE_DEPOSIT', 'caseId': 3, 'reason"
+  },
+  {
+   "area": "A-brief",
+   "check": "필수 변경사항(작성일 30일)이 검토 의견 입력에 전달",
+   "status": "PASS",
+   "evidence": "[{\"sourceVersion\": \"EDU-2026.2\", \"summary\": \"[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가\", \"effectiveState\": \"SCHEDULED\", \"effectiveAt\": \"2026-11-23T03:42:13Z\", \"previousVersion\": \"EDU-2026.1\", \"before\": \"불참 상속인의 위임장은 인감 날인을 확인한다.\", \"after\": \"불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.\", \"addedCheckItems\": [\"위임장 작성일이 제출일 기준 30일 이내인지 확인\"], \"source\": {\"documentId\": \"EDU-DOC-001\", \"title\": \"교육용 가상 업무기준 변경 안내\"}, \"appliesTo\": {\"taskCode\": \"INHERITANCE_DEPOSIT\", \"caseId\": 3, \"reason"
+  },
+  {
+   "area": "A-brief",
+   "check": "직원 확인 항목에 승인 변경 버전 표시",
+   "status": "PASS",
+   "evidence": "['직접 확인: 승인된 정책 변경 EDU-2026.2이 이 Case에 맞게 반영됐는지', '승인 변경 EDU-2026.2(시행 예정) 추가 확인: 위임장 작성일이 제출일 기준 30일 이내인지 확인']"
+  },
+  {
+   "area": "A-brief",
+   "check": "직원 확인 항목에 구체 조치(30일 이내 확인) 명시",
+   "status": "PASS",
+   "evidence": "직원 미확인: 상속인 신분증 직원 미확인: 방문하지 않는 상속인의 신분증 사본 직원 미확인: 방문하지 않는 상속인의 인감증명서 직원 미확인: 방문하지 않는 상속인의 위임장 직원 미확인: 돌아가신 분의 가족관계증명서(상세) 직원 미확인: 돌아가신 분의 기본증명서 제출 서류 원본 확인 직접 확인: 제출 서류의 원본과 내용 직접 확인: 상속관계 직접 확인: 위임인의 서명·인감 직접 확인: 실제 위임 의사 직접 확인: 승인된 정책 변경 EDU-2026.2이 이 Case에 맞게 반영됐는지 승인 변경 EDU-2026.2(시행 예정) 추가 확인: 위임장 작성일이 제출일 기준 30일 이내인지 확인"
+  },
+  {
+   "area": "A-history",
+   "check": "변경 전후 검토 의견 이력 보존",
+   "status": "PASS",
+   "evidence": "history 3건, 최신 행 3\tcase-brief-7\t2026-11-09T03:42:15.755481600Z"
+  },
+  {
+   "area": "A-history",
+   "check": "검토 의견 저장본에 적용 정책 버전 기록",
+   "status": "PASS",
+   "evidence": "[{'noticeId': 14, 'effectiveAt': '2026-11-23T03:42:13Z', 'sourceVersion': 'EDU-2026.2', 'effectiveState': 'SCHEDULED'}]"
+  },
+  {
+   "area": "A-compare",
+   "check": "이력에서 승인 전 의견과 승인 후 의견을 구분",
+   "status": "PASS",
+   "evidence": "[[], [], ['EDU-2026.2']]"
+  },
+  {
+   "area": "A-compare",
+   "check": "승인 후 의견에만 변경 확인 항목 추가",
+   "status": "PASS",
+   "evidence": "['직접 확인: 승인된 정책 변경 EDU-2026.2이 이 Case에 맞게 반영됐는지', '승인 변경 EDU-2026.2(시행 예정) 추가 확인: 위임장 작성일이 제출일 기준 30일 이내인지 확인']"
+  },
+  {
+   "area": "P0-agent",
+   "check": "승인 후에도 Case·결정·알림 불변",
+   "status": "PASS",
+   "evidence": "fingerprint 동일"
+  },
+  {
+   "area": "B-excluded",
+   "check": "전원 방문: 안내 대상 제외",
+   "status": "PASS",
+   "evidence": "{'approved': 0, 'pending': 0}"
+  },
+  {
+   "area": "B-excluded",
+   "check": "전원 방문: LLM 입력에 승인 변경 없음",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "B-excluded",
+   "check": "잠정 불참·위임 없음: 안내 대상 제외",
+   "status": "PASS",
+   "evidence": "{'approved': 0, 'pending': 0}"
+  },
+  {
+   "area": "B-excluded",
+   "check": "잠정 불참·위임 없음: LLM 입력에 승인 변경 없음",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "B-guard",
+   "check": "모델이 위임 항목을 만들어도 전원 방문 Case에서 제거",
+   "status": "PASS",
+   "evidence": "['직원 미확인: 상속인 신분증', '직원 미확인: 상속인 신분증', '직원 미확인: 돌아가신 분의 가족관계증명서(상세)', '직원 미확인: 돌아가신 분의 기본증명서', '직접 확인: 제출 서류의 원본과 내용', '직접 확인: 상속관계']"
+  },
+  {
+   "area": "P0-assert",
+   "check": "승인·지급 확정, 자동 확인 표현 차단",
+   "status": "PASS",
+   "evidence": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 4건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다. 상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요."
+  },
+  {
+   "area": "P0-assert",
+   "check": "지어낸 근거 문서 제거",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "P0-unapproved",
+   "check": "모델이 미승인 45일을 지어내도 차단",
+   "status": "PASS",
+   "evidence": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 6건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다. 상속예금 사전접수 서류가 접수됐어요. 제출하신 서류와 위임 내용은 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요. 직원 미확인: 상속인 신분증 직원 미확인: 방문하지 않는 상속인의 신분증 사본 직원 미확인: 방문하지 않는 상속"
+  },
+  {
+   "area": "C-unapproved",
+   "check": "v3 수신 후 v2 승인 안내 유지",
+   "status": "PASS",
+   "evidence": "[{'id': 14, 'sourceVersion': 'EDU-2026.2', 'summary': '[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가', 'effectiveState': 'SCHEDULED', 'effectiveAt': '2026-11-23T03:42:13Z', 'ruleChangeReviewRequired': False, 'newerBankVersion': None, 'reasonCodes': ['DELEGATION_METHOD_MATCH', 'REQUIRED_DOCUMENT_MATCH'], 'previousVersion': 'EDU-2026.1', 'before': '불참 상속인의 위임장은 인감 날인을 확인한다.', 'after': '불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.', 'addedCheckItems': ['위임장 작성일이 제출일 기준 30일 이내인지 확인']"
+  },
+  {
+   "area": "C-unapproved",
+   "check": "v3는 pending으로만 구분 표시",
+   "status": "PASS",
+   "evidence": "[{'id': 24, 'sourceVersion': 'EDU-2026.3', 'summary': '[교육용 가상 사례] 위임장 작성일 확인 기준을 45일로 조정', 'effectiveState': 'SCHEDULED', 'effectiveAt': '2026-12-09T03:42:19Z', 'ruleChangeReviewRequired': False, 'newerBankVersion': None, 'reasonCodes': ['DELEGATION_METHOD_MATCH', 'REQUIRED_DOCUMENT_MATCH'], 'previousVersion': 'EDU-2026.2', 'before': '위임장 작성일이 제출일 기준 30일 이내인지 직원이 확인한다.', 'after': '위임장 작성일이 제출일 기준 45일 이내인지 직원이 확인한다.', 'addedCheckItems': ['위임장 작성일이 제출일 기준 45일 이내인지 확인'], 'sourceDocumentId': 'EDU-D"
+  },
+  {
+   "area": "P0-unapproved",
+   "check": "v3가 검토 의견 입력에 들어가지 않음",
+   "status": "PASS",
+   "evidence": "['EDU-2026.2']"
+  },
+  {
+   "area": "C-unapproved",
+   "check": "v3 수신 동기화 정상",
+   "status": "PASS",
+   "evidence": "{'fetched': 1, 'accepted': 1, 'stale': 0, 'outOfScope': 0, 'quarantined': 0, 'duplicate': 0}"
+  },
+  {
+   "area": "reliability",
+   "check": "동일 이벤트 재전송은 중복 처리",
+   "status": "PASS",
+   "evidence": "{'fetched': 1, 'accepted': 0, 'stale': 0, 'outOfScope': 0, 'quarantined': 0, 'duplicate': 1}"
+  },
+  {
+   "area": "reliability",
+   "check": "알 수 없는 변경 유형 격리",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "reliability",
+   "check": "대상 외 업무 분리",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "reliability",
+   "check": "오래된 revision의 의견 생성 거부",
+   "status": "PASS",
+   "evidence": "(400, 'VERSION_CONFLICT')"
+  },
+  {
+   "area": "P0-auth",
+   "check": "토큰 없음 401 /api/v1/staff/c02/3/staff-case?requestId",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "고객 토큰 403 /api/v1/staff/c02/3/staff-case?requestId",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "권한 없는 직원 403 /api/v1/staff/c02/3/staff-case?requestId",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "토큰 없음 401 /api/v1/staff/c02/3/ai-review",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "고객 토큰 403 /api/v1/staff/c02/3/ai-review",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "권한 없는 직원 403 /api/v1/staff/c02/3/ai-review",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "토큰 없음 401 /api/v1/staff/policy-changes?requestId=x",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "고객 토큰 403 /api/v1/staff/policy-changes?requestId=x",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "권한 없는 직원 403 /api/v1/staff/policy-changes?requestId=x",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "토큰 없음 401 /api/v1/staff/c02/cases?requestId=x-32",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "고객 토큰 403 /api/v1/staff/c02/cases?requestId=x-32",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "권한 없는 직원 403 /api/v1/staff/c02/cases?requestId=x-32",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-auth",
+   "check": "다른 고객의 제출 서류 접근 차단",
+   "status": "PASS",
+   "evidence": "403"
+  },
+  {
+   "area": "P0-auth",
+   "check": "고객 목록에 본인 Case만 표시",
+   "status": "PASS",
+   "evidence": "[4]"
+  },
+  {
+   "area": "P0-auth",
+   "check": "검토 담당이 아닌 직원의 서류 판정 차단",
+   "status": "PASS",
+   "evidence": "(200, 403)"
+  },
+  {
+   "area": "P0-agent",
+   "check": "검토 의견은 원본 확인 상태를 바꾸지 않음",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "control",
+   "check": "AI 의견 생성만으로 고객 알림 없음",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "control",
+   "check": "직원 결정 저장 후 Case·알림 변경",
+   "status": "PASS",
+   "evidence": "(200, None)"
+  },
+  {
+   "area": "control",
+   "check": "직원이 입력한 문구 그대로 저장",
+   "status": "PASS",
+   "evidence": "제출하신 서류를 확인했어요. 방문 예약을 진행해 주세요."
+  },
+  {
+   "area": "control",
+   "check": "확정 결정 뒤 다른 결정 거부",
+   "status": "PASS",
+   "evidence": "(400, 'INVALID_STATE')"
+  },
+  {
+   "area": "failure",
+   "check": "LLM fail500: 규칙 기반 의견으로 대체, 상태 보존",
+   "status": "PASS",
+   "evidence": "(200, 'RULE_FALLBACK')"
+  },
+  {
+   "area": "failure",
+   "check": "LLM invalid: 규칙 기반 의견으로 대체, 상태 보존",
+   "status": "PASS",
+   "evidence": "(200, 'RULE_FALLBACK')"
+  },
+  {
+   "area": "failure",
+   "check": "LLM 장애 시 영향 분석도 규칙 기반",
+   "status": "PASS",
+   "evidence": "{'status': 'SUCCEEDED', 'method': 'RULE_FALLBACK'}"
+  },
+  {
+   "area": "C-withdrawn",
+   "check": "은행 철회 시 승인 안내 중단",
+   "status": "PASS",
+   "evidence": "[]"
+  },
+  {
+   "area": "P0-auth",
+   "check": "FastAPI 의도 분류는 토큰 없이 호출 불가",
+   "status": "PASS",
+   "evidence": "무인증 http=401, LLM 호출 0회 발생"
+  },
+  {
+   "area": "P0-auth",
+   "check": "FastAPI /api/v1/rag/* 인증",
+   "status": "PASS",
+   "evidence": "[{'path': '/api/v1/rag/search', 'headers': ['authorization', 'x-staff-agent-token', 'x-customer-agent-token']}, {'path': '/api/v1/rag/task-guide', 'headers': ['authorization', 'x-staff-agent-token', 'x-customer-agent-token']}, {'path': '/api/v1/rag/answer', 'headers': ['authorization', 'x-staff-agent-token', 'x-customer-agent-token']}]"
+  },
+  {
+   "area": "P0-auth",
+   "check": "무인증 호출로 직원 전용(STAFF_ONLY) 업무문서 조회 불가",
+   "status": "PASS",
+   "evidence": "{'http': 401, 'staffOnlyDocs': []}"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "Spring이 발급한 고객 JWT는 직원 문서 요청 403",
+   "status": "PASS",
+   "evidence": "403"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "Spring이 발급한 고객 JWT는 고객 문서 조회 200",
+   "status": "PASS",
+   "evidence": "200"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "Spring이 발급한 직원 JWT는 직원 문서 조회 200",
+   "status": "PASS",
+   "evidence": "200"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "직원 서비스 토큰은 직원 문서 조회 200",
+   "status": "PASS",
+   "evidence": "200"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "고객 서비스 토큰은 직원 문서 요청 403",
+   "status": "PASS",
+   "evidence": "403"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "위조 JWT 401",
+   "status": "PASS",
+   "evidence": "401"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "고객 조회 결과에 직원 전용 문서 없음",
+   "status": "PASS",
+   "evidence": "['C01-01', 'C01-04']"
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "내부 토큰 있는 의도 분류는 정상",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "직원 순위 경로는 서비스 토큰 없으면 403",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "AUTH-fixed",
+   "check": "Spring→FastAPI 직원 Agent 호출 계약 유지",
+   "status": "PASS",
+   "evidence": ""
+  },
+  {
+   "area": "P0-pii",
+   "check": "직원 LLM 입력에 시드 개인정보 없음 (12건 검사)",
+   "status": "PASS",
+   "evidence": "{'hits': [], 'patterns': []}"
+  },
+  {
+   "area": "P0-pii",
+   "check": "직원 LLM 입력에 인증정보 없음",
+   "status": "PASS",
+   "evidence": "0"
+  },
+  {
+   "area": "D-conflict",
+   "check": "충돌 형태 9종 감지 범위",
+   "status": "PARTIAL",
+   "evidence": "{'detected': 2, 'missedConflicts': ['다른 문장 구조', '한글 숫자', '표 형식', '긍정과 부정'], 'falseAlarm': ['단위가 다름', '금액 구간 (별개 규칙)']}"
+  },
+  {
+   "area": "failure",
+   "check": "FastAPI 중단: FAILED 응답, Case·기존 의견 보존",
+   "status": "PASS",
+   "evidence": "(200, {'status': 'FAILED', 'code': 'STAFF_AGENT_UNAVAILABLE', 'revision': 6})"
+  }
+ ],
+ "evidence": {
+  "seededCases": {
+   "review": 1,
+   "cancel": 2,
+   "policy": 3,
+   "rehearsal": 4,
+   "visit-manual": 5,
+   "visit-expired": 6
+  },
+  "briefBefore": {
+   "method": "LLM",
+   "model": "gpt-4.1-mini",
+   "promptVersion": "case-brief-7",
+   "summary": "상속인 2명, 미방문 1명. 상속예금 접수이며 서류가 제출되었습니다.",
+   "customerDraft": "직원이 서류를 확인하고 있어요.",
+   "basisMissing": false,
+   "confirmed": [],
+   "staffChecks": [
+    "직원 미확인: 상속인 신분증",
+    "직원 미확인: 방문하지 않는 상속인의 신분증 사본",
+    "직원 미확인: 방문하지 않는 상속인의 인감증명서",
+    "직원 미확인: 방문하지 않는 상속인의 위임장",
+    "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+    "직원 미확인: 돌아가신 분의 기본증명서",
+    "제출 서류 원본 확인",
+    "직접 확인: 제출 서류의 원본과 내용",
+    "직접 확인: 상속관계",
+    "직접 확인: 위임인의 서명·인감",
+    "직접 확인: 실제 위임 의사"
+   ],
+   "evidence": [
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "공통 유의사항"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "해지 요청 인원 원칙과 예외"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "영업점 방문서류"
+    }
+   ],
+   "basis": [
+    {
+     "docId": "C02-01",
+     "reason": "필요서류 안내"
+    }
+   ],
+   "status": "SUCCEEDED",
+   "revision": 6,
+   "analyzedAt": "2026-11-09T03:42:13.619322100Z",
+   "approvedPolicies": []
+  },
+  "impactCandidates": 14,
+  "impact": {
+   "universe": 66,
+   "truth": 14,
+   "tp": 14,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0,
+   "nonAffected": 52,
+   "falsePositiveRate": 0.0,
+   "unexpected": [],
+   "missed": []
+  },
+  "briefAfter": {
+   "method": "LLM",
+   "model": "gpt-4.1-mini",
+   "promptVersion": "case-brief-7",
+   "summary": "상속인 2명, 미방문 1명. 상속예금 접수이며 서류가 제출되었습니다.",
+   "customerDraft": "직원이 서류를 확인하고 있어요.",
+   "basisMissing": false,
+   "confirmed": [],
+   "staffChecks": [
+    "직원 미확인: 상속인 신분증",
+    "직원 미확인: 방문하지 않는 상속인의 신분증 사본",
+    "직원 미확인: 방문하지 않는 상속인의 인감증명서",
+    "직원 미확인: 방문하지 않는 상속인의 위임장",
+    "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+    "직원 미확인: 돌아가신 분의 기본증명서",
+    "제출 서류 원본 확인",
+    "직접 확인: 제출 서류의 원본과 내용",
+    "직접 확인: 상속관계",
+    "직접 확인: 위임인의 서명·인감",
+    "직접 확인: 실제 위임 의사",
+    "직접 확인: 승인된 정책 변경 EDU-2026.2이 이 Case에 맞게 반영됐는지",
+    "승인 변경 EDU-2026.2(시행 예정) 추가 확인: 위임장 작성일이 제출일 기준 30일 이내인지 확인"
+   ],
+   "evidence": [
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "공통 유의사항"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "해지 요청 인원 원칙과 예외"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "영업점 방문서류"
+    }
+   ],
+   "basis": [
+    {
+     "docId": "C02-01",
+     "reason": "필요서류 안내"
+    }
+   ],
+   "status": "SUCCEEDED",
+   "revision": 6,
+   "analyzedAt": "2026-11-09T03:42:15.755481600Z",
+   "approvedPolicies": [
+    {
+     "noticeId": 14,
+     "sourceVersion": "EDU-2026.2",
+     "effectiveState": "SCHEDULED",
+     "effectiveAt": "2026-11-23T03:42:13Z"
+    }
+   ]
+  },
+  "factsAfterApproval": [
+   {
+    "sourceVersion": "EDU-2026.2",
+    "summary": "[교육용 가상 사례] 상속 위임장의 작성일 확인 항목을 직원 확인사항에 추가",
+    "effectiveState": "SCHEDULED",
+    "effectiveAt": "2026-11-23T03:42:13Z",
+    "previousVersion": "EDU-2026.1",
+    "before": "불참 상속인의 위임장은 인감 날인을 확인한다.",
+    "after": "불참 상속인의 위임장은 인감 날인을 확인하고, 위임장 작성일이 제출일 기준 30일 이내인지 직원이 함께 확인한다.",
+    "addedCheckItems": [
+     "위임장 작성일이 제출일 기준 30일 이내인지 확인"
+    ],
+    "source": {
+     "documentId": "EDU-DOC-001",
+     "title": "교육용 가상 업무기준 변경 안내"
+    },
+    "appliesTo": {
+     "taskCode": "INHERITANCE_DEPOSIT",
+     "caseId": 3,
+     "reasonCodes": [
+      "DELEGATION_METHOD_MATCH",
+      "REQUIRED_DOCUMENT_MATCH"
+     ]
+    }
+   }
+  ],
+  "storedBriefRows": "3\tcase-brief-7\t2026-11-09T03:42:15.755481600Z",
+  "history": [
+   {
+    "analyzedAt": "2026-11-09T03:42:13.619322100Z",
+    "policies": [],
+    "prompt": "case-brief-7",
+    "hasChecks": 11
+   },
+   {
+    "analyzedAt": "2026-11-09T03:42:14.727778600Z",
+    "policies": [],
+    "prompt": "case-brief-7",
+    "hasChecks": 11
+   },
+   {
+    "analyzedAt": "2026-11-09T03:42:15.755481600Z",
+    "policies": [
+     {
+      "noticeId": 14,
+      "effectiveAt": "2026-11-23T03:42:13Z",
+      "sourceVersion": "EDU-2026.2",
+      "effectiveState": "SCHEDULED"
+     }
+    ],
+    "prompt": "case-brief-7",
+    "hasChecks": 13
+   }
+  ],
+  "briefDiff": {
+   "added": [
+    "직접 확인: 승인된 정책 변경 EDU-2026.2이 이 Case에 맞게 반영됐는지",
+    "승인 변경 EDU-2026.2(시행 예정) 추가 확인: 위임장 작성일이 제출일 기준 30일 이내인지 확인"
+   ],
+   "removed": []
+  },
+  "adversarialNotAffected": {
+   "method": "LLM",
+   "model": "gpt-4.1-mini",
+   "promptVersion": "case-brief-7",
+   "summary": "상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 0명이며, 서류 4건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.",
+   "customerDraft": "상속예금 사전접수 서류가 접수됐어요. 제출하신 서류는 담당 직원이 확인하고 있으며, 확인 결과에 따라 필요한 사항을 안내드릴게요.",
+   "basisMissing": false,
+   "confirmed": [],
+   "staffChecks": [
+    "직원 미확인: 상속인 신분증",
+    "직원 미확인: 상속인 신분증",
+    "직원 미확인: 돌아가신 분의 가족관계증명서(상세)",
+    "직원 미확인: 돌아가신 분의 기본증명서",
+    "직접 확인: 제출 서류의 원본과 내용",
+    "직접 확인: 상속관계"
+   ],
+   "evidence": [
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "영업점 방문서류"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "공통 유의사항"
+    },
+    {
+     "docId": "C02-01",
+     "title": "상속예금 해지·지급 FAQ",
+     "section": "해지 요청 인원 원칙과 예외"
+    }
+   ],
+   "basis": [],
+   "status": "SUCCEEDED",
+   "revision": 4,
+   "analyzedAt": "2026-11-09T03:42:19.271577200Z",
+   "approvedPolicies": []
+  },
+  "deployment": {
+   "deploymentFilesInGit": 0,
+   "current9001Binding": "로컬 127.0.0.1"
+  },
+  "conflictForms": [
+   {
+    "form": "같은 문장, 숫자만 다름",
+    "expected": true,
+    "detected": true
+   },
+   {
+    "form": "단어 일부 변형",
+    "expected": true,
+    "detected": true
+   },
+   {
+    "form": "다른 문장 구조",
+    "expected": true,
+    "detected": false
+   },
+   {
+    "form": "단위가 다름",
+    "expected": false,
+    "detected": true
+   },
+   {
+    "form": "한글 숫자",
+    "expected": true,
+    "detected": false
+   },
+   {
+    "form": "표 형식",
+    "expected": true,
+    "detected": false
+   },
+   {
+    "form": "조건이 다른 별개 규칙",
+    "expected": false,
+    "detected": false
+   },
+   {
+    "form": "금액 구간 (별개 규칙)",
+    "expected": false,
+    "detected": true
+   },
+   {
+    "form": "긍정과 부정",
+    "expected": true,
+    "detected": false
+   }
+  ]
+ }
+}

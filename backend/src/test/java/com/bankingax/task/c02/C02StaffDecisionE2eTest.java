@@ -16,6 +16,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /** Actual embedded-Tomcat HTTP E2E for the G3 Spring-only staff outcome boundary. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
@@ -24,6 +26,13 @@ import org.springframework.http.*;
 })
 @Import(C02StaffDecisionE2eTest.Config.class)
 class C02StaffDecisionE2eTest {
+    /** This context has no DataSource, but b01DocumentService requires a transaction manager. */
+    @MockBean PlatformTransactionManager transactions;
+    @org.springframework.test.context.DynamicPropertySource static void storage(org.springframework.test.context.DynamicPropertyRegistry properties) throws java.io.IOException {
+        String root=java.nio.file.Files.createTempDirectory("c02-e2e").toString();
+        properties.add("app.c02.file-storage-root",()->root);
+    }
+
     @LocalServerPort int port;
     @Autowired TestRestTemplate http;
     @Autowired CapturingOtpSender sender;
@@ -32,18 +41,38 @@ class C02StaffDecisionE2eTest {
         String run="g3-e2e";
         var prepared=post("/api/v1/c02/prepare",prepareBody(run),customerHeaders(1));
         long caseId=((Number)prepared.getBody().get("caseId")).longValue();
-        assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",0,"requestId",run+"-consent","consented",true,"mockSignatureCompleted",true),customerHeaders(1)).getStatusCode());
-        var issued=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",0,"requestId",run+"-issue"),customerHeaders(1));
+        int revision=0;
+        for(String slot:List.of("DECEDENT_DETAILED_FAMILY_RELATION:COMMON","DECEDENT_BASIC_CERTIFICATE:COMMON","HEIR_IDENTITY_CARD:h1")) {
+            var registered=upload(caseId,revision,run+"-doc-"+slot,slot);
+            assertEquals(HttpStatus.OK,registered.getStatusCode());
+            revision=((Number)registered.getBody().get("revision")).intValue();
+        }
+        assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/consent",Map.of("customerId",1,"revision",revision,"requestId",run+"-consent","consented",true,"mockSignatureCompleted",true),customerHeaders(1)).getStatusCode());
+        var issued=post("/api/v1/c02/"+caseId+"/verification/issue",Map.of("customerId",1,"revision",revision,"requestId",run+"-issue"),customerHeaders(1));
         String challenge=(String)((Map<?,?>)issued.getBody().get("data")).get("challengeId");
         var verified=post("/api/v1/c02/verification/verify",Map.of("customerId",1,"requestId",run+"-verify","challengeId",challenge,"otp",sender.codeFor("01012345678")),customerHeaders(1));
         String binding=(String)((Map<?,?>)verified.getBody().get("data")).get("bindingId");
-        assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",0,"requestId",run+"-submit","bindingId",binding),customerHeaders(1)).getStatusCode());
-        var decision=post("/api/v1/c02/"+caseId+"/staff-decision",Map.of("revision",0,"requestId",run+"-decision","outcome","PROCEED","customerMessage","직원 검토 완료"),staffHeaders());
+        var submitted=post("/api/v1/c02/"+caseId+"/submit",Map.of("customerId",1,"revision",revision,"requestId",run+"-submit","bindingId",binding),customerHeaders(1));
+        assertEquals(HttpStatus.OK,submitted.getStatusCode());
+        int submittedRevision=((Number)submitted.getBody().get("revision")).intValue();
+        assertEquals(HttpStatus.OK,post("/api/v1/c02/"+caseId+"/staff-precheck",Map.of("revision",submittedRevision,"requestId",run+"-precheck"),staffHeaders()).getStatusCode());
+        var decision=post("/api/v1/c02/"+caseId+"/staff-decision",Map.of("revision",submittedRevision,"requestId",run+"-decision","outcome","PROCEED","customerMessage","직원 검토 완료"),staffHeaders());
         assertEquals(HttpStatus.OK,decision.getStatusCode());
         assertEquals("REVIEW_PASSED",((Map<?,?>)decision.getBody().get("data")).get("proposedCaseStatus"));
         var notifications=http.exchange(url("/api/v1/c02/notifications?customerId=1&requestId="+run+"-notice"),HttpMethod.GET,new HttpEntity<>(customerHeaders(1)),Map.class);
         assertEquals(HttpStatus.OK,notifications.getStatusCode());
         assertEquals("PROCEED",((Map<?,?>)((List<?>)notifications.getBody().get("data")).get(0)).get("outcome"));
+    }
+
+    /** A real multipart upload: metadata alone is not submit evidence. */
+    private ResponseEntity<Map> upload(long caseId,int revision,String requestId,String slot) {
+        var form=new org.springframework.util.LinkedMultiValueMap<String,Object>();
+        form.add("customerId","1"); form.add("revision",String.valueOf(revision)); form.add("requestId",requestId); form.add("documentSlotKey",slot);
+        var pdf=new HttpHeaders(); pdf.setContentType(MediaType.APPLICATION_PDF);
+        var bytes=new org.springframework.core.io.ByteArrayResource("%PDF-1.4\nsynthetic fixture".getBytes()) { @Override public String getFilename() { return "fixture.pdf"; } };
+        form.add("file",new HttpEntity<>(bytes,pdf));
+        var headers=customerHeaders(1); headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        return http.exchange(url("/api/v1/c02/"+caseId+"/documents/upload"),HttpMethod.POST,new HttpEntity<>(form,headers),Map.class);
     }
 
     private ResponseEntity<Map> post(String path,Map<String,Object> body,HttpHeaders headers) { return http.exchange(url(path),HttpMethod.POST,new HttpEntity<>(body,headers),Map.class); }

@@ -12,18 +12,29 @@ const STATUS_LABELS: Record<WorkStatus, string> = {
   manual: '영업점 상담 필요', pending: '처리 대기',
 }
 
+const PERIODS = [{ key: '1', label: '최근 1개월', months: 1 }, { key: '3', label: '최근 3개월', months: 3 }, { key: 'all', label: '전체 기간', months: null }] as const
+type PeriodKey = typeof PERIODS[number]['key']
+const withinPeriod = (iso: string, key: PeriodKey, asOf: string) => {
+  const months = PERIODS.find(period => period.key === key)?.months ?? null
+  if (months === null) return true
+  const from = new Date(asOf); from.setMonth(from.getMonth() - months)
+  return Date.parse(iso) >= from.getTime()
+}
+
 const pad2 = (value: number) => String(value).padStart(2, '0')
 const toDate = (iso: string) => new Date(iso)
 const formatDay = (iso: string) => { const d = toDate(iso); return `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}` }
 const formatDayTime = (iso: string) => { const d = toDate(iso); return `${formatDay(iso)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` }
 const formatStamp = (iso: string) => { const d = toDate(iso); return `${d.getFullYear()}.${formatDayTime(iso)}` }
+const detailActionLabel = (status: WorkStatus) => status === 'pending' ? '처리 현황 보기' : status === 'manual' ? '상담 안내 보기' : '결과 보기'
 
 export function WorkRecordsView({ data }: { data: WorkRecordList }) {
   const [tab, setTab] = useState<WorkTab>('progress')
   const [type, setType] = useState<'all' | WorkTaskType>('all')
+  const [period, setPeriod] = useState<PeriodKey>('3')
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
 
-  const visible = data.items.filter(item => type === 'all' || item.taskType === type)
+  const visible = data.items.filter(item => (type === 'all' || item.taskType === type) && withinPeriod(item.requestedAt, period, data.asOf))
   const rows = visible.filter(item => item.tab === tab).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
   const hasNotes = data.retentionDays !== undefined || data.draftResetDays !== undefined
 
@@ -82,6 +93,12 @@ export function WorkRecordsView({ data }: { data: WorkRecordList }) {
               <option value="C">C · 직원 검토</option>
             </select>
           </div>
+          <div className="work-filter">
+            <label htmlFor="work-filter-period" className="work-filter__label">요청 기간</label>
+            <select id="work-filter-period" value={period} onChange={event => setPeriod(event.target.value as PeriodKey)} className="work-filter__select">
+              {PERIODS.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+            </select>
+          </div>
           <span className="work-sort">정렬: 최근 변경일순</span>
         </div>
 
@@ -116,7 +133,7 @@ export function WorkRecordsView({ data }: { data: WorkRecordList }) {
                 </td>
                 <td className="work-td work-td--last">
                   {/* Other task screens (continue, cancel, reapply, chat room) are connected later. */}
-                  {item.detailPath && <Link to={item.detailPath} className="work-action">결과 보기</Link>}
+                  {item.detailPath && <Link to={item.detailPath} className="work-action" aria-label={`${item.name} ${detailActionLabel(item.status)}`}>{detailActionLabel(item.status)}</Link>}
                 </td>
               </tr>)}
             </tbody>

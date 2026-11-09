@@ -64,7 +64,7 @@ export function LoginPage() {
     <main className="login-main">
       <div className="login-intro">
         <h1 className="login-title">개인뱅킹 로그인</h1>
-        <p className="login-subtitle">AX뱅크 개인뱅킹과 AI 금융 도우미를 이용하려면 로그인해 주세요.</p>
+        <p className="login-subtitle">SolBank 개인뱅킹과 AI 금융 도우미를 이용하려면 로그인해 주세요.</p>
       </div>
 
       {expired && <div role="alert" className="login-banner login-banner--expired">
