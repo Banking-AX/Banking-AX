@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ApiError } from '../../api/client'
 import { toUserMessage } from '../../api/errorMessages'
-import { chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRunRequest, type ChatMessage, type ChatReply, type ChatRoom, type ChatTaskAction } from '../../api/chat'
-import { BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
+import { b01ReconnectNextStep, chatApi, replyFromAgentRun, replyFromChatMessage, type AgentRunRequest, type B01ReconnectChoice, type ChatMessage, type ChatReply, type ChatRoom, type ChatTaskAction } from '../../api/chat'
+import { b01ReconnectKey, BotMessage, ChatReplyView, replyLabel, replyText } from './ChatReplyView'
 import { useNavigate } from 'react-router-dom'
 import { DOCK_STAGES, DockStageChip, DOCK_ROBOT, type DockStage } from './ChatDock'
 import { useChatDock } from './chatDockContext'
@@ -27,6 +27,10 @@ const QUICK_TASKS = [
   { badge: 'C · 직원 검토', tone: 'c', title: '채무조정 접수하기' },
   { badge: 'C · 직원 검토', tone: 'c', title: '상속예금 사전접수' },
 ] as const
+
+// After a new B-01 work item is created by a reconnect choice, the customer starts it with this message through
+// the existing agent-runs path (Spring DISCOVER then SAME_CHAT_REUSED). It is only sent when the customer presses the button.
+const B01_START_MESSAGE = '채무변제 충당순서 변경하기'
 
 const MIN_LENGTH = 2
 const MAX_LENGTH = 2000
@@ -56,6 +60,9 @@ export function ChatModal() {
   const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
+  const [reconnectPending, setReconnectPending] = useState<{ messageId: number; key: string } | null>(null)
+  // Shown under the reconnect answer until the customer acts: start the new work item, or the ACTIVE conflict notice.
+  const [b01Notice, setB01Notice] = useState<'startGraph' | 'conflict' | null>(null)
   const [view, setView] = useState<DockView>('chat')
   // The room on screen. null means a new-chat draft: no server room exists until the first message is sent.
   // While a picked room loads, currentRoom is set but roomId stays null so sending stays locked.
@@ -72,6 +79,9 @@ export function ChatModal() {
   const pendingRef = useRef(false)
   const roomCreationRef = useRef<Promise<ChatRoom> | null>(null)
   const mountedRef = useRef(true)
+  const reconnectPendingRef = useRef(false)
+  // requestId kept only after a retryable failure, so a retry replays on the server; any other click re-validates.
+  const reconnectRequestIds = useRef(new Map<string, string>())
 
   useEffect(() => { if (open && !openedAt) setOpenedAt(new Date()) }, [open, openedAt])
 
@@ -208,6 +218,7 @@ export function ChatModal() {
     if (roomId === null && !isDraft) { setHint('채팅방을 준비하는 중이에요. 잠시 후 다시 시도해 주세요.'); return }
     setHint('')
     setDraft('')
+    setB01Notice(null)
     const request = { messageRequestId: crypto.randomUUID(), operationRequestId: crypto.randomUUID(), content: message }
     setEntries(list => [...list, { key: `pending-${request.messageRequestId}`, kind: 'pendingUser', request, sentAt: new Date().toISOString() }])
     dispatch(request)
@@ -220,7 +231,7 @@ export function ChatModal() {
   }
 
   const startTaskAction = async (action: ChatTaskAction) => {
-    if (actionPending || (roomId === null && !isDraft)) return
+    if (actionPending || reconnectPendingRef.current || (roomId === null && !isDraft)) return
     setActionPending(action.actionRequestId)
     setActionError('')
     try {
@@ -235,6 +246,43 @@ export function ChatModal() {
     }
   }
 
+  const reconnectB01 = async (messageId: number, choice: B01ReconnectChoice, workItemId: number | null) => {
+    if (pendingRef.current || reconnectPendingRef.current || actionPending || roomId === null) return
+    const currentRoomId = roomId
+    const key = b01ReconnectKey(choice, workItemId)
+    const attemptKey = `${currentRoomId}:${messageId}:${key}`
+    const requestId = reconnectRequestIds.current.get(attemptKey) ?? crypto.randomUUID()
+    reconnectRequestIds.current.set(attemptKey, requestId)
+    reconnectPendingRef.current = true
+    setReconnectPending({ messageId, key })
+    setActionError('')
+    setB01Notice(null)
+    try {
+      const result = await chatApi.reconnectB01(currentRoomId, { requestId, choice, workItemId })
+      reconnectRequestIds.current.delete(attemptKey)
+      if (!mountedRef.current || roomRequestRef.current !== currentRoomId) return
+      const step = b01ReconnectNextStep(result)
+      if (step.type === 'conflict' || step.type === 'startGraph') { setB01Notice(step.type); return }
+      if (step.type === 'openRoom') {
+        const room = (await chatApi.listRooms()).find(item => item.id === step.roomId)
+        if (room && mountedRef.current) {
+          setView('room')
+          setViewFocus('title')
+          void loadRoom(room)
+          return
+        }
+      }
+      navigate(`/tasks/b01/${step.workItemId}`)
+    } catch (error) {
+      const retryable = error instanceof ApiError && (error.retryable || error.status === 0 || error.status >= 500)
+      if (!retryable) reconnectRequestIds.current.delete(attemptKey)
+      if (mountedRef.current) setActionError(toUserMessage(error))
+    } finally {
+      reconnectPendingRef.current = false
+      if (mountedRef.current) setReconnectPending(null)
+    }
+  }
+
   const loadRoom = async (room: ChatRoom) => {
     roomRequestRef.current = room.id
     setCurrentRoom(room)
@@ -242,6 +290,7 @@ export function ChatModal() {
     setEntries([])
     setRoomError('')
     setActionError('')
+    setB01Notice(null)
     setHint('')
     setRoomLoading(true)
     try {
@@ -285,6 +334,7 @@ export function ChatModal() {
     setRoomError('')
     setRoomLoading(false)
     setActionError('')
+    setB01Notice(null)
     setHint('')
     setView('chat')
     setViewFocus('title')
@@ -379,9 +429,13 @@ export function ChatModal() {
               <span className="chat-time">{formatServerTime(entry.message.sentAt)}</span>
             </div>
             const reply = entry.reply ?? replyFromChatMessage(entry.message)
+            const messageId = entry.message.id
             return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)}
               actionPending={reply.kind === 'taskAction' && actionPending === reply.action.actionRequestId}
-              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} onQuickReply={pending ? undefined : send} />
+              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} onQuickReply={pending ? undefined : send}
+              onB01Reconnect={reply.kind === 'b01Reconnect' ? (choice, workItemId) => reconnectB01(messageId, choice, workItemId) : undefined}
+              reconnectPending={reconnectPending?.messageId === messageId ? reconnectPending.key : null}
+              reconnectLocked={pending || actionPending !== null || roomId === null || (reconnectPending !== null && reconnectPending.messageId !== messageId)} />
           }
           return <div key={entry.key} className="chat-error">
             <span className="chat-spacer" aria-hidden="true"></span>
@@ -394,6 +448,17 @@ export function ChatModal() {
         })}
 
         {actionError && <div role="alert" className="chat-error__box"><span className="chat-error__text">{actionError}</span></div>}
+
+        {b01Notice === 'conflict' && <div role="status" className="chat-b01-notice">
+          다른 대화방에서 진행 중인 충당순서 변경 신청이 있어 새 신청을 시작할 수 없어요. 위 목록에서 이어할 신청을 골라 주세요.
+        </div>}
+        {b01Notice === 'startGraph' && <div role="status" className="chat-b01-notice">
+          <span>새 충당순서 변경 신청을 준비했어요. 아래 버튼을 누르면 &lsquo;{B01_START_MESSAGE}&rsquo;를 보내고 대출 선택부터 진행해요.</span>
+          <div className="chat-b-go">
+            <button type="button" className="chat-b-button chat-b-button--primary" disabled={inputLocked} onClick={() => send(B01_START_MESSAGE)}>
+              신청 시작하기</button>
+          </div>
+        </div>}
 
         {(pending || roomLoading) && <div className="chat-typing">
           {/* ChatModal.dc.html: the waiting bubble uses a plain avatar circle. */}
@@ -423,7 +488,7 @@ export function ChatModal() {
           </button>
         </div>
         <p id="chat-input-hint" aria-live="polite" className="chat-hint">{hint}</p>
-        <p className="chat-footnote">{pending ? '응답 생성 중에는 입력이 잠겨요. 업무 전용 화면으로 이동한 동안에도 채팅 입력은 받지 않아요.' : 'AI 안내는 참고용이에요. 서명·인증·동의는 직접 해 주세요.'}</p>
+        <p className="chat-footnote">{pending ? '응답 생성 중에는 입력이 잠겨요. 업무 전용 화면으로 이동한 동안에도 채팅 입력은 받지 않아요.' : ''}</p>
       </footer>
     </section>, slot)
 }

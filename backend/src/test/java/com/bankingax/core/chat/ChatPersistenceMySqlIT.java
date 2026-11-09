@@ -66,7 +66,7 @@ class ChatPersistenceMySqlIT {
         ChatRoomEntity newer = room(1, Instant.parse("2026-01-02T00:00:00Z"));
         ChatRoomEntity anotherCustomer = room(2, Instant.parse("2026-01-03T00:00:00Z"));
 
-        assertThat(version).isEqualTo(12);
+        assertThat(version).isEqualTo(13);
         assertThat(chatRooms.findByIdAndCustomerId(older.id, 1)).isPresent();
         assertThat(chatRooms.findByIdAndCustomerId(older.id, 2)).isEmpty();
         assertThat(chatRooms.findAllByCustomerIdOrderByLastActivityAtDescIdDesc(1))

@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class B01ProgressService {
     private static final String TASK_CODE = "REPAYMENT_ORDER_CHANGE";
+    private static final String SELECTION_EVENT = "B01_SELECTION_SAVED";
+    private static final String SELECTION_REQUEST_PREFIX = "b01-selection:";
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final B01EligibilityService eligibility;
@@ -34,14 +36,124 @@ public class B01ProgressService {
 
     @Transactional
     public ProgressContext saveSelection(long customerId, long workItemId, SelectionCommand command) {
+        saveSelectionState(customerId, workItemId, command, false);
+        return context(customerId, workItemId);
+    }
+
+    @Transactional
+    public SelectionSaveResult saveSelectionForTool(long customerId, long workItemId, SelectionCommand command) {
+        return saveSelectionState(customerId, workItemId, command, true);
+    }
+
+    @Transactional(readOnly = true)
+    public B01EligibilityService.LoanRuleResult precheckSavedSelection(long customerId, long workItemId) {
+        LockedWorkItem item = lock(customerId, workItemId, false, false, true);
+        ObjectNode draft = draft(item.draft());
+        Long selectedLoanId = positiveLong(draft, "selectedLoanId");
+        String requestedOrder = text(draft, "requestedRepaymentOrder");
+        if (selectedLoanId == null || requestedOrder == null) {
+            throw new DomainException("B01_SELECTION_REQUIRED",
+                    "Select a loan and repayment order before eligibility can be checked.");
+        }
+        return eligibility.precheck(customerId, workItemId, selectedLoanId, requestedOrder);
+    }
+
+    private SelectionSaveResult saveSelectionState(long customerId, long workItemId,
+            SelectionCommand command, boolean distinguishOnHold) {
+        if (command == null) throw new DomainException("INVALID_REQUEST", "Selection details are required.");
         validateRequestId(command.requestId());
         requestedOrder(command.requestedRepaymentOrder());
-        LockedWorkItem locked = lock(customerId, workItemId, false, true);
-        requireOwnedLoan(customerId, command.loanId());
+        LockedWorkItem locked = lock(customerId, workItemId, false, true, distinguishOnHold);
         ObjectNode draft = draft(locked.draft());
-        applySelection(draft, command.loanId(), command.requestedRepaymentOrder());
+        Long selectedLoanId = positiveLong(draft, "selectedLoanId");
+        String selectedOrder = text(draft, "requestedRepaymentOrder");
+        SelectionReceipt receipt = selectionReceipt(command.requestId());
+        if (receipt != null) {
+            requireMatchingReceipt(receipt, customerId, workItemId, command);
+            return new SelectionSaveResult(workItemId, selectedLoanId, selectedOrder,
+                    false, true, locked.version());
+        }
+        requireOwnedLoan(customerId, command.loanId());
+        if (command.requestId().equals(text(draft, "selectionRequestId"))) {
+            if (!Objects.equals(selectedLoanId, command.loanId())
+                    || !Objects.equals(selectedOrder, command.requestedRepaymentOrder())) {
+                throw new DomainException("DUPLICATE_REQUEST_CONFLICT",
+                        "The requestId was already used for a different B-01 selection.");
+            }
+            recordSelection(customerId, workItemId, command, false, locked.version());
+            return new SelectionSaveResult(workItemId, selectedLoanId, selectedOrder,
+                    false, true, locked.version());
+        }
+        boolean changed = applySelection(draft, command.loanId(), command.requestedRepaymentOrder());
+        if (!changed) {
+            recordSelection(customerId, workItemId, command, false, locked.version());
+            return new SelectionSaveResult(workItemId, selectedLoanId, selectedOrder,
+                    false, false, locked.version());
+        }
+        draft.put("selectionRequestId", command.requestId());
         save(workItemId, draft);
-        return context(customerId, workItemId);
+        recordSelection(customerId, workItemId, command, true, locked.version() + 1);
+        return new SelectionSaveResult(workItemId, command.loanId(), command.requestedRepaymentOrder(),
+                true, false, locked.version() + 1);
+    }
+
+    private SelectionReceipt selectionReceipt(String requestId) {
+        List<SelectionReceipt> rows = jdbc.query("""
+                select entity_type,entity_id,event_type,actor_type,actor_id,payload
+                  from event_log where request_id=?
+                """, (rs, row) -> new SelectionReceipt(
+                rs.getString("entity_type"), rs.getString("entity_id"), rs.getString("event_type"),
+                rs.getString("actor_type"), rs.getObject("actor_id", Long.class), rs.getString("payload")),
+                selectionRequestId(requestId));
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private void requireMatchingReceipt(SelectionReceipt receipt, long customerId, long workItemId,
+            SelectionCommand command) {
+        try {
+            JsonNode payload = json.readTree(receipt.payload());
+            boolean same = "WORK_ITEM".equals(receipt.entityType())
+                    && Long.toString(workItemId).equals(receipt.entityId())
+                    && SELECTION_EVENT.equals(receipt.eventType())
+                    && "CUSTOMER".equals(receipt.actorType())
+                    && Objects.equals(receipt.actorId(), customerId)
+                    && payload.path("selectedLoanId").asLong() == command.loanId()
+                    && command.requestedRepaymentOrder().equals(payload.path("requestedRepaymentOrder").asText());
+            if (!same) throw duplicateSelectionRequest();
+        } catch (DomainException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new DomainException("B01_STATE_PERSISTENCE_FAILED",
+                    "Stored B-01 selection receipt could not be read.", true);
+        }
+    }
+
+    private void recordSelection(long customerId, long workItemId, SelectionCommand command,
+            boolean changed, int workItemVersion) {
+        ObjectNode payload = json.createObjectNode()
+                .put("selectedLoanId", command.loanId())
+                .put("requestedRepaymentOrder", command.requestedRepaymentOrder())
+                .put("changed", changed)
+                .put("workItemVersion", workItemVersion);
+        try {
+            jdbc.update("""
+                    insert into event_log(entity_type,entity_id,event_type,actor_type,actor_id,request_id,payload)
+                    values('WORK_ITEM',?,?,'CUSTOMER',?,?,cast(? as json))
+                    """, Long.toString(workItemId), SELECTION_EVENT, customerId,
+                    selectionRequestId(command.requestId()), json.writeValueAsString(payload));
+        } catch (Exception exception) {
+            throw new DomainException("B01_STATE_PERSISTENCE_FAILED",
+                    "B-01 selection receipt could not be stored.", true);
+        }
+    }
+
+    private static String selectionRequestId(String requestId) {
+        return SELECTION_REQUEST_PREFIX + requestId;
+    }
+
+    private static DomainException duplicateSelectionRequest() {
+        return new DomainException("DUPLICATE_REQUEST_CONFLICT",
+                "The requestId was already used for a different B-01 selection.");
     }
 
     @Transactional
@@ -121,6 +233,11 @@ public class B01ProgressService {
     }
 
     private LockedWorkItem lock(long customerId, long workItemId, boolean allowOnHold, boolean forUpdate) {
+        return lock(customerId, workItemId, allowOnHold, forUpdate, false);
+    }
+
+    private LockedWorkItem lock(long customerId, long workItemId, boolean allowOnHold, boolean forUpdate,
+            boolean distinguishOnHold) {
         requireJdbc();
         String states = allowOnHold ? "('ACTIVE','ON_HOLD')" : "('ACTIVE')";
         List<LockedWorkItem> rows = jdbc.query("""
@@ -133,8 +250,22 @@ public class B01ProgressService {
                 rs.getInt("version"), rs.getString("status"), rs.getString("resume_step"),
                 rs.getString("draft_data")),
                 workItemId, customerId);
-        if (rows.isEmpty()) throw unavailable();
+        if (rows.isEmpty()) {
+            if (distinguishOnHold && ownedOnHold(customerId, workItemId)) {
+                throw new DomainException("WORK_ITEM_RESUME_REQUIRED",
+                        "The B-01 work item must be resumed before continuing.");
+            }
+            throw unavailable();
+        }
         return rows.get(0);
+    }
+
+    private boolean ownedOnHold(long customerId, long workItemId) {
+        Integer count = jdbc.queryForObject("""
+                select count(*) from work_item wi join workflow wf on wf.id=wi.workflow_id
+                 where wi.id=? and wf.customer_id=? and wi.task_code=? and wi.status='ON_HOLD'
+                """, Integer.class, workItemId, customerId, TASK_CODE);
+        return count != null && count == 1;
     }
 
     private void requireOwnedLoan(long customerId, long loanId) {
@@ -221,14 +352,16 @@ public class B01ProgressService {
         return count != null && count == 1;
     }
 
-    private void applySelection(ObjectNode draft, long loanId, String order) {
+    private boolean applySelection(ObjectNode draft, long loanId, String order) {
         Long beforeLoan = positiveLong(draft, "selectedLoanId");
         String beforeOrder = text(draft, "requestedRepaymentOrder");
         if (!Objects.equals(beforeLoan, loanId) || !Objects.equals(beforeOrder, order)) {
             invalidateApplication(draft);
             draft.put("selectedLoanId", loanId).put("requestedRepaymentOrder", order)
                     .put("currentStep", "LOAN_SELECTED");
+            return true;
         }
+        return false;
     }
 
     private static void invalidateApplication(ObjectNode draft) {
@@ -306,6 +439,8 @@ public class B01ProgressService {
     }
 
     public record SelectionCommand(String requestId, long loanId, String requestedRepaymentOrder) { }
+    public record SelectionSaveResult(long workItemId, Long selectedLoanId, String requestedRepaymentOrder,
+                                      boolean changed, boolean replayed, int workItemVersion) { }
     public record ProgressContext(long workItemId, int workItemVersion, String workItemStatus, String resumeStep,
                                   Long selectedLoanId, String requestedRepaymentOrder,
                                   DocumentContext applicationDocument,
@@ -320,4 +455,6 @@ public class B01ProgressService {
                              boolean manualVerificationRequired, B01OcrPort.VisualChecks visualChecks) { }
     public record OcrLoan(String maskedAccountNumber, BigDecimal balance, LocalDate accelerationDate) { }
     private record LockedWorkItem(int version, String status, String resumeStep, String draft) { }
+    private record SelectionReceipt(String entityType, String entityId, String eventType,
+                                    String actorType, Long actorId, String payload) { }
 }

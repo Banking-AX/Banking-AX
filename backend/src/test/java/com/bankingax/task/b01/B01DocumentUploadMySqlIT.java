@@ -87,7 +87,7 @@ class B01DocumentUploadMySqlIT {
 
     @Test
     void customerUploadsRecognizedFixtureAndPersistsSafeOcrResult() throws Exception {
-        selectLoan(501, "PRINCIPAL_FIRST");
+        selectLoan("b01-select-recognized", 501, "PRINCIPAL_FIRST");
         byte[] fixture = fixture();
         var response = http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
                         .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture))
@@ -138,7 +138,7 @@ class B01DocumentUploadMySqlIT {
                 values(502,1,'MOCK-B01-OTHER','other synthetic loan',30000000,26500000,62,
                   true,'2026-08-31','INTEREST_FIRST')
                 """);
-        selectLoan(501, "PRINCIPAL_FIRST");
+        selectLoan("b01-select-persisted", 501, "PRINCIPAL_FIRST");
         http.perform(multipart("/api/v1/customer/b01/work-items/{id}/documents/application", 100)
                         .file(new MockMultipartFile("file", "application.pdf", "application/pdf", fixture()))
                         .param("requestId", "b01-upload-selected")
@@ -264,13 +264,14 @@ class B01DocumentUploadMySqlIT {
                 .authorities(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
     }
 
-    private void selectLoan(long loanId, String order) throws Exception {
+    // Selection receipts live in event_log, which seed() keeps, so each test passes its own requestId.
+    private void selectLoan(String requestId, long loanId, String order) throws Exception {
         http.perform(put("/api/v1/customer/b01/work-items/{id}/context", 100)
                         .with(customer(1)).contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"requestId":"b01-select-%d","loanId":%d,
+                                {"requestId":"%s","loanId":%d,
                                  "requestedRepaymentOrder":"%s"}
-                                """.formatted(loanId, loanId, order)))
+                                """.formatted(requestId, loanId, order)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.selectedLoanId").value(loanId));
     }

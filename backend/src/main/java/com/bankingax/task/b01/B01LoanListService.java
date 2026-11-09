@@ -18,9 +18,22 @@ public class B01LoanListService {
 
     @Transactional(readOnly = true)
     public List<LoanListItem> findOwnedLoans(long customerId, long workItemId) {
+        return findOwnedLoans(customerId, workItemId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LoanListItem> findOwnedLoansForTool(long customerId, long workItemId) {
+        return findOwnedLoans(customerId, workItemId, true);
+    }
+
+    private List<LoanListItem> findOwnedLoans(long customerId, long workItemId, boolean distinguishOnHold) {
         requirePort();
         String status = queries.ownedWorkItemStatus(customerId, workItemId)
                 .orElseThrow(B01LoanListService::unavailable);
+        if (distinguishOnHold && "ON_HOLD".equals(status)) {
+            throw new DomainException(
+                    "WORK_ITEM_RESUME_REQUIRED", "The B-01 work item must be resumed before loan lookup.");
+        }
         if (!"ACTIVE".equals(status)) {
             throw new DomainException("WORK_ITEM_NOT_AVAILABLE", "The B-01 work item is not available.");
         }

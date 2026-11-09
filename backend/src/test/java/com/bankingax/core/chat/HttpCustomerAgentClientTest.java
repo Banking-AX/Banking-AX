@@ -93,6 +93,49 @@ class HttpCustomerAgentClientTest {
     }
 
     @Test
+    void deserializesValidatedB01ReconnectAction() throws Exception {
+        ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+        String responseBody = "{\"requestId\":\"op-b01\",\"customerId\":1,"
+                + "\"outcome\":\"B01_RECONNECT_CONFIRMATION_REQUIRED\","
+                + "\"classification\":{},\"workflow\":null,\"loanInquiry\":null,"
+                + "\"executionStatus\":null,\"taskAction\":null,"
+                + "\"b01ReconnectAction\":{\"type\":\"SELECT_B01_RECONNECT\","
+                + "\"allowStartNew\":true,\"candidates\":["
+                + "{\"workItemId\":3,\"status\":\"ON_HOLD\","
+                + "\"originalChatRoomId\":1,\"originalChatRoomAvailable\":true}]},"
+                + "\"answer\":\"진행 중인 업무가 있습니다.\","
+                + "\"answerStatus\":\"GENERATED\"}";
+
+        CustomerAgentClient.AgentResponse response = callAgent(json, responseBody, "op-b01");
+
+        assertThat(response.b01ReconnectAction().allowStartNew()).isTrue();
+        assertThat(response.b01ReconnectAction().candidates())
+                .extracting(CustomerAgentClient.B01ReconnectCandidate::workItemId)
+                .containsExactly(3L);
+    }
+
+    @Test
+    void rejectsInvalidB01ReconnectCandidate() throws Exception {
+        ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+        String responseBody = "{\"requestId\":\"op-b01-invalid\",\"customerId\":1,"
+                + "\"outcome\":\"B01_RECONNECT_CONFIRMATION_REQUIRED\","
+                + "\"classification\":{},\"workflow\":null,\"loanInquiry\":null,"
+                + "\"executionStatus\":null,\"taskAction\":null,"
+                + "\"b01ReconnectAction\":{\"type\":\"SELECT_B01_RECONNECT\","
+                + "\"allowStartNew\":false,\"candidates\":["
+                + "{\"workItemId\":18,\"status\":\"DONE\","
+                + "\"originalChatRoomId\":5,\"originalChatRoomAvailable\":true}]},"
+                + "\"answer\":\"진행 중인 업무가 있습니다.\","
+                + "\"answerStatus\":\"GENERATED\"}";
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> callAgent(json, responseBody, "op-b01-invalid"))
+                .isInstanceOf(DomainException.class)
+                .extracting(error -> ((DomainException) error).code())
+                .isEqualTo("CUSTOMER_AGENT_INVALID_RESPONSE");
+    }
+
+    @Test
     void treatsAnUntrustedConflictBodyAsAnUpstreamAvailabilityFailure() throws Exception {
         ObjectMapper json = new ObjectMapper().findAndRegisterModules();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -151,6 +194,28 @@ class HttpCustomerAgentClientTest {
                     .isInstanceOf(DomainException.class)
                     .extracting(error -> ((DomainException) error).code())
                     .isEqualTo(expectedCode);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private CustomerAgentClient.AgentResponse callAgent(
+            ObjectMapper json, String responseBody, String requestId) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/customer-agent/messages/start", exchange -> {
+            byte[] response = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        server.start();
+        try {
+            HttpCustomerAgentClient client = new HttpCustomerAgentClient(
+                    "http://127.0.0.1:" + server.getAddress().getPort(),
+                    "dedicated-test-token", 2, json);
+            return client.start(new CustomerAgentClient.AgentRequest(
+                    requestId, 1, 77, "질문", List.of()));
         } finally {
             server.stop(0);
         }
