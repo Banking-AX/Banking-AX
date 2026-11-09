@@ -348,8 +348,10 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   const reconnect = readB01ReconnectAction(run.agentResult.b01ReconnectAction)
   if (reconnect) return { kind: 'b01Reconnect', answer, action: reconnect }
   if (run.agentResult.taskAction) return { kind: 'taskAction', answer, action: run.agentResult.taskAction }
+  // B-01 opens its application page only through taskAction (after ELIGIBLE); a STARTED graph answer stays in the chat.
   if (run.agentResult.outcome === 'STARTED' && run.agentResult.workflow
-      && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY') {
+      && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY'
+      && run.agentResult.workflow.taskCode !== 'REPAYMENT_ORDER_CHANGE') {
     return { kind: 'started', taskCode: run.agentResult.workflow.taskCode,
       workItemId: run.agentResult.workflow.workItemId, answer }
   }

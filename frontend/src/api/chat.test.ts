@@ -171,6 +171,28 @@ describe('Spring chat BFF client', () => {
       kind: 'started', taskCode: 'TRANSACTION_SEARCH', workItemId: 21, answer: '업무를 준비했습니다.',
     })
   })
+
+  it('keeps a STARTED B-01 graph answer in the chat without a page link before ELIGIBLE', () => {
+    const b01Run = (outcome: AgentRun['agentResult']['outcome'], taskAction: AgentRun['agentResult']['taskAction']): AgentRun => ({
+      customerMessage: message(50, 1, 'CUSTOMER', '충당순서 변경할래'),
+      agentMessage: message(51, 2, 'AGENT', '변경할 대출을 골라 주세요.'),
+      agentResult: {
+        requestId: 'op-b01-graph', customerId: 1, outcome, classification: {},
+        workflow: { workflowId: 60, workItemId: 61, taskCode: 'REPAYMENT_ORDER_CHANGE', status: 'ACTIVE' },
+        loanInquiry: null, executionStatus: null, taskAction,
+        answer: '변경할 대출을 골라 주세요.', answerStatus: 'GENERATED',
+      },
+      financialOperationCompleted: false, agentMessageSaved: true,
+    })
+
+    // Loan selection question and INELIGIBLE answers: plain text only.
+    expect(replyFromAgentRun(b01Run('STARTED', null))).toEqual({ kind: 'message', answer: '변경할 대출을 골라 주세요.' })
+    // ELIGIBLE: the application page is reached only through the server taskAction.
+    const action = { taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'op-b01-graph' } as const
+    expect(replyFromAgentRun(b01Run('TASK_ACTION_AVAILABLE', action))).toEqual({
+      kind: 'taskAction', answer: '변경할 대출을 골라 주세요.', action,
+    })
+  })
 })
 
 const reconnectAction = {
