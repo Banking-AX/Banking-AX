@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { ChatReply, TaskCode } from '../../api/chat'
+import type { B01ReconnectChoice, ChatReply, TaskCode } from '../../api/chat'
 import { LoanTable } from './LoanTable'
 import { ParameterRequestBody, TransactionResultBody } from './TransactionResultCard'
 import { b01Guide, c02Guide } from './chatGuideCopy'
@@ -47,6 +47,7 @@ export function replyLabel(reply: ChatReply): string {
   if (reply.kind === 'parameterRequest') return 'A-01 거래내역 조회 · 조건 확인'
   if (reply.kind === 'loans') return reply.loans.length > 0 ? 'A-02 대출계좌 정보 조회' : 'A-02 대출계좌 정보 조회 · 없음'
   if (reply.kind === 'loanDetailsAction') return 'A-02 대출계좌 정보 조회'
+  if (reply.kind === 'b01Reconnect') return 'B-01 채무변제 충당순서 변경 · 진행 중인 신청'
   return 'AI 금융 도우미'
 }
 
@@ -64,6 +65,7 @@ export function replyText(reply: ChatReply): string {
     case 'loans': return reply.answer
     case 'transactions': return reply.answer
     case 'parameterRequest': return reply.answer
+    case 'b01Reconnect': return reply.answer
   }
 }
 
@@ -79,13 +81,22 @@ function taskPath(taskCode: Extract<ChatReply, { kind: 'started' }>['taskCode'],
   }
 }
 
-export function ChatReplyView({ reply, time, onTaskAction, actionPending = false, onQuickReply }: {
+/** Identifies one reconnect button within a message, e.g. "CONTINUE_EXISTING:18" or "START_NEW:new". */
+export const b01ReconnectKey = (choice: B01ReconnectChoice, workItemId: number | null) => `${choice}:${workItemId ?? 'new'}`
+
+export function ChatReplyView({ reply, time, onTaskAction, actionPending = false, onQuickReply, onB01Reconnect, reconnectPending = null, reconnectLocked = false }: {
   reply: ChatReply
   time: string
   onTaskAction?: () => void
   actionPending?: boolean
   /** Sends a pill's sentence as the customer's message; omitted (pills disabled) while an answer is pending. */
   onQuickReply?: (text: string) => void
+  /** Sends the customer's reconnect choice to Spring; omitted when the chat cannot act on it. */
+  onB01Reconnect?: (choice: B01ReconnectChoice, workItemId: number | null) => void
+  /** b01ReconnectKey of this message's button being processed. */
+  reconnectPending?: string | null
+  /** Another request is in flight, so every reconnect button is locked. */
+  reconnectLocked?: boolean
 }) {
   if (reply.kind === 'transactions') {
     return <BotMessage label={replyLabel(reply)} time={time} after={<TransactionResultBody result={reply.result} onQuickReply={onQuickReply} />}>{reply.answer}</BotMessage>
@@ -167,6 +178,39 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
           {actionPending ? '신청 화면을 준비하고 있어요' : <>채무변제 충당순서 변경{MOVE_ARROW}</>}
         </button>
         <span className="chat-b-go__note">{guide.moveNote}</span>
+      </div>
+    </>}>{reply.answer}</BotMessage>
+  }
+  if (reply.kind === 'b01Reconnect') {
+    // Statuses are what the agent saw when it answered; Spring re-checks them when a button is pressed.
+    const disabled = !onB01Reconnect || reconnectLocked || reconnectPending !== null
+    const startNewKey = b01ReconnectKey('START_NEW', null)
+    return <BotMessage label={replyLabel(reply)} time={time} after={<>
+      <ul className="chat-reply-tasks" aria-label="진행 중인 충당순서 변경 신청">
+        {reply.action.candidates.map((candidate, index) => {
+          const key = b01ReconnectKey('CONTINUE_EXISTING', candidate.workItemId)
+          return <li key={candidate.workItemId} className="chat-reply-task">
+            <span aria-hidden="true" className="chat-reply-task__number">{index + 1}</span>
+            <span className="chat-reply-task__name chat-b01-reconnect__name">
+              <strong>신청 번호 {candidate.workItemId}</strong>
+              <span className="chat-b01-reconnect__meta">{candidate.status === 'ACTIVE' ? '진행 중' : '보류'} · {candidate.originalChatRoomAvailable ? '원래 대화방에서 이어가요' : '신청 화면에서 이어가요'}</span>
+            </span>
+            <button type="button" className="chat-b-button chat-b-button--outline" disabled={disabled}
+              aria-label={`신청 번호 ${candidate.workItemId} 이어하기`}
+              onClick={() => onB01Reconnect?.('CONTINUE_EXISTING', candidate.workItemId)}>
+              {reconnectPending === key ? '확인하고 있어요' : '이어하기'}
+            </button>
+          </li>
+        })}
+      </ul>
+      <div className="chat-b-go">
+        {reply.action.allowStartNew && <button type="button" className="chat-b-button chat-b-button--primary" disabled={disabled}
+          onClick={() => onB01Reconnect?.('START_NEW', null)}>
+          {reconnectPending === startNewKey ? '새 신청을 준비하고 있어요' : '새 신청하기'}
+        </button>}
+        <span className="chat-b-go__note">{reply.action.allowStartNew
+          ? '버튼을 누르면 업무 상태를 다시 확인한 뒤 진행해요.'
+          : '다른 대화방에 진행 중인 신청이 있어 새 신청은 할 수 없어요. 이어할 신청을 골라 주세요.'}</span>
       </div>
     </>}>{reply.answer}</BotMessage>
   }

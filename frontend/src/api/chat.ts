@@ -89,11 +89,40 @@ export type ChatReply =
   | { kind: 'loans'; loans: LoanSummary[]; answer: string }
   | { kind: 'transactions'; answer: string; result: ChatTransactionSearch }
   | { kind: 'parameterRequest'; answer: string; request: ChatParameterRequest }
+  | { kind: 'b01Reconnect'; answer: string; action: B01ReconnectAction }
 
 export type ChatTaskAction = {
   taskCode: 'REPAYMENT_ORDER_CHANGE'
   label: '신청 화면으로 이동'
   actionRequestId: string
+}
+
+/** One unfinished B-01 work item in another chat room. Status and ownership are re-checked by Spring on every choice. */
+export type B01ReconnectCandidate = {
+  workItemId: number
+  status: 'ACTIVE' | 'ON_HOLD'
+  originalChatRoomId: number | null
+  originalChatRoomAvailable: boolean
+}
+
+/** agentResult.b01ReconnectAction, also stored in chat_message.citations. allowStartNew is a display hint only. */
+export type B01ReconnectAction = {
+  type: 'SELECT_B01_RECONNECT'
+  allowStartNew: boolean
+  candidates: B01ReconnectCandidate[]
+}
+
+export type B01ReconnectChoice = 'CONTINUE_EXISTING' | 'START_NEW'
+export type B01ReconnectRequest = { requestId: string; choice: B01ReconnectChoice; workItemId: number | null }
+
+/** Spring B01ReconnectService.ReconnectResult. */
+export type B01ReconnectResult = {
+  outcome: 'EXISTING_SELECTED' | 'NEW_CREATED' | 'SAME_CHAT_REUSED' | 'ACTIVE_WORK_ITEM_CONFLICT' | 'REQUEST_REPLAYED'
+  workItemId: number
+  workItemStatus: string
+  originalChatRoomId: number | null
+  originalChatRoomAvailable: boolean
+  navigationTarget: 'ORIGINAL_CHAT' | 'B01_TASK' | 'START_B01_GRAPH'
 }
 
 export type AgentWorkflow = { workflowId: number; workItemId: number; taskCode: TaskCode; status: string }
@@ -104,11 +133,14 @@ export type AgentResult = {
   requestId: string
   customerId: number
   outcome: 'STARTED' | 'INFORMATION_ONLY' | 'CLARIFICATION_REQUIRED' | 'UNSUPPORTED' | 'NO_EXECUTABLE_TASK' | 'COMPOSITE_NOT_SUPPORTED' | 'TASK_NOT_AUTOSTART_ENABLED' | 'TASK_ACTION_AVAILABLE' | 'PARAMETER_REQUIRED'
+    | 'B01_RECONNECT_CONFIRMATION_REQUIRED' | 'B01_ACTIVE_WORK_ITEM_CONFLICT'
   classification: unknown
   workflow: AgentWorkflow | null
   loanInquiry: { loans: LoanSummary[]; workItemStatus?: string | null; workflowStatus?: string | null } | null
   executionStatus: AgentExecutionStatus | null
   taskAction: ChatTaskAction | null
+  /** Read only through readB01ReconnectAction. */
+  b01ReconnectAction?: unknown
   /** Contract drafts (not sent by the server yet); read only through readTransactionSearch / readParameterRequest. */
   transactionSearch?: unknown
   parameterRequest?: unknown
@@ -159,6 +191,15 @@ export const chatApi = {
       }),
     })
     return requireData(response.data)
+  },
+  /** The customer is taken from the JWT; Spring re-checks ownership and the latest work item status. */
+  async reconnectB01(roomId: number, request: B01ReconnectRequest): Promise<B01ReconnectResult> {
+    const response = await apiFetch<unknown>(`/api/v1/customer/chat/rooms/${roomId}/b01/reconnect`, {
+      method: 'POST', body: JSON.stringify(request),
+    })
+    const result = readB01ReconnectResult(requireData(response.data))
+    if (!result) throw new ApiError('INVALID_RESPONSE', 200, 'B-01 reconnect response is invalid.')
+    return result
   },
 }
 
@@ -230,6 +271,68 @@ function readParameterRequest(value: unknown): ChatParameterRequest | null {
   return { taskCode: 'TRANSACTION_SEARCH', missing, reason, earliestDate: isText(value.earliestDate) ? value.earliestDate : null, accountOptions }
 }
 
+const isPositiveId = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0
+
+function readB01ReconnectCandidate(value: unknown): B01ReconnectCandidate | null {
+  if (!isRecord(value)) return null
+  const { workItemId, status, originalChatRoomId, originalChatRoomAvailable } = value
+  if (!isPositiveId(workItemId) || (status !== 'ACTIVE' && status !== 'ON_HOLD')
+      || (originalChatRoomId !== null && originalChatRoomId !== undefined && !isPositiveId(originalChatRoomId))
+      || typeof originalChatRoomAvailable !== 'boolean') return null
+  const roomId = isPositiveId(originalChatRoomId) ? originalChatRoomId : null
+  if (originalChatRoomAvailable && roomId === null) return null
+  return { workItemId, status, originalChatRoomId: roomId, originalChatRoomAvailable }
+}
+
+/** The only place that reads b01ReconnectAction (agent result or citations); anything malformed shows no buttons. */
+function readB01ReconnectAction(value: unknown): B01ReconnectAction | null {
+  if (!isRecord(value) || value.type !== 'SELECT_B01_RECONNECT' || typeof value.allowStartNew !== 'boolean'
+      || !Array.isArray(value.candidates) || value.candidates.length === 0) return null
+  const candidates = value.candidates.map(readB01ReconnectCandidate)
+  if (candidates.some(candidate => candidate === null)) return null
+  const ids = new Set(candidates.map(candidate => candidate!.workItemId))
+  if (ids.size !== candidates.length) return null
+  return { type: 'SELECT_B01_RECONNECT', allowStartNew: value.allowStartNew, candidates: candidates as B01ReconnectCandidate[] }
+}
+
+const RECONNECT_OUTCOMES = new Set(['EXISTING_SELECTED', 'NEW_CREATED', 'SAME_CHAT_REUSED', 'ACTIVE_WORK_ITEM_CONFLICT', 'REQUEST_REPLAYED'])
+const RECONNECT_TARGETS = new Set(['ORIGINAL_CHAT', 'B01_TASK', 'START_B01_GRAPH'])
+
+function readB01ReconnectResult(value: unknown): B01ReconnectResult | null {
+  if (!isRecord(value)) return null
+  const { outcome, workItemId, workItemStatus, originalChatRoomId, originalChatRoomAvailable, navigationTarget } = value
+  if (!isText(outcome) || !RECONNECT_OUTCOMES.has(outcome) || !isPositiveId(workItemId) || !isText(workItemStatus)
+      || (originalChatRoomId !== null && originalChatRoomId !== undefined && !isPositiveId(originalChatRoomId))
+      || typeof originalChatRoomAvailable !== 'boolean' || !isText(navigationTarget) || !RECONNECT_TARGETS.has(navigationTarget)) return null
+  const roomId = isPositiveId(originalChatRoomId) ? originalChatRoomId : null
+  // Spring pairs EXISTING_SELECTED/ACTIVE_WORK_ITEM_CONFLICT with a page target and the others with START_B01_GRAPH.
+  const startsGraph = outcome === 'NEW_CREATED' || outcome === 'SAME_CHAT_REUSED' || outcome === 'REQUEST_REPLAYED'
+  if (startsGraph !== (navigationTarget === 'START_B01_GRAPH')) return null
+  if (navigationTarget === 'ORIGINAL_CHAT' && (roomId === null || !originalChatRoomAvailable)) return null
+  return {
+    outcome: outcome as B01ReconnectResult['outcome'], workItemId, workItemStatus,
+    originalChatRoomId: roomId, originalChatRoomAvailable,
+    navigationTarget: navigationTarget as B01ReconnectResult['navigationTarget'],
+  }
+}
+
+/** What the chat does after a reconnect choice. Pages are built from IDs and the app's own routes, never from server URLs. */
+export type B01ReconnectNextStep =
+  | { type: 'openRoom'; roomId: number; workItemId: number }
+  | { type: 'openTask'; workItemId: number }
+  | { type: 'startGraph'; workItemId: number }
+  | { type: 'conflict'; workItemId: number }
+
+export function b01ReconnectNextStep(result: B01ReconnectResult): B01ReconnectNextStep {
+  const { workItemId } = result
+  if (result.outcome === 'ACTIVE_WORK_ITEM_CONFLICT') return { type: 'conflict', workItemId }
+  if (result.navigationTarget === 'START_B01_GRAPH') return { type: 'startGraph', workItemId }
+  if (result.navigationTarget === 'ORIGINAL_CHAT' && result.originalChatRoomId !== null) {
+    return { type: 'openRoom', roomId: result.originalChatRoomId, workItemId }
+  }
+  return { type: 'openTask', workItemId }
+}
+
 export function replyFromAgentRun(run: AgentRun): ChatReply {
   const answer = run.agentMessage?.content || run.agentResult.answer || '요청 결과를 확인하지 못했어요.'
   const loans = run.agentResult.loanInquiry?.loans
@@ -242,9 +345,13 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   if (transactionSearch) return { kind: 'transactions', answer, result: transactionSearch }
   const parameterRequest = run.agentResult.outcome === 'PARAMETER_REQUIRED' ? readParameterRequest(run.agentResult.parameterRequest) : null
   if (parameterRequest) return { kind: 'parameterRequest', answer, request: parameterRequest }
+  const reconnect = readB01ReconnectAction(run.agentResult.b01ReconnectAction)
+  if (reconnect) return { kind: 'b01Reconnect', answer, action: reconnect }
   if (run.agentResult.taskAction) return { kind: 'taskAction', answer, action: run.agentResult.taskAction }
+  // B-01 opens its application page only through taskAction (after ELIGIBLE); a STARTED graph answer stays in the chat.
   if (run.agentResult.outcome === 'STARTED' && run.agentResult.workflow
-      && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY') {
+      && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY'
+      && run.agentResult.workflow.taskCode !== 'REPAYMENT_ORDER_CHANGE') {
     return { kind: 'started', taskCode: run.agentResult.workflow.taskCode,
       workItemId: run.agentResult.workflow.workItemId, answer }
   }
@@ -278,6 +385,8 @@ export function replyFromChatMessage(message: ChatMessage): ChatReply {
             && uiAction.taskCode === 'LOAN_INQUIRY') {
           return { kind: 'loanDetailsAction', answer: message.content }
         }
+        const reconnect = readB01ReconnectAction(parsed.b01ReconnectAction)
+        if (reconnect) return { kind: 'b01Reconnect', answer: message.content, action: reconnect }
       }
     } catch {
       // Ordinary citations and legacy messages remain plain chat messages.
