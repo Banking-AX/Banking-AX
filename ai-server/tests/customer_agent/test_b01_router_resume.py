@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -145,6 +146,11 @@ class B01RouterResumeTests(unittest.TestCase):
         self.assertEqual(200, first.status_code)
         self.assertTrue(first.json()["b01Entry"]["interrupted"])
         self.assertEqual("LOAN_SELECTION", first.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(
+            first.json()["b01Entry"]["state"]["pending_question"],
+            first.json()["answer"],
+        )
+        self.assertTrue(first.json()["answer"].strip())
         self.assertIsNone(first.json()["taskAction"])
 
         resumed = self.post("followup-1", "2번")
@@ -161,11 +167,52 @@ class B01RouterResumeTests(unittest.TestCase):
         self.gateway.loans = [self.gateway.loans[0]]
         first = self.post("initial-order", "충당순서를 바꾸고 싶어")
         self.assertEqual("REPAYMENT_ORDER_SELECTION", first.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(
+            first.json()["b01Entry"]["state"]["pending_question"],
+            first.json()["answer"],
+        )
+        self.assertTrue(first.json()["answer"].strip())
 
         resumed = self.post("followup-order", "이자 우선")
 
         self.assertEqual(501, resumed.json()["b01Entry"]["state"]["selected_loan_id"])
         self.assertEqual("INTEREST_FIRST", resumed.json()["b01Entry"]["state"]["requested_repayment_order"])
+
+    def test_invalid_selection_returns_the_graph_question_again(self) -> None:
+        first = self.post("initial-invalid", "원금 우선으로 바꿔줘")
+        retried = self.post("followup-invalid", "9번")
+
+        self.assertEqual("LOAN_SELECTION", first.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual("LOAN_SELECTION", retried.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(
+            retried.json()["b01Entry"]["state"]["pending_question"],
+            retried.json()["answer"],
+        )
+        self.assertTrue(retried.json()["answer"].strip())
+
+    def test_interrupt_without_question_is_rejected_as_a_contract_error(self) -> None:
+        invalid_result = {
+            "state": {
+                "work_item_id": 1007,
+                "pending_question": None,
+                "response": "이 응답으로 대체하면 안 됩니다.",
+            },
+            "taskAction": None,
+            "interrupted": True,
+            "interrupt": None,
+        }
+        with patch(
+            "app.customer_agent.router.B01GraphWorkflow.run",
+            return_value=invalid_result,
+        ):
+            response = self.post(
+                "missing-question",
+                "원금 우선으로 바꿔줘",
+                client=TestClient(self.client.app, raise_server_exceptions=False),
+            )
+
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("Internal Server Error", response.text)
 
     def test_ineligible_and_tool_error_never_return_task_action(self) -> None:
         self.gateway.eligible = False

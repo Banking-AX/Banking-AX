@@ -538,6 +538,12 @@ def _b01_graph_response(request: CustomerNaturalStartRequest,
                         workflow: WorkflowStartData | None = None,
                         prepare_outcome: str | None = None) -> dict:
     state = result["state"]
+    if result["interrupted"]:
+        answer = state.get("pending_question")
+        if not isinstance(answer, str) or not answer.strip():
+            raise RuntimeError("B01_INTERRUPT_QUESTION_MISSING")
+    else:
+        answer = state.get("response")
     action = None
     if result["taskAction"] is not None:
         action_request_id = state.get("action_request_id") or request.requestId
@@ -558,7 +564,7 @@ def _b01_graph_response(request: CustomerNaturalStartRequest,
             interrupted=result["interrupted"],
             awaitingInput=state.get("awaiting_input"),
         ),
-        answer=state.get("response"),
+        answer=answer,
         answerStatus="FAILED" if state.get("tool_error") else "GENERATED",
     ).model_dump(mode="json")
 
