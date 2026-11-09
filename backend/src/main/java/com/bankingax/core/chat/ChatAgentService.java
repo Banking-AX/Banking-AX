@@ -66,6 +66,12 @@ public class ChatAgentService {
         if (result.taskAction() != null && !result.taskAction().isNull()) {
             metadata.set("taskAction", result.taskAction());
         }
+        if (result.b01LoanSelectionAction() != null) {
+            metadata.set("b01LoanSelectionAction", json.valueToTree(result.b01LoanSelectionAction()));
+        }
+        if (result.b01DocumentAction() != null) {
+            metadata.set("b01DocumentAction", json.valueToTree(result.b01DocumentAction()));
+        }
         if (result.b01ReconnectAction() != null) {
             metadata.set("b01ReconnectAction", json.valueToTree(result.b01ReconnectAction()));
         }

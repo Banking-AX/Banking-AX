@@ -24,7 +24,8 @@ const QUICK_TASKS = [
   { badge: 'A · 조회', tone: 'a', title: '대출계좌 정보 조회하기' },
   { badge: 'B · 자동처리', tone: 'b', title: '채무변제 충당순서 변경하기' },
   { badge: 'B · 자동처리', tone: 'b', title: '청약통장 해지하기' },
-  { badge: 'C · 직원 검토', tone: 'c', title: '채무조정 접수하기' },
+  // C-01 is hidden from the quick list until its intake flow is ready; the C-01 API and pages stay unchanged.
+  // { badge: 'C · 직원 검토', tone: 'c', title: '채무조정 접수하기' },
   { badge: 'C · 직원 검토', tone: 'c', title: '상속예금 사전접수' },
 ] as const
 
@@ -32,7 +33,7 @@ const QUICK_TASKS = [
 // the existing agent-runs path (Spring DISCOVER then SAME_CHAT_REUSED). It is only sent when the customer presses the button.
 const B01_START_MESSAGE = '채무변제 충당순서 변경하기'
 
-const MIN_LENGTH = 2
+const MIN_LENGTH = 1
 const MAX_LENGTH = 2000
 
 const formatTime = (date: Date) => date.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
@@ -59,6 +60,7 @@ export function ChatModal() {
   const [roomError, setRoomError] = useState('')
   const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
   const [actionPending, setActionPending] = useState<string | null>(null)
+  const [documentPending, setDocumentPending] = useState(false)
   const [actionError, setActionError] = useState('')
   const [reconnectPending, setReconnectPending] = useState<{ messageId: number; key: string } | null>(null)
   // Shown under the reconnect answer until the customer acts: start the new work item, or the ACTIVE conflict notice.
@@ -214,7 +216,7 @@ export function ChatModal() {
   const send = (raw: string) => {
     if (pendingRef.current) return
     const message = raw.trim()
-    if (message.length < MIN_LENGTH) { setHint('두 글자 이상 입력해 주세요.'); return }
+    if (message.length < MIN_LENGTH) { setHint('내용을 입력해 주세요.'); return }
     if (roomId === null && !isDraft) { setHint('채팅방을 준비하는 중이에요. 잠시 후 다시 시도해 주세요.'); return }
     setHint('')
     setDraft('')
@@ -243,6 +245,25 @@ export function ChatModal() {
       setActionError(toUserMessage(error))
     } finally {
       setActionPending(null)
+    }
+  }
+
+  const downloadB01Application = async () => {
+    if (documentPending) return
+    setDocumentPending(true)
+    setActionError('')
+    try {
+      const blob = await chatApi.downloadB01ApplicationForm()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = 'b01-repayment-order-change-application-201903.pdf'
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setActionError(toUserMessage(error))
+    } finally {
+      setDocumentPending(false)
     }
   }
 
@@ -432,7 +453,10 @@ export function ChatModal() {
             const messageId = entry.message.id
             return <ChatReplyView key={entry.key} reply={reply} time={formatServerTime(entry.message.sentAt)}
               actionPending={reply.kind === 'taskAction' && actionPending === reply.action.actionRequestId}
-              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined} onQuickReply={pending ? undefined : send}
+              onTaskAction={reply.kind === 'taskAction' ? () => startTaskAction(reply.action) : undefined}
+              documentPending={reply.kind === 'taskAction' && documentPending}
+              onDocumentDownload={reply.kind === 'taskAction' && reply.documentAction ? downloadB01Application : undefined}
+              onQuickReply={pending ? undefined : send}
               onB01Reconnect={reply.kind === 'b01Reconnect' ? (choice, workItemId) => reconnectB01(messageId, choice, workItemId) : undefined}
               reconnectPending={reconnectPending?.messageId === messageId ? reconnectPending.key : null}
               reconnectLocked={pending || actionPending !== null || roomId === null || (reconnectPending !== null && reconnectPending.messageId !== messageId)} />

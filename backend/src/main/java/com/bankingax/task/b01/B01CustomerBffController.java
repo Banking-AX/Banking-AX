@@ -4,6 +4,12 @@ import com.bankingax.core.api.ApiEnvelope;
 import com.bankingax.core.api.DomainException;
 import com.bankingax.core.auth.TaskBffPrincipal;
 import org.springframework.http.MediaType;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +41,23 @@ public class B01CustomerBffController {
         this.verification = verification;
         this.loans = loans;
         this.execution = execution;
+    }
+
+    @GetMapping(value = "/application-form", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<Resource> applicationForm(JwtAuthenticationToken authentication) {
+        customer(authentication);
+        Resource form = new ClassPathResource("b01/mock-ocr/b01_blank_201903.pdf");
+        if (!form.exists()) {
+            throw new DomainException("B01_APPLICATION_FORM_UNAVAILABLE",
+                    "The B-01 application form is unavailable.");
+        }
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("b01-repayment-order-change-application-201903.pdf")
+                        .build().toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(form);
     }
 
     @GetMapping("/work-items/{workItemId}/loans")

@@ -227,6 +227,8 @@ class ChatControllerMySqlIT {
                 .isEqualTo("REPAYMENT_ORDER_CHANGE");
         assertThat(json.readTree(citations).path("taskAction").path("actionRequestId").asText())
                 .isEqualTo("b01-operation-1");
+        assertThat(json.readTree(citations).path("b01DocumentAction").path("downloadPath").asText())
+                .isEqualTo("/api/v1/customer/b01/application-form");
 
         ResponseEntity<Map> restored = exchange(
                 HttpMethod.GET,
@@ -437,6 +439,8 @@ class ChatControllerMySqlIT {
                         501, 1001, "LOAN_INQUIRY", "DONE", "COMPLETED"),
                 null,
                 null,
+                null,
+                null,
                 "대출계좌 3건을 조회했습니다.",
                 "GENERATED");
     }
@@ -455,6 +459,11 @@ class ChatControllerMySqlIT {
                         .put("label", "신청 화면으로 이동")
                         .put("actionRequestId", "b01-operation-1"),
                 null,
+                new CustomerAgentClient.B01DocumentAction(
+                        "DOWNLOAD_B01_APPLICATION",
+                        "b01-repayment-order-change-application-201903.pdf",
+                        "/api/v1/customer/b01/application-form"),
+                null,
                 "채무변제충당순서 변경 신청을 도와드리겠습니다. 신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.",
                 "GENERATED");
     }
@@ -465,6 +474,8 @@ class ChatControllerMySqlIT {
                 1,
                 "B01_RECONNECT_CONFIRMATION_REQUIRED",
                 json.createObjectNode(),
+                null,
+                null,
                 null,
                 null,
                 null,

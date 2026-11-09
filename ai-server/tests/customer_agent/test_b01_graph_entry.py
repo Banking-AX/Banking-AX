@@ -42,7 +42,12 @@ def classified(task_code: TaskCode, request_kind: RequestKind) -> IntentClassifi
 class StaticClassifier:
     def classify(self, message: str,
                  recent_messages: list[str] | None = None) -> IntentClassification:
-        if message == "B-01 안내":
+        if message in {
+            "B-01 안내",
+            "채무변제 충당순서 변경이 뭐야?",
+            "돈 빌린 거 갚는 순서 바꾸는 게 뭐야?",
+            "원금 우선이 무슨 뜻이야?",
+        }:
             return classified(TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.INFORMATION)
         if message == "대출 조회":
             return classified(TaskCode.LOAN_INQUIRY, RequestKind.ACTION)
@@ -130,7 +135,8 @@ class B01GraphEntryTests(unittest.TestCase):
         self.store.close()
         self.temporary.cleanup()
 
-    def client(self, gateway: RecordingGateway, enabled: bool = True) -> TestClient:
+    def client(self, gateway: RecordingGateway, enabled: bool = True,
+               information_guide=None) -> TestClient:
         app = FastAPI()
         app.include_router(create_router(
             TaskRegistry(),
@@ -140,6 +146,7 @@ class B01GraphEntryTests(unittest.TestCase):
             b01_graph_entry_enabled=enabled,
             b01_checkpoint_store=self.store,
             internal_token="agent-test-token",
+            information_guide=information_guide,
         ), prefix="/api/v1")
         return TestClient(app)
 
@@ -196,11 +203,88 @@ class B01GraphEntryTests(unittest.TestCase):
 
     def test_information_request_does_not_prepare_work_item(self) -> None:
         gateway = RecordingGateway()
-        response = self.post(self.client(gateway), "B-01 안내")
+        calls: list[tuple[str, str]] = []
+
+        def guide(query: str, task_code: str):
+            calls.append((query, task_code))
+            return {
+                "officialName": "채무변제 충당순서 변경",
+                "bullets": [{"text": "상환금을 비용, 이자, 원금 순서로 충당하는 기준을 변경하는 업무예요."}],
+            }
+
+        response = self.post(self.client(gateway, information_guide=guide), "B-01 안내")
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("INFORMATION_ONLY", response.json()["outcome"])
+        self.assertEqual("GENERATED", response.json()["answerStatus"])
+        self.assertIn("채무변제 충당순서 변경 안내입니다.", response.json()["answer"])
+        self.assertIn("상환금을 비용, 이자, 원금 순서", response.json()["answer"])
+        self.assertEqual([("B-01 안내", "REPAYMENT_ORDER_CHANGE")], calls)
         self.assertEqual([], gateway.b01_requests)
+
+    def test_b01_information_phrasings_use_rag_without_starting_work(self) -> None:
+        gateway = RecordingGateway()
+        calls: list[tuple[str, str]] = []
+
+        def guide(query: str, task_code: str):
+            calls.append((query, task_code))
+            return {
+                "officialName": "채무변제 충당순서 변경",
+                "bullets": [{"text": "검수된 안내문에 따른 설명입니다."}],
+            }
+
+        client = self.client(gateway, information_guide=guide)
+        messages = [
+            "채무변제 충당순서 변경이 뭐야?",
+            "돈 빌린 거 갚는 순서 바꾸는 게 뭐야?",
+            "원금 우선이 무슨 뜻이야?",
+        ]
+        for index, message in enumerate(messages):
+            with self.subTest(message=message):
+                response = self.post(client, message, f"b01-info-{index}")
+                self.assertEqual(200, response.status_code)
+                self.assertEqual("INFORMATION_ONLY", response.json()["outcome"])
+                self.assertEqual("GENERATED", response.json()["answerStatus"])
+                self.assertIsNone(response.json()["workflow"])
+                self.assertIsNone(response.json()["taskAction"])
+
+        self.assertEqual([(message, "REPAYMENT_ORDER_CHANGE") for message in messages], calls)
+        self.assertEqual([], gateway.b01_requests)
+        self.assertEqual([], gateway.loan_requests)
+
+    def test_information_without_verified_rag_evidence_is_failed_without_invented_details(self) -> None:
+        gateway = RecordingGateway()
+        response = self.post(
+            self.client(gateway, information_guide=lambda *_: {
+                "officialName": "채무변제 충당순서 변경", "bullets": [],
+            }),
+            "B-01 안내",
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("INFORMATION_ONLY", response.json()["outcome"])
+        self.assertEqual("FAILED", response.json()["answerStatus"])
+        self.assertEqual(
+            "검수된 금융업무 안내 근거를 찾지 못했습니다. 잠시 후 다시 확인해 주세요.",
+            response.json()["answer"],
+        )
+        self.assertEqual([], gateway.b01_requests)
+
+    def test_information_retrieval_failure_is_failed_and_action_flow_is_unchanged(self) -> None:
+        gateway = RecordingGateway()
+
+        def failing_guide(*_):
+            raise RuntimeError("retrieval unavailable")
+
+        client = self.client(gateway, information_guide=failing_guide)
+        information = self.post(client, "B-01 안내", "b01-info-failure")
+        action = self.post(client, "대출금 갚는 순서를 바꾸고 싶어", "b01-action-after-info")
+
+        self.assertEqual("FAILED", information.json()["answerStatus"])
+        self.assertEqual("STARTED", action.json()["outcome"])
+        self.assertEqual(
+            "REPAYMENT_ORDER_SELECTION", action.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(1, len(gateway.b01_requests))
 
     def test_reconnect_confirmation_does_not_initialize_graph(self) -> None:
         gateway = RecordingGateway("RECONNECT_CONFIRMATION_REQUIRED", "ON_HOLD", [{

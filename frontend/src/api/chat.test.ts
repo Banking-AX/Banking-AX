@@ -105,6 +105,34 @@ describe('Spring chat BFF client', () => {
     })
   })
 
+  it('restores the B01 loan list and document download metadata without financial values', () => {
+    const selection = message(15, 2, 'AGENT', '말씀하신 업무는 채무변제 충당순서 변경입니다.')
+    selection.citations = JSON.stringify({ b01LoanSelectionAction: {
+      type: 'SELECT_B01_LOAN', candidates: [
+        { number: 1, loanId: 4, loanName: 'B01-T01 가상 가계대출', loanNoMasked: 'MOCK-***-T01' },
+      ],
+    } })
+    expect(replyFromChatMessage(selection)).toEqual({
+      kind: 'b01LoanSelection', answer: selection.content, action: {
+        type: 'SELECT_B01_LOAN', candidates: [
+          { number: 1, loanId: 4, loanName: 'B01-T01 가상 가계대출', loanNoMasked: 'MOCK-***-T01' },
+        ],
+      },
+    })
+
+    const eligible = message(16, 2, 'AGENT', '신청서를 다운로드하여 작성하고 서명해 주세요.')
+    eligible.citations = JSON.stringify({
+      taskAction: { taskCode: 'REPAYMENT_ORDER_CHANGE', label: '신청 화면으로 이동', actionRequestId: 'op-16' },
+      b01DocumentAction: { type: 'DOWNLOAD_B01_APPLICATION',
+        fileName: 'b01-repayment-order-change-application-201903.pdf',
+        downloadPath: '/api/v1/customer/b01/application-form' },
+    })
+    expect(replyFromChatMessage(eligible)).toMatchObject({
+      kind: 'taskAction', documentAction: { type: 'DOWNLOAD_B01_APPLICATION' },
+    })
+    expect(eligible.citations).not.toMatch(/balance|interestRate|loanNo[^M]/)
+  })
+
   it('restores only the A02 loan-page action from persisted UI metadata', () => {
     const agent = message(13, 2, 'AGENT', '대출계좌 3건을 조회했습니다.')
     agent.citations = JSON.stringify({ uiAction: {

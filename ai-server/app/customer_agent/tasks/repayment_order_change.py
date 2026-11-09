@@ -191,7 +191,12 @@ class B01GraphWorkflow:
         config = self._config(state["work_item_id"])
         if self.checkpointer is not None:
             snapshot = graph.get_state(config)
-            if snapshot.values:
+            # Pending turns are resumed by Router.resume(). A completed checkpoint
+            # belongs to the previous operation request and must not answer a new
+            # ACTION with its old selection or eligibility result.
+            if (snapshot.values and snapshot.next
+                    and snapshot.values.get("last_operation_request_id")
+                    == state.get("last_operation_request_id")):
                 return self._result(dict(snapshot.values), bool(snapshot.next))
         final_state = graph.invoke(dict(state), config=config)
         return self._result(final_state, "__interrupt__" in final_state)
@@ -345,10 +350,12 @@ class B01GraphWorkflow:
 
         requested_order = working.get("requested_repayment_order")
         if requested_order is None:
+            selected = next(candidate for candidate in candidates
+                            if candidate["loanId"] == selected_id)
             return {
                 "loan_candidates": candidates,
                 "selected_loan_id": selected_id,
-                "pending_question": "변경할 충당순서를 선택해 주세요. 원금 우선 또는 이자 우선 중 하나를 말씀해 주세요.",
+                "pending_question": self._order_question(selected),
                 "awaiting_input": "REPAYMENT_ORDER_SELECTION",
             }
 
@@ -422,9 +429,10 @@ class B01GraphWorkflow:
             return {}
         if state.get("eligibility_status") == "ELIGIBLE":
             return {"response": (
-                "대출 규칙 사전검증을 통과했습니다. 채무변제 충당순서 변경 신청서(B01-01)를 "
-                "준비해 신청 화면에서 제출해 주세요. 이후 서류 검증, 필수 동의, 모의서명과 "
-                "SMS 본인확인이 필요하며, 이 안내는 최종 변경 승인을 의미하지 않습니다.")}
+                "채무변제 충당순서 변경 사전검증을 통과했습니다.\n"
+                "신청을 진행하려면 아래 신청서를 다운로드하여 작성하고 서명해 주세요.\n"
+                "신청 페이지에서 서류 검증, 필수 동의, 서명과 SMS 본인확인을 거치며, "
+                "이 안내는 최종 변경 승인을 의미하지 않습니다.")}
         return {"response": "B-01 신청 정보를 확인하지 못했습니다. 다시 요청해 주세요."}
 
     def _after_resolve(self, state: B01GraphState) -> Literal["check", "wait", "respond"]:
@@ -452,7 +460,7 @@ class B01GraphWorkflow:
             }
             if state.get("requested_repayment_order") is None:
                 update.update({
-                    "pending_question": "변경할 충당순서를 선택해 주세요. 원금 우선 또는 이자 우선 중 하나를 말씀해 주세요.",
+                    "pending_question": self._order_question(selected),
                     "awaiting_input": "REPAYMENT_ORDER_SELECTION",
                 })
             return update
@@ -461,8 +469,10 @@ class B01GraphWorkflow:
             if answer is True:
                 update = {"pending_question": None, "awaiting_input": None}
                 if state.get("requested_repayment_order") is None:
+                    selected = next(candidate for candidate in candidates
+                                    if candidate["loanId"] == state.get("selected_loan_id"))
                     update.update({
-                        "pending_question": "변경할 충당순서를 선택해 주세요. 원금 우선 또는 이자 우선 중 하나를 말씀해 주세요.",
+                        "pending_question": self._order_question(selected),
                         "awaiting_input": "REPAYMENT_ORDER_SELECTION",
                     })
                 return update
@@ -474,9 +484,17 @@ class B01GraphWorkflow:
             }
         if awaiting == "REPAYMENT_ORDER_SELECTION":
             order = self._extract_order(customer_input)
+            if order is None and self._confirmation(customer_input) is True:
+                selected = next((candidate for candidate in candidates
+                                 if candidate["loanId"] == state.get("selected_loan_id")), None)
+                if selected is not None:
+                    order = ("PRINCIPAL_FIRST"
+                             if selected["repaymentOrder"] == "INTEREST_FIRST"
+                             else "INTEREST_FIRST")
             if order is None:
                 return {
-                    "pending_question": "원금 우선 또는 이자 우선 중 하나를 명확히 말씀해 주세요.",
+                    "pending_question": state.get("pending_question")
+                    or "변경할 충당순서를 명확히 말씀해 주세요.",
                     "awaiting_input": "REPAYMENT_ORDER_SELECTION",
                 }
             return {"requested_repayment_order": order,
@@ -491,6 +509,13 @@ class B01GraphWorkflow:
             index = int(number.group(1)) - 1
             return candidates[index] if 0 <= index < len(candidates) else None
         normalized = cls._normalize(value)
+        ordinal = next((index for phrase, index in {
+            "첫번째": 0, "첫번째걸로": 0,
+            "두번째": 1, "두번째걸로": 1,
+            "세번째": 2, "세번째걸로": 2,
+        }.items() if normalized == phrase), None)
+        if ordinal is not None:
+            return candidates[ordinal] if ordinal < len(candidates) else None
         matches = [candidate for candidate in candidates
                    if normalized == cls._normalize(candidate["loanName"])
                    or normalized == cls._normalize(candidate["loanNoMasked"])
@@ -500,7 +525,7 @@ class B01GraphWorkflow:
     @staticmethod
     def _confirmation(value: str) -> bool | None:
         normalized = re.sub(r"[\s.!?]", "", value).lower()
-        if normalized in {"예", "네", "응", "맞아", "맞습니다", "yes", "y"}:
+        if normalized in {"예", "네", "응", "그래", "맞아", "맞습니다", "변경할래", "yes", "y"}:
             return True
         if normalized in {"아니오", "아니요", "아니", "틀려", "no", "n"}:
             return False
@@ -574,9 +599,12 @@ class B01GraphWorkflow:
 
     @staticmethod
     def _loan_question(candidates: list[B01LoanCandidate], prefix: str | None = None) -> dict[str, object]:
-        choices = ", ".join(
-            f"{candidate['loanName']}({candidate['loanNoMasked']})" for candidate in candidates)
-        question = f"{choices} 중 변경할 대출을 선택해 주세요."
+        choices = "\n".join(
+            f"{index}. {candidate['loanName']}({candidate['loanNoMasked']})"
+            for index, candidate in enumerate(candidates, 1))
+        question = ("말씀하신 업무는 채무변제 충당순서 변경입니다.\n"
+                    "고객님이 보유한 대출 중 변경할 대출을 선택해 주세요.\n"
+                    f"{choices}\n변경할 대출 번호를 입력해 주세요.")
         if prefix:
             question = f"{prefix} {question}"
         return {
@@ -585,6 +613,21 @@ class B01GraphWorkflow:
             "pending_question": question,
             "awaiting_input": "LOAN_SELECTION",
         }
+
+    @staticmethod
+    def _order_question(candidate: B01LoanCandidate) -> str:
+        current = ("이자 우선" if candidate["repaymentOrder"] == "INTEREST_FIRST"
+                   else "원금 우선")
+        target = ("원금 우선" if candidate["repaymentOrder"] == "INTEREST_FIRST"
+                  else "이자 우선")
+        name = candidate["loanName"]
+        spoken = name.rstrip(" )]")
+        last = spoken[-1] if spoken else ""
+        # 을/를 follows the final consonant of the Spring loan name; non-Hangul endings keep both.
+        particle = ("을(를)" if not "가" <= last <= "힣"
+                    else "을" if (ord(last) - ord("가")) % 28 else "를")
+        return (f"{name}{particle} 선택하셨습니다.\n"
+                f"현재 충당순서는 {current}입니다.\n{target}으로 변경하시겠어요?")
 
     def _tool_request_id(self, stage: str, work_item_id: int) -> str:
         source = f"{self.operation_request_id}:{work_item_id}"

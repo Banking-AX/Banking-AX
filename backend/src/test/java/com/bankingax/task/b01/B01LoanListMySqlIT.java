@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -84,6 +86,19 @@ class B01LoanListMySqlIT {
                        (601,2,'999-777-123456','foreign synthetic',1000,900,1,
                           true,'2026-08-01','INTEREST_FIRST')
                 """);
+    }
+
+    @Test
+    void customerCanDownloadTheExistingBlankB01ApplicationForm() throws Exception {
+        http.perform(get("/api/v1/customer/b01/application-form")
+                        .with(customer(1)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString(
+                                "b01-repayment-order-change-application-201903.pdf")))
+                .andExpect(content().bytes(new org.springframework.core.io.ClassPathResource(
+                        "b01/mock-ocr/b01_blank_201903.pdf").getContentAsByteArray()));
     }
 
     @Test
