@@ -833,9 +833,6 @@ body { margin: 0; font-family: var(--font-family-base); }
 @keyframes chat-dock-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .chat-dock__collapse { flex: 0 0 auto; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; color: #FFFFFF; cursor: pointer; }
 .chat-dock__screen { background: var(--color-primary-dark); padding: 9px 16px; font-size: 13px; line-height: 1.4; color: #FFFFFF; }
-.chat-dock__guide { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #D5E3F5; border-radius: 4px 16px 16px 16px; }
-.chat-dock__guide-tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 4px; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 12px; font-weight: var(--font-weight-bold); }
-.chat-dock__guide-text { font-size: 15px; line-height: 1.65; }
 .chat-dock__quick { display: flex; flex-direction: column; gap: 8px; }
 .chat-dock__task { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; background: #FFFFFF; border: 1px solid #D5E3F5; border-radius: 12px; color: var(--color-text); font-family: inherit; text-align: left; cursor: pointer; }
 .chat-dock__task:disabled { opacity: 0.6; cursor: not-allowed; }

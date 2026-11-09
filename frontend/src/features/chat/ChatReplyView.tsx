@@ -48,6 +48,7 @@ export function replyLabel(reply: ChatReply): string {
   if (reply.kind === 'loans') return reply.loans.length > 0 ? 'A-02 대출계좌 정보 조회' : 'A-02 대출계좌 정보 조회 · 없음'
   if (reply.kind === 'loanDetailsAction') return 'A-02 대출계좌 정보 조회'
   if (reply.kind === 'b01Reconnect') return 'B-01 채무변제 충당순서 변경 · 진행 중인 신청'
+  if (reply.kind === 'b01LoanSelection') return 'B-01 채무변제 충당순서 변경 · 대출 선택'
   return 'AI 금융 도우미'
 }
 
@@ -61,6 +62,7 @@ export function replyText(reply: ChatReply): string {
     case 'notStartable': return reply.answer ?? '이 업무는 아직 채팅에서 바로 시작할 수 없어요.'
     case 'started': return reply.answer
     case 'taskAction': return reply.answer
+    case 'b01LoanSelection': return reply.answer
     case 'loanDetailsAction': return reply.answer
     case 'loans': return reply.answer
     case 'transactions': return reply.answer
@@ -84,11 +86,13 @@ function taskPath(taskCode: Extract<ChatReply, { kind: 'started' }>['taskCode'],
 /** Identifies one reconnect button within a message, e.g. "CONTINUE_EXISTING:18" or "START_NEW:new". */
 export const b01ReconnectKey = (choice: B01ReconnectChoice, workItemId: number | null) => `${choice}:${workItemId ?? 'new'}`
 
-export function ChatReplyView({ reply, time, onTaskAction, actionPending = false, onQuickReply, onB01Reconnect, reconnectPending = null, reconnectLocked = false }: {
+export function ChatReplyView({ reply, time, onTaskAction, actionPending = false, onDocumentDownload, documentPending = false, onQuickReply, onB01Reconnect, reconnectPending = null, reconnectLocked = false }: {
   reply: ChatReply
   time: string
   onTaskAction?: () => void
   actionPending?: boolean
+  onDocumentDownload?: () => void
+  documentPending?: boolean
   /** Sends a pill's sentence as the customer's message; omitted (pills disabled) while an answer is pending. */
   onQuickReply?: (text: string) => void
   /** Sends the customer's reconnect choice to Spring; omitted when the chat cannot act on it. */
@@ -172,6 +176,29 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
   if (reply.kind === 'taskAction') {
     // ChatConsent.dc.html (guide). The button keeps the server action; only its label follows the design decision.
     const guide = b01Guide()
+    if (reply.documentAction) {
+      // After Spring ELIGIBLE: the B01-01 form download and the move to /tasks/b01/{workItemId} stay separate buttons.
+      return <BotMessage label={replyLabel(reply)} time={time} after={<>
+        <div className="chat-b-loans" aria-label="신청서 내려받기">
+          <div className="chat-b-loan chat-b-form">
+            <span className="chat-b-loan__text">
+              <strong className="chat-b-loan__title">{guide.formName}</strong>
+              <span className="chat-b-loan__detail">양식 코드 {guide.formCode}</span>
+            </span>
+            <button type="button" className="chat-b-button chat-b-button--outline"
+              disabled={documentPending || !onDocumentDownload} onClick={onDocumentDownload}>
+              {documentPending ? '신청서를 내려받고 있어요' : '신청서 다운로드'}
+            </button>
+          </div>
+        </div>
+        <div className="chat-b-go">
+          <span className="chat-b-go__note">{guide.uploadNote}</span>
+          <button type="button" className="chat-b-button chat-b-button--primary" disabled={actionPending} onClick={onTaskAction}>
+            {actionPending ? '신청 화면을 준비하고 있어요' : <>신청 페이지로 이동{MOVE_ARROW}</>}
+          </button>
+        </div>
+      </>}>{reply.answer}</BotMessage>
+    }
     return <BotMessage label={replyLabel(reply)} time={time} after={<>
       <div className="chat-b-go">
         <button type="button" className="chat-b-button chat-b-button--primary" disabled={actionPending} onClick={onTaskAction}>
@@ -180,6 +207,25 @@ export function ChatReplyView({ reply, time, onTaskAction, actionPending = false
         <span className="chat-b-go__note">{guide.moveNote}</span>
       </div>
     </>}>{reply.answer}</BotMessage>
+  }
+  if (reply.kind === 'b01LoanSelection') {
+    // The answer keeps the plain numbered list for text-only views; the bubble shows only the lines before it.
+    const lines = reply.answer.split('\n')
+    const listStart = lines.findIndex(line => /^\d+\.\s/.test(line))
+    const introduction = (listStart > 0 ? lines.slice(0, listStart) : lines.slice(0, 1)).join('\n')
+    return <BotMessage label={replyLabel(reply)} time={time} after={<>
+      <div className="chat-b-loans" aria-label="변경할 대출 목록">
+        <div className="chat-b-loans__head">보유 대출 {reply.action.candidates.length}건</div>
+        {reply.action.candidates.map(candidate => <div className="chat-b-loan" key={candidate.loanId}>
+          <span className="chat-reply-task__number" aria-hidden="true">{candidate.number}</span>
+          <span className="chat-b-loan__text">
+            <strong className="chat-b-loan__title">{candidate.loanName}</strong>
+            <span className="chat-b-loan__detail">{candidate.loanNoMasked}</span>
+          </span>
+        </div>)}
+      </div>
+      <p className="chat-b-go__note">변경할 대출 번호를 입력해 주세요.</p>
+    </>}>{introduction}</BotMessage>
   }
   if (reply.kind === 'b01Reconnect') {
     // Statuses are what the agent saw when it answered; Spring re-checks them when a button is pressed.

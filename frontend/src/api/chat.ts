@@ -1,4 +1,4 @@
-import { ApiError, apiFetch } from './client'
+import { ApiError, apiFetch, apiFetchBlob } from './client'
 
 export type TaskCode = 'TRANSACTION_SEARCH' | 'LOAN_INQUIRY' | 'REPAYMENT_ORDER_CHANGE' | 'HOUSING_SAVINGS_CLOSE' | 'DEBT_ADJUSTMENT' | 'INHERITANCE_DEPOSIT'
 export type ChatSenderType = 'CUSTOMER' | 'AGENT' | 'SYSTEM'
@@ -84,7 +84,8 @@ export type ChatReply =
   | { kind: 'composite'; answer?: string; tasks?: CompositeTask[] }
   | { kind: 'notStartable'; taskCode?: TaskCode; answer?: string }
   | { kind: 'started'; taskCode: TaskCode; workItemId: number; answer: string }
-  | { kind: 'taskAction'; answer: string; action: ChatTaskAction }
+  | { kind: 'taskAction'; answer: string; action: ChatTaskAction; documentAction?: B01DocumentAction }
+  | { kind: 'b01LoanSelection'; answer: string; action: B01LoanSelectionAction }
   | { kind: 'loanDetailsAction'; answer: string }
   | { kind: 'loans'; loans: LoanSummary[]; answer: string }
   | { kind: 'transactions'; answer: string; result: ChatTransactionSearch }
@@ -95,6 +96,17 @@ export type ChatTaskAction = {
   taskCode: 'REPAYMENT_ORDER_CHANGE'
   label: '신청 화면으로 이동'
   actionRequestId: string
+}
+
+export type B01LoanSelectionAction = {
+  type: 'SELECT_B01_LOAN'
+  candidates: { number: number; loanId: number; loanName: string; loanNoMasked: string }[]
+}
+
+export type B01DocumentAction = {
+  type: 'DOWNLOAD_B01_APPLICATION'
+  fileName: 'b01-repayment-order-change-application-201903.pdf'
+  downloadPath: '/api/v1/customer/b01/application-form'
 }
 
 /** One unfinished B-01 work item in another chat room. Status and ownership are re-checked by Spring on every choice. */
@@ -139,6 +151,8 @@ export type AgentResult = {
   loanInquiry: { loans: LoanSummary[]; workItemStatus?: string | null; workflowStatus?: string | null } | null
   executionStatus: AgentExecutionStatus | null
   taskAction: ChatTaskAction | null
+  b01LoanSelectionAction?: unknown
+  b01DocumentAction?: unknown
   /** Read only through readB01ReconnectAction. */
   b01ReconnectAction?: unknown
   /** Contract drafts (not sent by the server yet); read only through readTransactionSearch / readParameterRequest. */
@@ -200,6 +214,9 @@ export const chatApi = {
     const result = readB01ReconnectResult(requireData(response.data))
     if (!result) throw new ApiError('INVALID_RESPONSE', 200, 'B-01 reconnect response is invalid.')
     return result
+  },
+  async downloadB01ApplicationForm(): Promise<Blob> {
+    return apiFetchBlob('/api/v1/customer/b01/application-form')
   },
 }
 
@@ -295,6 +312,34 @@ function readB01ReconnectAction(value: unknown): B01ReconnectAction | null {
   return { type: 'SELECT_B01_RECONNECT', allowStartNew: value.allowStartNew, candidates: candidates as B01ReconnectCandidate[] }
 }
 
+function readB01LoanSelectionAction(value: unknown): B01LoanSelectionAction | null {
+  if (!isRecord(value) || value.type !== 'SELECT_B01_LOAN'
+      || !Array.isArray(value.candidates) || value.candidates.length === 0) return null
+  const candidates = value.candidates.flatMap(candidate => {
+    if (!isRecord(candidate)) return []
+    const { number, loanId, loanName, loanNoMasked } = candidate
+    if (!isPositiveId(number) || !isPositiveId(loanId) || !isText(loanName)
+        || !isText(loanNoMasked) || !loanNoMasked.includes('*')) return []
+    return [{ number, loanId, loanName, loanNoMasked }]
+  })
+  if (candidates.length !== value.candidates.length) return null
+  if (new Set(candidates.map(candidate => candidate.number)).size !== candidates.length
+      || new Set(candidates.map(candidate => candidate.loanId)).size !== candidates.length) return null
+  return { type: 'SELECT_B01_LOAN', candidates }
+}
+
+function readB01DocumentAction(value: unknown): B01DocumentAction | null {
+  if (!isRecord(value)
+      || value.type !== 'DOWNLOAD_B01_APPLICATION'
+      || value.fileName !== 'b01-repayment-order-change-application-201903.pdf'
+      || value.downloadPath !== '/api/v1/customer/b01/application-form') return null
+  return {
+    type: 'DOWNLOAD_B01_APPLICATION',
+    fileName: 'b01-repayment-order-change-application-201903.pdf',
+    downloadPath: '/api/v1/customer/b01/application-form',
+  }
+}
+
 const RECONNECT_OUTCOMES = new Set(['EXISTING_SELECTED', 'NEW_CREATED', 'SAME_CHAT_REUSED', 'ACTIVE_WORK_ITEM_CONFLICT', 'REQUEST_REPLAYED'])
 const RECONNECT_TARGETS = new Set(['ORIGINAL_CHAT', 'B01_TASK', 'START_B01_GRAPH'])
 
@@ -347,7 +392,13 @@ export function replyFromAgentRun(run: AgentRun): ChatReply {
   if (parameterRequest) return { kind: 'parameterRequest', answer, request: parameterRequest }
   const reconnect = readB01ReconnectAction(run.agentResult.b01ReconnectAction)
   if (reconnect) return { kind: 'b01Reconnect', answer, action: reconnect }
-  if (run.agentResult.taskAction) return { kind: 'taskAction', answer, action: run.agentResult.taskAction }
+  const loanSelection = readB01LoanSelectionAction(run.agentResult.b01LoanSelectionAction)
+  if (loanSelection) return { kind: 'b01LoanSelection', answer, action: loanSelection }
+  if (run.agentResult.taskAction) {
+    const documentAction = readB01DocumentAction(run.agentResult.b01DocumentAction)
+    return { kind: 'taskAction', answer, action: run.agentResult.taskAction,
+      ...(documentAction ? { documentAction } : {}) }
+  }
   // B-01 opens its application page only through taskAction (after ELIGIBLE); a STARTED graph answer stays in the chat.
   if (run.agentResult.outcome === 'STARTED' && run.agentResult.workflow
       && run.agentResult.workflow.taskCode !== 'LOAN_INQUIRY'
@@ -375,10 +426,13 @@ export function replyFromChatMessage(message: ChatMessage): ChatReply {
             && action.taskCode === 'REPAYMENT_ORDER_CHANGE'
             && action.label === '신청 화면으로 이동'
             && typeof action.actionRequestId === 'string') {
+          const documentAction = readB01DocumentAction(parsed.b01DocumentAction)
           return { kind: 'taskAction', answer: message.content, action: {
             taskCode: action.taskCode, label: action.label, actionRequestId: action.actionRequestId,
-          } }
+          }, ...(documentAction ? { documentAction } : {}) }
         }
+        const loanSelection = readB01LoanSelectionAction(parsed.b01LoanSelectionAction)
+        if (loanSelection) return { kind: 'b01LoanSelection', answer: message.content, action: loanSelection }
         const uiAction = parsed.uiAction
         if (isRecord(uiAction)
             && uiAction.type === 'OPEN_CUSTOMER_LOANS'

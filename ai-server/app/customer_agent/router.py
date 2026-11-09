@@ -5,7 +5,7 @@ import hmac
 import re
 from contextlib import asynccontextmanager
 from decimal import Decimal
-from typing import Literal
+from typing import Callable, Literal
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -36,6 +36,9 @@ from .intent_classifier import (
     RequestKind,
     TaskCode,
 )
+
+
+InformationGuide = Callable[[str, str], dict[str, object]]
 
 
 class CustomerTaskRequest(BaseModel):
@@ -71,7 +74,7 @@ class CustomerTaskRequest(BaseModel):
 
 
 class CustomerIntentRequest(BaseModel):
-    message: str = Field(min_length=2, max_length=2000)
+    message: str = Field(min_length=1, max_length=2000)
     recentMessages: list[str] = Field(default_factory=list, max_length=5)
 
 
@@ -160,6 +163,28 @@ class CustomerTaskAction(BaseModel):
     taskCode: Literal["REPAYMENT_ORDER_CHANGE"]
     label: Literal["신청 화면으로 이동"] = "신청 화면으로 이동"
     actionRequestId: str = Field(min_length=1, max_length=90)
+
+
+class B01LoanSelectionCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    number: int = Field(gt=0)
+    loanId: int = Field(gt=0)
+    loanName: str = Field(min_length=1, max_length=200)
+    loanNoMasked: str = Field(min_length=3, max_length=100)
+
+
+class B01LoanSelectionAction(BaseModel):
+    type: Literal["SELECT_B01_LOAN"] = "SELECT_B01_LOAN"
+    candidates: list[B01LoanSelectionCandidate] = Field(min_length=1)
+
+
+class B01DocumentAction(BaseModel):
+    type: Literal["DOWNLOAD_B01_APPLICATION"] = "DOWNLOAD_B01_APPLICATION"
+    fileName: Literal["b01-repayment-order-change-application-201903.pdf"] = (
+        "b01-repayment-order-change-application-201903.pdf")
+    downloadPath: Literal["/api/v1/customer/b01/application-form"] = (
+        "/api/v1/customer/b01/application-form")
 
 
 class B01ReconnectCandidate(BaseModel):
@@ -251,6 +276,8 @@ class CustomerNaturalStartResponse(BaseModel):
     loanInquiry: LoanInquiryData | None = None
     executionStatus: ExecutionStatus | None = None
     taskAction: CustomerTaskAction | None = None
+    b01LoanSelectionAction: B01LoanSelectionAction | None = None
+    b01DocumentAction: B01DocumentAction | None = None
     b01ReconnectAction: B01ReconnectAction | None = None
     b01Entry: B01GraphEntry | None = None
     answer: str | None = None
@@ -278,7 +305,8 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                   natural_start_enabled: bool | None = None,
                   b01_graph_entry_enabled: bool | None = None,
                   b01_checkpoint_store: B01CheckpointStore | None = None,
-                  internal_token: str | None = None) -> APIRouter:
+                  internal_token: str | None = None,
+                  information_guide: InformationGuide | None = None) -> APIRouter:
     start_enabled = natural_start_enabled if natural_start_enabled is not None else (
         os.getenv("CUSTOMER_AGENT_WORKFLOW_START_ENABLED", "false").strip().lower() == "true")
     b01_entry_enabled = b01_graph_entry_enabled if b01_graph_entry_enabled is not None else (
@@ -300,6 +328,7 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
     selected_registry = registry or build_registry()
     selected_classifier = intent_classifier or build_intent_classifier(selected_registry)
     selected_workflow_gateway = workflow_gateway or SpringHttpToolGateway()
+    selected_information_guide = information_guide or _build_information_guide
     def require_internal_token(gateway_token: str | None) -> None:
         expected_internal_token = (internal_token if internal_token is not None else
                                    os.getenv("CUSTOMER_AGENT_INTERNAL_TOKEN", "")).strip()
@@ -358,6 +387,23 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 pending = selected_checkpoint_store.find_pending(
                     request.customerId, request.chatRoomId)
                 if pending is not None and not _clearly_requests_another_task(request.message):
+                    if _looks_like_information_question(request.message):
+                        try:
+                            pending_classification = selected_classifier.classify(
+                                request.message, request.recentMessages)
+                        except IntentOutputValidationError as exc:
+                            raise HTTPException(502, "INTENT_LLM_OUTPUT_INVALID") from exc
+                        except IntentProviderError as exc:
+                            raise HTTPException(503, "INTENT_CLASSIFICATION_UNAVAILABLE") from exc
+                        if _is_b01_information(pending_classification):
+                            workflow = B01GraphWorkflow(
+                                selected_workflow_gateway, request.customerId, request.requestId,
+                                selected_checkpoint_store.saver)
+                            with selected_checkpoint_store.execution_lock(pending.work_item_id):
+                                current = workflow.current(pending.work_item_id)
+                            return _b01_pending_information_response(
+                                request, pending_classification, current,
+                                selected_information_guide)
                     workflow = B01GraphWorkflow(
                         selected_workflow_gateway, request.customerId, request.requestId,
                         selected_checkpoint_store.saver)
@@ -381,11 +427,17 @@ def create_router(registry: TaskRegistry | None = None, intent_classifier: Inten
                 action = (CustomerTaskAction(
                     taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=request.requestId)
                     if outcome == "TASK_ACTION_AVAILABLE" else None)
+                if outcome == "INFORMATION_ONLY":
+                    answer, answer_status = _information_answer(
+                        request.message, classification, selected_information_guide)
+                else:
+                    answer = _non_start_answer(outcome, classification)
+                    answer_status = "GENERATED"
                 return CustomerNaturalStartResponse(
                     requestId=request.requestId, customerId=request.customerId, outcome=outcome,
-                    classification=classification, answer=_non_start_answer(outcome, classification),
+                    classification=classification, answer=answer,
                     taskAction=action,
-                    answerStatus="GENERATED").model_dump(mode="json")
+                    answerStatus=answer_status).model_dump(mode="json")
 
             target = classification.executionTargets[0]
             if target is TaskCode.REPAYMENT_ORDER_CHANGE:
@@ -592,6 +644,21 @@ def _b01_graph_response(request: CustomerNaturalStartRequest,
         action_request_id = state.get("action_request_id") or request.requestId
         action = CustomerTaskAction(
             taskCode="REPAYMENT_ORDER_CHANGE", actionRequestId=action_request_id)
+    loan_selection_action = None
+    if (result["interrupted"]
+            and state.get("awaiting_input") == "LOAN_SELECTION"):
+        candidates = state.get("loan_candidates") or []
+        if candidates:
+            loan_selection_action = B01LoanSelectionAction(candidates=[
+                B01LoanSelectionCandidate(
+                    number=index,
+                    loanId=candidate["loanId"],
+                    loanName=candidate["loanName"],
+                    loanNoMasked=candidate["loanNoMasked"],
+                )
+                for index, candidate in enumerate(candidates, 1)
+            ])
+    document_action = B01DocumentAction() if action is not None else None
     outcome = "TASK_ACTION_AVAILABLE" if action is not None else "STARTED"
     return CustomerNaturalStartResponse(
         requestId=request.requestId,
@@ -600,6 +667,8 @@ def _b01_graph_response(request: CustomerNaturalStartRequest,
         classification=classification,
         workflow=workflow,
         taskAction=action,
+        b01LoanSelectionAction=loan_selection_action,
+        b01DocumentAction=document_action,
         b01Entry=B01GraphEntry(
             threadId=b01_thread_id(state["work_item_id"]),
             prepareOutcome=prepare_outcome or state.get("prepare_outcome"),
@@ -629,6 +698,44 @@ def _b01_followup_classification() -> IntentClassification:
     )
 
 
+def _is_b01_information(classification: IntentClassification) -> bool:
+    return (len(classification.tasks) == 1
+            and classification.tasks[0].taskCode is TaskCode.REPAYMENT_ORDER_CHANGE
+            and classification.tasks[0].requestKind is RequestKind.INFORMATION)
+
+
+def _looks_like_information_question(message: str) -> bool:
+    compact = re.sub(r"\s+", "", message)
+    return any(token in compact for token in (
+        "뭐야", "무슨뜻", "어떤뜻", "어떤의미", "설명해", "궁금해",
+    ))
+
+
+def _b01_pending_information_response(
+        request: CustomerNaturalStartRequest,
+        classification: IntentClassification,
+        current: B01GraphRunResult,
+        guide_builder: InformationGuide) -> dict:
+    state = current["state"]
+    answer, answer_status = _information_answer(
+        request.message, classification, guide_builder)
+    return CustomerNaturalStartResponse(
+        requestId=request.requestId,
+        customerId=request.customerId,
+        outcome="INFORMATION_ONLY",
+        classification=classification,
+        b01Entry=B01GraphEntry(
+            threadId=b01_thread_id(state["work_item_id"]),
+            prepareOutcome=state.get("prepare_outcome"),
+            state=state,
+            interrupted=current["interrupted"],
+            awaitingInput=state.get("awaiting_input"),
+        ),
+        answer=answer,
+        answerStatus=answer_status,
+    ).model_dump(mode="json")
+
+
 def _clearly_requests_another_task(message: str) -> bool:
     compact = re.sub(r"\s+", "", message)
     return any(token in compact for token in (
@@ -640,8 +747,6 @@ def _clearly_requests_another_task(message: str) -> bool:
 def _non_start_answer(outcome: str, classification: IntentClassification) -> str:
     if outcome == "CLARIFICATION_REQUIRED":
         return classification.clarificationQuestion or "어떤 금융업무를 원하시는지 조금 더 알려주세요."
-    if outcome == "INFORMATION_ONLY":
-        return "업무 안내 질문으로 확인했습니다. 이번 요청에서는 금융업무를 실행하지 않았습니다."
     if outcome == "UNSUPPORTED":
         return classification.unsupportedReason or "현재 지원하지 않는 금융업무입니다."
     if outcome == "COMPOSITE_NOT_SUPPORTED":
@@ -652,6 +757,36 @@ def _non_start_answer(outcome: str, classification: IntentClassification) -> str
         return ("채무변제충당순서 변경 신청을 도와드리겠습니다. "
                 "신청 화면에서 대출계좌를 선택하고 필요한 서류를 제출할 수 있습니다.")
     return "실행할 수 있는 금융업무를 확인하지 못했습니다. 요청을 구체적으로 알려주세요."
+
+
+def _build_information_guide(query: str, task_code: str) -> dict[str, object]:
+    """Reuse the verified customer RAG guide without making an authenticated HTTP self-call."""
+    from app.retrieve import search
+    from app.task_guide import build_guide, default_llm
+
+    return build_guide(query, task_code, search=search, llm=default_llm())
+
+
+def _information_answer(
+        query: str,
+        classification: IntentClassification,
+        guide_builder: InformationGuide) -> tuple[str, Literal["GENERATED", "FAILED"]]:
+    task_code = classification.tasks[0].taskCode.value
+    try:
+        guide = guide_builder(query, task_code)
+        bullets = guide.get("bullets")
+        if not isinstance(bullets, list) or not bullets:
+            raise ValueError("verified RAG evidence is unavailable")
+        texts = [item.get("text") for item in bullets if isinstance(item, dict)]
+        if not texts or any(not isinstance(text, str) or not text.strip() for text in texts):
+            raise ValueError("verified RAG guide is invalid")
+        official_name = guide.get("officialName")
+        if not isinstance(official_name, str) or not official_name.strip():
+            raise ValueError("verified RAG task name is missing")
+        answer = "\n".join([f"{official_name} 안내입니다.", *(f"- {text}" for text in texts)])
+        return answer, "GENERATED"
+    except Exception:  # noqa: BLE001 - retrieval/provider failures must not produce invented guidance
+        return "검수된 금융업무 안내 근거를 찾지 못했습니다. 잠시 후 다시 확인해 주세요.", "FAILED"
 
 
 def _loan_answer(loans: list[LoanSummary]) -> str:

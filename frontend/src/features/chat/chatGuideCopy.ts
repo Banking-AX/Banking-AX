@@ -12,6 +12,10 @@ export type GuideItem = { lead?: string; text: string }
 const B01_GUIDE = {
   // "끝나면 이 대화로 돌아와요" is left out until the task pages return to the dock.
   moveNote: '지금 탭에서 전용 화면이 열려요. 변경 가능 여부는 그 화면에서 규칙으로 다시 확인해요.',
+  // Shown only when the server sends b01DocumentAction (after Spring ELIGIBLE).
+  formName: '채무변제 충당순서 변경 신청서',
+  formCode: 'B01-01',
+  uploadNote: '작성과 서명을 완료했다면 신청 페이지로 이동해 해당 서류를 업로드해 주세요.',
 }
 
 const C02_GUIDE = {
@@ -31,7 +35,11 @@ export function serverOr<T>(serverValue: T | null | undefined, fallback: T): T {
 }
 
 export function b01Guide(server?: Partial<typeof B01_GUIDE>) {
-  return { moveNote: serverOr(server?.moveNote, B01_GUIDE.moveNote) }
+  return {
+    moveNote: serverOr(server?.moveNote, B01_GUIDE.moveNote),
+    formName: serverOr(server?.formName, B01_GUIDE.formName), formCode: serverOr(server?.formCode, B01_GUIDE.formCode),
+    uploadNote: serverOr(server?.uploadNote, B01_GUIDE.uploadNote),
+  }
 }
 
 export function c02Guide(server?: Partial<typeof C02_GUIDE>) {

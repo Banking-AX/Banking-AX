@@ -39,7 +39,7 @@ class RecordingClassifier:
         compact = message.replace(" ", "")
         if "거래내역" in compact:
             return classification(TaskCode.TRANSACTION_SEARCH)
-        if "안내" in compact:
+        if "안내" in compact or "뭐야" in compact:
             return classification(TaskCode.REPAYMENT_ORDER_CHANGE, RequestKind.INFORMATION)
         return classification(TaskCode.REPAYMENT_ORDER_CHANGE)
 
@@ -54,13 +54,14 @@ class RouterGateway:
         self.workflow_requests: list[dict[str, object]] = []
         self.eligible = True
         self.loan_failure = False
+        self.prepare_outcome = "CREATED"
 
     def b01_prepare(self, request: dict[str, Any]) -> dict[str, Any]:
         self.prepare_requests.append(request)
         work_item_id = 1000 + int(request["customerId"])
         return {"requestId": request["requestId"], "taskCode": "REPAYMENT_ORDER_CHANGE",
                 "workItemId": work_item_id, "caseId": None, "revision": None,
-                "data": {"outcome": "CREATED", "workItem": {
+                "data": {"outcome": self.prepare_outcome, "workItem": {
                     "workflowId": 5000 + int(request["customerId"]),
                     "workItemId": work_item_id, "taskCode": "REPAYMENT_ORDER_CHANGE",
                     "status": "ACTIVE"}}, "error": None}
@@ -129,7 +130,11 @@ class B01RouterResumeTests(unittest.TestCase):
         app.include_router(create_router(
             TaskRegistry(), self.classifier, self.gateway,
             natural_start_enabled=True, b01_graph_entry_enabled=True,
-            b01_checkpoint_store=store, internal_token="agent-test-token"), prefix="/api/v1")
+            b01_checkpoint_store=store, internal_token="agent-test-token",
+            information_guide=lambda *_: {
+                "officialName": "채무변제 충당순서 변경",
+                "bullets": [{"text": "원금 우선은 원금에 먼저 충당하는 순서를 뜻해요."}],
+            }), prefix="/api/v1")
         return TestClient(app)
 
     def post(self, request_id: str, message: str, customer_id: int = 7,
@@ -152,6 +157,10 @@ class B01RouterResumeTests(unittest.TestCase):
         )
         self.assertTrue(first.json()["answer"].strip())
         self.assertIsNone(first.json()["taskAction"])
+        self.assertEqual("SELECT_B01_LOAN",
+                         first.json()["b01LoanSelectionAction"]["type"])
+        self.assertEqual([1, 2], [item["number"] for item in
+                                  first.json()["b01LoanSelectionAction"]["candidates"]])
 
         resumed = self.post("followup-1", "2번")
 
@@ -162,6 +171,118 @@ class B01RouterResumeTests(unittest.TestCase):
         self.assertEqual(["원금 우선으로 바꿔줘"], self.classifier.messages)
         self.assertEqual(1, len(self.gateway.prepare_requests))
         self.assertEqual(1, len(self.gateway.loan_requests))
+
+    def test_initial_action_lists_numbered_loans_then_fourth_loan_reaches_eligibility(self) -> None:
+        self.gateway.loans = [
+            candidate(index, f"테스트 대출 {index}", f"210-***-00000{index}")
+            for index in range(1, 9)
+        ]
+        self.gateway.loans[3] = candidate(
+            4, "B01-T01 가상 가계대출", "MOCK-***-T01")
+
+        initial = self.post("full-flow-initial", "채무 순서 변경")
+
+        self.assertEqual("LOAN_SELECTION", initial.json()["b01Entry"]["awaitingInput"])
+        self.assertIn("말씀하신 업무는 채무변제 충당순서 변경입니다.", initial.json()["answer"])
+        self.assertIn("4. B01-T01 가상 가계대출(MOCK-***-T01)", initial.json()["answer"])
+        self.assertNotIn("기한의 이익", initial.json()["answer"])
+        self.assertEqual([], self.gateway.selection_requests)
+        self.assertEqual([], self.gateway.eligibility_requests)
+
+        selected = self.post("full-flow-loan", "4번")
+
+        self.assertEqual(4, selected.json()["b01Entry"]["state"]["selected_loan_id"])
+        self.assertEqual("REPAYMENT_ORDER_SELECTION",
+                         selected.json()["b01Entry"]["awaitingInput"])
+        self.assertIn("B01-T01 가상 가계대출을 선택하셨습니다.", selected.json()["answer"])
+        self.assertIn("현재 충당순서는 이자 우선입니다", selected.json()["answer"])
+        self.assertIn("원금 우선으로 변경하시겠어요?", selected.json()["answer"])
+        self.assertNotIn("이자 우선으로 변경", selected.json()["answer"])
+        self.assertEqual([], self.gateway.eligibility_requests)
+
+        eligible = self.post("full-flow-order", "응")
+
+        self.assertEqual("ELIGIBLE", eligible.json()["b01Entry"]["state"]["eligibility_status"])
+        self.assertEqual(4, self.gateway.selection_requests[-1]["selectedLoanId"])
+        self.assertEqual("PRINCIPAL_FIRST",
+                         self.gateway.selection_requests[-1]["requestedRepaymentOrder"])
+        self.assertIsNotNone(eligible.json()["taskAction"])
+        self.assertEqual("DOWNLOAD_B01_APPLICATION",
+                         eligible.json()["b01DocumentAction"]["type"])
+        self.assertEqual("/api/v1/customer/b01/application-form",
+                         eligible.json()["b01DocumentAction"]["downloadPath"])
+
+    def test_principal_first_loan_offers_interest_first_and_yes_requests_it(self) -> None:
+        principal = candidate(503, "원금우선 대출", "210-***-000003")
+        principal["repaymentOrder"] = "PRINCIPAL_FIRST"
+        self.gateway.loans = [*self.gateway.loans, principal]
+        self.post("principal-initial", "채무 순서 변경")
+
+        selected = self.post("principal-loan", "3번")
+
+        self.assertEqual(503, selected.json()["b01Entry"]["state"]["selected_loan_id"])
+        self.assertIn("현재 충당순서는 원금 우선입니다", selected.json()["answer"])
+        self.assertIn("이자 우선으로 변경하시겠어요?", selected.json()["answer"])
+        self.assertEqual([], self.gateway.selection_requests)
+
+        confirmed = self.post("principal-yes", "네")
+
+        self.assertEqual("INTEREST_FIRST",
+                         confirmed.json()["b01Entry"]["state"]["requested_repayment_order"])
+        self.assertEqual("INTEREST_FIRST",
+                         self.gateway.selection_requests[-1]["requestedRepaymentOrder"])
+
+    def test_yes_after_an_information_question_still_answers_the_order_question(self) -> None:
+        self.post("info-yes-initial", "채무 순서 변경")
+        self.post("info-yes-loan", "1번")
+
+        information = self.post("info-yes-question", "원금 우선이 뭐야?")
+        self.assertEqual("INFORMATION_ONLY", information.json()["outcome"])
+        self.assertEqual([], self.gateway.selection_requests)
+
+        confirmed = self.post("info-yes-answer", "그래")
+
+        self.assertEqual("TASK_ACTION_AVAILABLE", confirmed.json()["outcome"])
+        self.assertEqual("PRINCIPAL_FIRST",
+                         self.gateway.selection_requests[-1]["requestedRepaymentOrder"])
+
+    def test_negative_or_hesitant_order_answer_does_not_change_the_selection(self) -> None:
+        self.post("negative-initial", "채무 순서 변경")
+        selected = self.post("negative-loan", "1번")
+        question = selected.json()["answer"]
+
+        for request_id, answer in (("negative-no", "아니"),
+                                   ("negative-wait", "잠깐"),
+                                   ("negative-later", "고민해볼게"),
+                                   ("negative-cancel", "취소할래")):
+            response = self.post(request_id, answer)
+            self.assertEqual("REPAYMENT_ORDER_SELECTION",
+                             response.json()["b01Entry"]["awaitingInput"])
+            self.assertEqual(question, response.json()["answer"])
+
+        self.assertEqual([], self.gateway.selection_requests)
+        self.assertEqual([], self.gateway.eligibility_requests)
+
+    def test_new_action_does_not_replay_completed_ineligible_checkpoint(self) -> None:
+        self.gateway.eligible = False
+        initial = self.post("old-ineligible-initial", "원금 우선으로 바꿔줘")
+        self.assertEqual("LOAN_SELECTION", initial.json()["b01Entry"]["awaitingInput"])
+        failed = self.post("old-ineligible-selection", "1번")
+        self.assertEqual("INELIGIBLE",
+                         failed.json()["b01Entry"]["state"]["eligibility_status"])
+        eligibility_calls = len(self.gateway.eligibility_requests)
+        self.gateway.prepare_outcome = "SAME_CHAT_REUSED"
+
+        restarted = self.post("new-action-after-ineligible", "채무 순서 변경")
+
+        self.assertEqual("LOAN_SELECTION", restarted.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual("SAME_CHAT_REUSED",
+                         restarted.json()["b01Entry"]["prepareOutcome"])
+        self.assertIsNone(restarted.json()["b01Entry"]["state"]["selected_loan_id"])
+        self.assertIsNone(restarted.json()["b01Entry"]["state"]["eligibility_status"])
+        self.assertIn("변경할 대출 번호를 입력해 주세요.", restarted.json()["answer"])
+        self.assertNotIn("기한의 이익", restarted.json()["answer"])
+        self.assertEqual(eligibility_calls, len(self.gateway.eligibility_requests))
 
     def test_missing_order_question_resumes_with_existing_loan(self) -> None:
         self.gateway.loans = [self.gateway.loans[0]]
@@ -177,6 +298,43 @@ class B01RouterResumeTests(unittest.TestCase):
 
         self.assertEqual(501, resumed.json()["b01Entry"]["state"]["selected_loan_id"])
         self.assertEqual("INTEREST_FIRST", resumed.json()["b01Entry"]["state"]["requested_repayment_order"])
+
+    def test_information_question_does_not_consume_pending_order_and_later_action_resumes(self) -> None:
+        self.gateway.loans = [self.gateway.loans[0]]
+        first = self.post("initial-info-during-graph", "충당순서를 바꾸고 싶어")
+        before = first.json()["b01Entry"]
+
+        information = self.post("pending-info", "원금 우선이 뭐야?")
+
+        self.assertEqual("INFORMATION_ONLY", information.json()["outcome"])
+        self.assertEqual("GENERATED", information.json()["answerStatus"])
+        self.assertIn("원금 우선은", information.json()["answer"])
+        self.assertEqual("REPAYMENT_ORDER_SELECTION",
+                         information.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(before["state"]["pending_question"],
+                         information.json()["b01Entry"]["state"]["pending_question"])
+        self.assertIsNone(information.json()["b01Entry"]["state"]["requested_repayment_order"])
+        self.assertEqual(1, len(self.gateway.prepare_requests))
+        self.assertEqual([], self.gateway.selection_requests)
+
+        resumed = self.post("pending-action", "원금 우선으로 바꿀래")
+
+        self.assertEqual("TASK_ACTION_AVAILABLE", resumed.json()["outcome"])
+        self.assertEqual("PRINCIPAL_FIRST",
+                         resumed.json()["b01Entry"]["state"]["requested_repayment_order"])
+        self.assertEqual(501, resumed.json()["b01Entry"]["state"]["selected_loan_id"])
+        self.assertEqual(1, len(self.gateway.prepare_requests))
+        self.assertEqual(1, len(self.gateway.selection_requests))
+
+    def test_clear_pending_selection_inputs_still_resume_without_classification(self) -> None:
+        first = self.post("initial-clear-selection", "원금 우선으로 바꿔줘")
+        classifier_calls = list(self.classifier.messages)
+
+        resumed = self.post("clear-selection", "두 번째 걸로")
+
+        self.assertEqual("LOAN_SELECTION", first.json()["b01Entry"]["awaitingInput"])
+        self.assertEqual(502, resumed.json()["b01Entry"]["state"]["selected_loan_id"])
+        self.assertEqual(classifier_calls, self.classifier.messages)
 
     def test_invalid_selection_returns_the_graph_question_again(self) -> None:
         first = self.post("initial-invalid", "원금 우선으로 바꿔줘")
