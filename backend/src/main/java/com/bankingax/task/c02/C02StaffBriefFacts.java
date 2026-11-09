@@ -38,8 +38,32 @@ final class C02StaffBriefFacts {
         return facts;
     }
 
-    /** Approved changes only. Pending bank events are never passed, so they cannot read as current policy. */
-    static void addPolicy(Map<String, Object> facts, List<PolicyChangeReviewService.Notice> approved) {
+    /** STAFF-06 decisions on current files: upload, OCR and this staff check stay separate. Staff-written reasons are not sent. */
+    static void addStaffChecks(Map<String, Object> facts, List<C02DocumentReviewService.Row> rows, Map<String, String> names) {
+        List<Map<String, Object>> checks = new ArrayList<>();
+        for (C02DocumentReviewService.Row row : rows) {
+            if (row.documentFileId() == null) continue;
+            Map<String, Object> check = new LinkedHashMap<>();
+            check.put("document", names.getOrDefault(row.documentTypeCode(), row.documentTypeCode()));
+            check.put("staffCheck", row.review() == null ? "NOT_REVIEWED" : row.review().result());
+            checks.add(check);
+        }
+        facts.put("staffDocumentChecks", checks);
+    }
+
+    static void addClarifications(Map<String, Object> facts, List<Map<String, Object>> rows) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("kind", row.get("kind"));
+            item.put("status", row.get("status"));
+            out.add(item);
+        }
+        facts.put("customerClarifications", out);
+    }
+
+    /** Approved changes only, already narrowed to this Case. Pending bank events are never passed, so they cannot read as current policy. */
+    static void addPolicy(Map<String, Object> facts, List<PolicyChangeReviewService.Notice> approved, long caseId) {
         if (approved == null) { facts.put("policyNoticesUnavailable", true); return; }
         List<Map<String, Object>> rows = new ArrayList<>();
         for (PolicyChangeReviewService.Notice notice : approved) {
@@ -47,6 +71,20 @@ final class C02StaffBriefFacts {
             row.put("sourceVersion", notice.sourceVersion());
             row.put("summary", notice.summary());
             row.put("effectiveState", notice.effectiveState());
+            row.put("effectiveAt", String.valueOf(notice.effectiveAt()));
+            row.put("previousVersion", notice.previousVersion());
+            row.put("before", notice.before());
+            row.put("after", notice.after());
+            row.put("addedCheckItems", notice.addedCheckItems());
+            Map<String, Object> source = new LinkedHashMap<>();
+            source.put("documentId", notice.sourceDocumentId());
+            source.put("title", notice.sourceTitle());
+            row.put("source", source);
+            Map<String, Object> scope = new LinkedHashMap<>();
+            scope.put("taskCode", "INHERITANCE_DEPOSIT");
+            scope.put("caseId", caseId);
+            scope.put("reasonCodes", notice.reasonCodes());
+            row.put("appliesTo", scope);
             rows.add(row);
         }
         facts.put("approvedPolicyChanges", rows);

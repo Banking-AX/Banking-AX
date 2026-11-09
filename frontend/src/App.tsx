@@ -56,6 +56,8 @@ export function App() {
       <Route path="policy-changes" element={<PolicyChangeListPage />} />
       <Route path="policy-changes/:id" element={<PolicyChangeDetailPage />} />
       <Route path="c02/:caseId" element={<C02StaffReviewPage />} />
+      <Route path="c02/:caseId/documents" element={<C02StaffReviewPage view="review" />} />
+      <Route path="c02/:caseId/result" element={<C02StaffReviewPage view="final" />} />
       <Route path="*" element={<Navigate to="/staff" replace />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

@@ -99,7 +99,7 @@ public class C02Controller {
     }
     @PostMapping("/{caseId}/staff-decision") public ApiEnvelope<C02IntakeService.StaffDecisionResult> staffDecision(@PathVariable long caseId,@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestBody StaffDecisionBody body) {
-        authenticateStaff(role,token); var data=service.recordStaffDecision(new C02IntakeService.StaffDecisionCommand(actorId,caseId,body.revision(),body.requestId(),body.outcome(),body.customerMessage())); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
+        authenticateStaff(role,token); var data=service.recordStaffDecision(new C02IntakeService.StaffDecisionCommand(actorId,caseId,body.revision(),body.requestId(),body.outcome(),body.customerMessage(),body.exceptionReason())); return ApiEnvelope.success(body.requestId(),"INHERITANCE_DEPOSIT",data.workItemId(),caseId,data.revision(),data);
     }
     @GetMapping("/notifications") public ApiEnvelope<List<C02IntakeService.CustomerNotification>> notifications(@RequestHeader("X-Actor-Id") long actorId,
             @RequestHeader("X-Actor-Role") ActorRole role,@RequestHeader(value="X-Tool-Gateway-Token",required=false,defaultValue="") String token,@RequestParam long customerId,@RequestParam String requestId) {
@@ -116,5 +116,7 @@ public class C02Controller {
     public record SubmitBody(long customerId,int revision,String requestId,String bindingId) {}
     public record DocumentMetadataBody(long customerId,int revision,String requestId,String documentSlotKey,String fileName,String mimeType,long sizeBytes,String storageReference,C02IntakeService.DocumentStatus status) {}
     public record StaffPrecheckBody(int revision,String requestId) {}
-    public record StaffDecisionBody(int revision,String requestId,C02IntakeService.StaffOutcome outcome,String customerMessage) {}
+    public record StaffDecisionBody(int revision,String requestId,C02IntakeService.StaffOutcome outcome,String customerMessage,String exceptionReason) {
+        public StaffDecisionBody(int revision,String requestId,C02IntakeService.StaffOutcome outcome,String customerMessage) { this(revision,requestId,outcome,customerMessage,null); }
+    }
 }

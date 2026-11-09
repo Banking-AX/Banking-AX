@@ -228,7 +228,7 @@ export function ChatModal({ open, onClose }: { open: boolean; onClose: () => voi
         </span>
         <div className="chat-header__titles">
           <h2 id="chat-title" className="chat-header__title">AI 금융 도우미</h2>
-          <span className="chat-header__subtitle">AX뱅크 개인뱅킹 · 교육용 시연</span>
+          <span className="chat-header__subtitle">SolBank 개인뱅킹 · 교육용 시연</span>
         </div>
         <button type="button" aria-label="닫기" onClick={onClose} className="chat-header__close">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>

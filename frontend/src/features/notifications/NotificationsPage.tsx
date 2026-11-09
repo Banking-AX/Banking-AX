@@ -93,8 +93,9 @@ export function NotificationsPage() {
       {items.map(item => {
         const { tone, icon } = toneOf(item.type)
         const label = taskLabel(item.taskCode)
+        const unavailable = relatedPath(item) === null
         return <li key={item.id}>
-          <button type="button" className={`noti-item${item.readAt ? '' : ' noti-item--unread'}`} onClick={() => void open(item)}>
+          <button type="button" className={`noti-item${item.readAt ? '' : ' noti-item--unread'}${unavailable ? ' noti-item--unavailable' : ''}`} onClick={() => void open(item)}>
             <span className={`noti-icon noti-icon--${tone}`} aria-hidden="true">{icon}</span>
             <span className="noti-body">
               <span className="noti-title-row">
@@ -103,9 +104,10 @@ export function NotificationsPage() {
                 {label && <span className="noti-task">{label}</span>}
               </span>
               <span className="noti-content">{item.content}</span>
+              {unavailable && <span className="noti-unavailable">연결된 상세 화면이 없어 알림 내용으로 확인해 주세요.</span>}
               <span className="noti-meta">{formatReceivedAt(item.createdAt)} · {channelLabel(item.emailStatus)}</span>
             </span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="noti-chevron"><path d="M9 6l6 6-6 6"></path></svg>
+            {!unavailable && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="noti-chevron"><path d="M9 6l6 6-6 6"></path></svg>}
           </button>
         </li>
       })}

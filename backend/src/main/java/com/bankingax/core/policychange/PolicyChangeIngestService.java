@@ -26,6 +26,8 @@ public class PolicyChangeIngestService {
     private final PolicyTaskRegistry tasks;
     private final PolicyChangeStore store;
 
+    private volatile boolean autoSyncFailing;
+
     public PolicyChangeIngestService(PolicyChangeProvider provider, PolicyChangeNormalizer normalizer,
                                      PolicyTaskRegistry tasks, PolicyChangeStore store) {
         this.provider = provider;
@@ -44,6 +46,29 @@ public class PolicyChangeIngestService {
             store.insertSync(source, PolicyChangeStore.SYNC_FAILED, cursor, staffId, requestId, Map.of("code", exception.code()));
             throw exception;
         }
+        return apply(feed, source, staffId, requestId);
+    }
+
+    /**
+     * The unattended poll: same intake as the button, recorded as a system run. An empty poll leaves no row, and a
+     * source that stays down is recorded once until it recovers, so the receive history stays readable.
+     */
+    public void syncAutomatically(String requestId) {
+        String source = provider.sourceSystem();
+        String cursor = store.lastCursor(source).orElse(null);
+        PolicyChangeProvider.Feed feed;
+        try {
+            feed = provider.fetch(cursor);
+        } catch (DomainException exception) {
+            if (!autoSyncFailing) store.insertSync(source, PolicyChangeStore.SYNC_FAILED, cursor, null, requestId, Map.of("code", exception.code()));
+            autoSyncFailing = true;
+            return;
+        }
+        autoSyncFailing = false;
+        if (!feed.events().isEmpty()) apply(feed, source, null, requestId);
+    }
+
+    private SyncResult apply(PolicyChangeProvider.Feed feed, String source, Long staffId, String requestId) {
         List<String> outcomes = new ArrayList<>();
         for (JsonNode raw : feed.events()) outcomes.add(ingest(raw, source));
         SyncResult result = new SyncResult(feed.events().size(), count(outcomes, ACCEPTED), count(outcomes, STALE),

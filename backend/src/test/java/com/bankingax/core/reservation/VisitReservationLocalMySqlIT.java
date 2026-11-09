@@ -83,6 +83,27 @@ class VisitReservationLocalMySqlIT {
 
     private int reservationCount() { return jdbc.queryForObject("select count(*) from visit_reservation", Integer.class); }
 
+    /** Remaining = free staff now; the booking re-checks, so the number is a hint and never a hold. */
+    @Test void slotsReportCapacityFromBranchStaffAndBookingsAndTheBookingRecordsTheRanking() throws Exception {
+        var day = slot(0).atZoneSameInstant(ReservationSlotPolicy.ZONE).toLocalDate();
+        var before = reservations.availability(BRANCH, day).get(0);
+        assertThat(before.capacity()).isEqualTo(1);
+        assertThat(before.remaining()).isEqualTo(1);
+        assertThat(before.booked()).isZero();
+
+        var item = reservations.create(CUSTOMER, create("cap-1", 1, BRANCH, slot(0)));
+
+        var after = reservations.availability(BRANCH, day).get(0);
+        assertThat(after.available()).isFalse();
+        assertThat(after.booked()).isEqualTo(1);
+        assertThat(after.remaining()).isZero();
+        String payload = jdbc.queryForObject("select cast(payload as char) from event_log where event_type='VISIT_ASSIGNED' and entity_id=?", String.class, String.valueOf(item.id()));
+        var node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
+        assertThat(node.path("ranked").get(0).path("staffId").asLong()).isEqualTo(STAFF);
+        assertThat(node.path("ranked").get(0).path("rank").asInt()).isEqualTo(1);
+        assertThat(node.path("staffChosenByCustomer").asBoolean()).isFalse();
+    }
+
     @Test void aNotifiedProceedBooksAStaffMemberAndNotifies() {
         var item = reservations.create(CUSTOMER, create("r1", 1, BRANCH, slot(0)));
 
@@ -107,7 +128,7 @@ class VisitReservationLocalMySqlIT {
 
     @Test void aClosedBranchOrOneWithoutStaffCannotBeBooked() {
         assertThat(failure(CUSTOMER, create("r1", 1, CLOSED_BRANCH, slot(0)))).isEqualTo("RESERVATION_BRANCH_UNAVAILABLE");
-        assertThat(failure(CUSTOMER, create("r2", 1, EMPTY_BRANCH, slot(0)))).isEqualTo("NEEDS_MANUAL_ASSIGNMENT");
+        assertThat(failure(CUSTOMER, create("r2", 1, EMPTY_BRANCH, slot(0)))).isEqualTo("RESERVATION_SLOT_UNAVAILABLE");
         assertThat(reservationCount()).isZero();
     }
 
@@ -138,7 +159,7 @@ class VisitReservationLocalMySqlIT {
         var day = slot(0).atZoneSameInstant(ReservationSlotPolicy.ZONE).toLocalDate();
         assertThat(reservations.availability(BRANCH, day).get(0).available()).isFalse();
         assertThat(reservations.availability(BRANCH, day).get(1).available()).isTrue();
-        assertThat(failure(OTHER, create("r2", 2, BRANCH, slot(0)))).isEqualTo("NEEDS_MANUAL_ASSIGNMENT");
+        assertThat(failure(OTHER, create("r2", 2, BRANCH, slot(0)))).isEqualTo("RESERVATION_SLOT_UNAVAILABLE");
     }
 
     @Test void twoCustomersRacingForOneStaffTimeLeaveOneReservation() throws Exception {
@@ -156,7 +177,7 @@ class VisitReservationLocalMySqlIT {
         for (var call : calls) results.add(call.get());
         pool.shutdown();
 
-        assertThat(results).contains("OK").filteredOn(result -> !result.equals("OK")).hasSize(1).allMatch(code -> code.equals("RESERVATION_CONFLICT") || code.equals("NEEDS_MANUAL_ASSIGNMENT"));
+        assertThat(results).contains("OK").filteredOn(result -> !result.equals("OK")).hasSize(1).allMatch(code -> code.equals("RESERVATION_CONFLICT") || code.equals("RESERVATION_SLOT_UNAVAILABLE"));
         assertThat(reservationCount()).isOne();
         assertThat(jdbc.queryForObject("select count(*) from notification", Integer.class)).isOne();
     }
@@ -185,6 +206,55 @@ class VisitReservationLocalMySqlIT {
         assertThat(booked).as("both free staff are used").isEqualTo(2);
         assertThat(reservationCount()).isEqualTo((int) booked);
         assertThat(jdbc.queryForObject("select count(distinct assigned_staff_id) from visit_reservation", Integer.class)).isEqualTo((int) booked);
+    }
+
+    private List<String> race(int count, java.util.function.IntFunction<VisitReservationController.Item> booking) throws Exception {
+        var pool = Executors.newFixedThreadPool(count);
+        var start = new CountDownLatch(1);
+        List<Future<String>> futures = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            int index = i;
+            futures.add(pool.submit(() -> {
+                start.await();
+                try { return String.valueOf(booking.apply(index).id()); }
+                catch (DomainException rejected) { return rejected.code(); }
+            }));
+        }
+        start.countDown();
+        List<String> out = new ArrayList<>();
+        for (var future : futures) out.add(future.get());
+        pool.shutdown();
+        return out;
+    }
+
+    /** Nobody is turned away while a staff member is still free, even when everyone asks at the same moment. */
+    @Test void aBurstMatchingTheStaffCountBooksEveryone() throws Exception {
+        int burst = 12;
+        for (int n = 1; n <= burst; n++) {
+            long customer = 1000 + n;
+            jdbc.update("insert into `user`(id,login_id,password_hash,`role`,name) values(?,?,'x','CUSTOMER','c')", customer, "burst" + n);
+            jdbc.update("insert into workflow(id,customer_id,status) values(?,?,'RUNNING')", customer, customer);
+            seedCase(customer, customer, customer, "REVIEW_PASSED", true);
+            if (n < burst) jdbc.update("insert into `user`(id,login_id,password_hash,`role`,name,branch_id) values(?,?,'x','STAFF','s',1)", 300 + n, "burst-staff" + n);
+        }
+        OffsetDateTime at = slot(0);
+
+        List<String> results = race(burst, i -> reservations.create(1001 + i, create("burst-" + i, 1001 + i, BRANCH, at)));
+
+        assertThat(results).allMatch(result -> result.matches("\\d+"));
+        assertThat(jdbc.queryForObject("select count(*) from visit_reservation where status='CONFIRMED'", Integer.class)).isEqualTo(burst);
+        assertThat(jdbc.queryForObject("select count(distinct assigned_staff_id) from visit_reservation", Integer.class)).isEqualTo(burst);
+    }
+
+    /** A retry that overlaps the original gets the original's answer instead of a failure for a booking that exists. */
+    @Test void overlappingRetriesOfOneRequestAllGetTheSameReservation() throws Exception {
+        OffsetDateTime at = slot(0);
+
+        List<String> results = race(10, i -> reservations.create(CUSTOMER, create("retry-1", 1, BRANCH, at)));
+
+        assertThat(results.get(0)).matches("\\d+");
+        assertThat(new java.util.HashSet<>(results)).hasSize(1);
+        assertThat(reservationCount()).isEqualTo(1);
     }
 
     @Test void aFailedBookingLeavesNoAuditOrNotification() {

@@ -1,4 +1,5 @@
-import type { C02ReviewItem, C02StaffCase } from '../../api/taskApi'
+import type { C02DocumentReviewRow, C02ReviewItem, C02StaffCase } from '../../api/taskApi'
+import { c02DocumentLabel } from '../../ui/customerLabels'
 import { isOcrItem, staffCheckCount } from './c02OcrView'
 
 /** Display text only: API codes, stored values and Agent output stay as they are. */
@@ -96,6 +97,30 @@ export function staffSummaryLines(data: C02StaffCase): SummaryLine[] {
   const fromOcr = staffCheckCount(ocr)
   lines.push({ title: '건수 기준', body: `직원 확인 ${total}건은 자동 대조에서 넘어온 ${fromOcr}건과 사전점검 안내 ${total - fromOcr}건입니다. 자동 대조 일치 ${matched.length}건은 여기에 포함되지 않습니다.` })
   return lines
+}
+
+/** Left in a draft where only staff know the content; the page refuses to register a message that still has one. */
+export const STAFF_INPUT_MARK = '[직원 입력'
+
+/** One line per missing or supplement-marked file, from the saved checks: nothing is inferred or written by the model. */
+export function noticeDocumentLines(rows: C02DocumentReviewRow[]): string[] {
+  return rows.flatMap(row => {
+    const name = c02DocumentLabel(row.documentTypeCode) + (row.personName ? ` (${row.personName})` : '')
+    if (row.documentFileId === null) return row.requirement === 'REQUIRED' ? [`- ${name}: 아직 제출되지 않았어요`] : []
+    return row.review?.result === 'SUPPLEMENT_REQUIRED' ? [`- ${name}: ${row.review.reason}`] : []
+  })
+}
+
+/**
+ * The customer notice for the result staff selected. Null when there is nothing case-specific to say yet, so the
+ * opinion's own draft is shown instead. Staff still edit and register it; nothing here sends or decides.
+ */
+export function customerNoticeDraft(outcome: string, lines: string[]): string | null {
+  const list = lines.join('\n')
+  if (outcome === 'PROCEED') return '사전검토 결과 방문 진행이 가능해요. 방문하실 영업점과 시간을 예약해 주세요. 제출하신 서류의 원본과 상속관계는 방문 때 직원이 다시 확인해요.' + (list ? `\n\n방문 전에 아래 서류를 다시 준비해 주세요.\n${list}` : '')
+  if (outcome === 'DOCUMENT_INSUFFICIENT') return `제출하신 서류로는 확인을 마칠 수 없어 이번 사전접수는 여기서 종료돼요.\n\n보완이 필요한 서류\n${list || `- ${STAFF_INPUT_MARK}: 보완이 필요한 서류와 사유를 적어 주세요]`}\n\n서류를 준비하신 뒤 상속예금 사전접수를 새로 신청해 주세요.`
+  if (outcome === 'REQUIREMENT_FAILED') return `사전검토 결과 신청 요건을 충족하지 않아 이번 사전접수는 여기서 종료돼요.\n\n사유: ${STAFF_INPUT_MARK}: 요건 미충족 사유를 적어 주세요]`
+  return list ? `보완이 필요한 서류\n${list}` : null
 }
 
 export function decisionGuide(data: C02StaffCase, outcome: string): string {

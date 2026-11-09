@@ -27,7 +27,8 @@
 .noti-item--unread .noti-title-row strong { font-weight: 700; }
 .noti-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0453a; }
 .noti-task { padding: 2px 8px; border-radius: 6px; background: #f3f4f6; color: #4b5563; font-size: 12px; }
-.noti-content { font-size: 14px; line-height: 1.6; color: #4b5563; overflow-wrap: anywhere; }
+.noti-content { font-size: 14px; line-height: 1.6; color: #4b5563; overflow-wrap: anywhere; white-space: pre-line; }
+.noti-unavailable { font-size: 13px; color: #9a4a00; }
 .noti-meta { font-size: 12px; color: #6b7280; }
 .noti-chevron { flex: 0 0 auto; align-self: center; }
 

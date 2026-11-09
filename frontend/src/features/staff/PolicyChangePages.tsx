@@ -59,7 +59,7 @@ function OperationTable({ rows }: { rows: OperationEntry[] }) {
     <thead><tr><th>시각</th><th>구분</th><th>내용</th></tr></thead>
     <tbody>{rows.map(row => <tr key={row.id}>
       <td>{formatDateTime(row.at)}</td>
-      <td>{OPERATION_LABELS[row.eventType] ?? row.eventType}</td>
+      <td>{OPERATION_LABELS[row.eventType] ?? row.eventType}{row.eventType.startsWith('POLICY_SYNC') && row.actorType === 'SYSTEM' ? ' · 자동' : ''}</td>
       <td className="staff-mono">{operationText(row)}</td>
     </tr>)}</tbody>
   </table></div>

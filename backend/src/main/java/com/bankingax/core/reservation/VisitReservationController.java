@@ -58,5 +58,6 @@ public class VisitReservationController {
 
     public record Create(String requestId, long caseId, long branchId, Long staffId, OffsetDateTime startsAt) { }
     public record Item(long id, long caseId, long branchId, long staffId, Instant startsAt, String status) { }
-    public record Slot(Instant startsAt, boolean available) { }
+    /** capacity = active staff of the branch; booked = those already holding this time; remaining = free staff now. Re-checked when booking. */
+    public record Slot(Instant startsAt, boolean available, int capacity, int booked, int remaining) { }
 }

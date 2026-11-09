@@ -20,12 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 @com.bankingax.core.persistence.ConditionalOnDataSource
 public class CustomerReservationBffController {
     private final VisitReservationController internal;
+    private final VisitReservationService service;
     private final TaskBffPrincipal principals;
     private final String gatewayToken;
 
-    public CustomerReservationBffController(VisitReservationController internal, TaskBffPrincipal principals,
+    public CustomerReservationBffController(VisitReservationController internal, VisitReservationService service, TaskBffPrincipal principals,
                                             @Value("${app.tool-gateway-token:}") String gatewayToken) {
         this.internal = internal;
+        this.service = service;
         this.principals = principals;
         this.gatewayToken = gatewayToken;
     }
@@ -34,7 +36,7 @@ public class CustomerReservationBffController {
     public ApiEnvelope<VisitReservationController.Item> create(JwtAuthenticationToken authentication,
                                                                  @RequestBody VisitReservationController.Create body) {
         long customerId = principals.customer(authentication);
-        return internal.create(customerId, ActorRole.CUSTOMER, gatewayToken, body);
+        return internal.create(customerId, ActorRole.CUSTOMER, gatewayToken, withoutStaffChoice(body));
     }
 
     @GetMapping
@@ -42,6 +44,19 @@ public class CustomerReservationBffController {
                                                                      @RequestParam String requestId) {
         long customerId = principals.customer(authentication);
         return internal.list(customerId, ActorRole.CUSTOMER, gatewayToken, requestId);
+    }
+
+    /** VISIT-10: body carries the same caseId and the new branch/time; a failed booking keeps the old reservation. */
+    @PostMapping("/{id}/change")
+    public ApiEnvelope<VisitReservationController.Item> change(JwtAuthenticationToken authentication, @PathVariable long id,
+                                                                 @RequestBody VisitReservationController.Create body) {
+        long customerId = principals.customer(authentication);
+        return ApiEnvelope.success(body.requestId(), "VISIT_RESERVATION", null, body.caseId(), null, service.change(customerId, id, withoutStaffChoice(body)));
+    }
+
+    /** Spring assigns by workload; a customer request never names the staff member. */
+    private static VisitReservationController.Create withoutStaffChoice(VisitReservationController.Create body) {
+        return new VisitReservationController.Create(body.requestId(), body.caseId(), body.branchId(), null, body.startsAt());
     }
 
     @PostMapping("/{id}/cancel")

@@ -1,0 +1,24 @@
+{
+  "fixtureVersion": "v1.7.1-demo-plan-1",
+  "syntheticDataOnly": true,
+  "sharedDatabaseAllowed": false,
+  "externalProviders": { "clova": "MOCK_ONLY", "llm": "FAKE_ONLY", "sms": "DISABLED", "email": "DISABLED" },
+  "accounts": {
+    "customerA": "demo_c02_normal", "customerB": "demo_c02_clarification",
+    "customerC": "demo_c02_supplement", "customerD": "demo_c02_draft",
+    "staffA": "demo_pre_reviewer", "staffB": "demo_branch_reviewer",
+    "staffC": "demo_manual_assigner", "staffDenied": "demo_staff_denied"
+  },
+  "scenarios": [
+    { "id": "DEMO-01", "title": "정상 C-02 접수", "start": "SUBMITTED/READY_FOR_STAFF", "proof": "C02DocumentReviewLocalMySqlIT", "presentationReady": false, "notes": ["6/6 업로드와 2 방문 확인", "OCR 3-name match is MOCK_ONLY", "직원 결정·예약은 시연 중 수행"] },
+    { "id": "DEMO-02", "title": "고객 추가 확인", "start": "WAITING_CUSTOMER with OPEN clarification", "proof": "C02ClarificationLocalMySqlIT", "presentationReady": false, "notes": ["답변은 비어 있음", "별도 completed fixture required for after-state"] },
+    { "id": "DEMO-03", "title": "서류 보완", "start": "SUBMITTED with staff check candidate", "proof": "C02DocumentReviewLocalMySqlIT", "presentationReady": false, "notes": ["일반 증빙은 자동 본문 판정 금지"] },
+    { "id": "DEMO-04", "title": "OCR 불일치", "start": "C02 OCR fixture", "proof": "C02PowerOfAttorneyDocumentVerificationTest", "presentationReady": false, "notes": ["Mock OCR only; no fabricated CLOVA success row"] },
+    { "id": "DEMO-05", "title": "DRAFT 수정", "start": "DRAFT with mutable heirs/files", "proof": "C02IntakeService tests", "presentationReady": false, "notes": ["API-backed durable seed missing"] },
+    { "id": "DEMO-06", "title": "예약 자동 배정", "start": "REVIEW_PASSED + notified", "proof": "VisitReservationLocalMySqlIT", "presentationReady": false, "notes": ["task-code/workload ranking"] },
+    { "id": "DEMO-07", "title": "예약 수동 배정", "start": "NEEDS_MANUAL_ASSIGNMENT", "proof": "VisitReservationManualLocalMySqlIT", "presentationReady": false, "notes": ["same-branch capable staff only"] },
+    { "id": "DEMO-08", "title": "예약 변경·만료", "start": "confirmed and pending reservations", "proof": "VisitReservationManualLocalMySqlIT", "presentationReady": false, "notes": ["test clock/data only"] },
+    { "id": "DEMO-09", "title": "교육용 정책 변경", "start": "mock v2 approved, v3 pending", "proof": "PolicyChangeLocalMySqlIT", "presentationReady": false, "notes": ["mock-bank feed only"] },
+    { "id": "DEMO-10", "title": "직원 업무함·권한", "start": "mixed C-02 states", "proof": "C02DocumentReviewLocalMySqlIT/C02ClarificationLocalMySqlIT", "presentationReady": false, "notes": ["durable mixed inbox seed missing"] }
+  ]
+}

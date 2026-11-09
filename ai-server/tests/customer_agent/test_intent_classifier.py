@@ -169,11 +169,11 @@ class IntentClassifierTests(unittest.TestCase):
     def test_classification_endpoint_does_not_call_a_financial_task(self) -> None:
         registry = TaskRegistry([LoanInquiryTask(FakeSpringToolGateway())])
         app = FastAPI()
-        app.include_router(create_router(registry, self.classifier), prefix="/api/v1")
+        app.include_router(create_router(registry, self.classifier, internal_token="t"), prefix="/api/v1")
 
         response = TestClient(app).post("/api/v1/customer-agent/classify", json={
             "message": "내 대출계좌 정보 조회해 줘",
-        })
+        }, headers={"X-Customer-Agent-Token": "t"})
 
         self.assertEqual(200, response.status_code)
         self.assertEqual("LOAN_INQUIRY", response.json()["tasks"][0]["taskCode"])
@@ -182,9 +182,9 @@ class IntentClassifierTests(unittest.TestCase):
     def test_invalid_llm_output_is_a_502_and_never_falls_back_to_execution(self) -> None:
         invalid = IntentClassifier(StubIntentClient({"bad": json.dumps({"tasks": []})}), EXECUTABLE_EXCEPT_B01)
         app = FastAPI()
-        app.include_router(create_router(TaskRegistry(), invalid), prefix="/api/v1")
+        app.include_router(create_router(TaskRegistry(), invalid, internal_token="t"), prefix="/api/v1")
 
-        response = TestClient(app).post("/api/v1/customer-agent/classify", json={"message": "bad"})
+        response = TestClient(app).post("/api/v1/customer-agent/classify", json={"message": "bad"}, headers={"X-Customer-Agent-Token": "t"})
 
         self.assertEqual(502, response.status_code)
         self.assertEqual("INTENT_LLM_OUTPUT_INVALID", response.json()["detail"])

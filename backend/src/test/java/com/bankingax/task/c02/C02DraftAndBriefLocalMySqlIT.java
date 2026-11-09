@@ -282,6 +282,19 @@ class C02DraftAndBriefLocalMySqlIT {
         assertThat(jdbc.queryForObject("select count(*) from staff_review", Integer.class)).isZero();
     }
 
+    /** The 2026-11-09 run found one row per revision being overwritten, so the opinion before a policy change was lost. */
+    @Test void everyGenerationStaysInHistoryWhileTheLatestRowIsReplaced() throws Exception {
+        long id = submitted();
+        briefs.generate(id, revision(), 9L);
+        briefs.generate(id, revision(), 9L);
+        briefFailure = new DomainException("STAFF_AGENT_UNAVAILABLE", "down", true);
+        briefs.generate(id, revision(), 9L);
+
+        assertThat(briefs.history(id)).as("two successes, and the failure leaves no entry").hasSize(2);
+        assertThat(jdbc.queryForObject("select count(*) from agent_review_run where case_id=? and check_type='STAFF_BRIEF'", Integer.class, id)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from event_log where entity_type='STAFF_BRIEF' and entity_id=? and actor_type='STAFF' and actor_id=9", Integer.class, String.valueOf(id))).isEqualTo(2);
+    }
+
     @Test void aFailedAgentKeepsTheEarlierOpinion() throws Exception {
         long id = submitted();
         briefs.generate(id, revision());

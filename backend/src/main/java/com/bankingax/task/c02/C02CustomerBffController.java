@@ -118,6 +118,14 @@ public class C02CustomerBffController {
         return internal.documents(caseId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId, requestId);
     }
 
+    /** DOC-09: the owner re-opens what they submitted; the service checks ownership. */
+    @GetMapping("/{caseId}/documents/{documentId}/content")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.InputStreamResource> document(
+            JwtAuthenticationToken authentication, @PathVariable long caseId, @PathVariable long documentId) {
+        long customerId = principals.customer(authentication);
+        return internal.download(caseId, documentId, customerId, ActorRole.CUSTOMER, gatewayToken, customerId);
+    }
+
     @GetMapping("/{caseId}/ocr")
     public ApiEnvelope<OcrPersistence.Snapshot> ocr(JwtAuthenticationToken authentication, @PathVariable long caseId,
             @RequestParam int revision, @RequestParam String requestId) {

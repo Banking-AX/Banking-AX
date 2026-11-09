@@ -78,10 +78,10 @@ public class C02StaffBffController {
             @PathVariable long caseId, @RequestBody Decision body) {
         long staffId = reviewer(authentication);
         return internal.staffDecision(caseId, staffId, ActorRole.STAFF, gatewayToken,
-                new C02Controller.StaffDecisionBody(body.revision(), body.requestId(), body.outcome(), body.customerMessage()));
+                new C02Controller.StaffDecisionBody(body.revision(), body.requestId(), body.outcome(), body.customerMessage(), body.exceptionReason()));
     }
 
     public record Revision(int revision, String requestId) { }
     public record Decision(int revision, String requestId, C02IntakeService.StaffOutcome outcome,
-                           String customerMessage) { }
+                           String customerMessage, String exceptionReason) { }
 }

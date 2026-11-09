@@ -88,7 +88,7 @@ export function timelineSteps(snapshot: Pick<C02CustomerCaseSnapshot, 'caseStatu
 }
 
 const VISIT_LABEL: Record<string, string> = { ATTENDING: '방문 예정', ABSENT: '불참 · 위임', UNCONFIRMED_ABSENT: '잠정 불참', UNKNOWN: '확인 전' }
-const DELEGATION_LABEL: Record<string, string> = { DOCUMENT: '서류로 위임', RECEIPT: 'AX뱅크 앱 위임장', NONE: '' }
+const DELEGATION_LABEL: Record<string, string> = { DOCUMENT: '서류로 위임', RECEIPT: 'SolBank 앱 위임장', NONE: '' }
 
 export function visitLabel(heir: Pick<C02HeirView, 'visitStatus' | 'delegationMethod'>): string {
   const base = VISIT_LABEL[heir.visitStatus] ?? '확인 전'

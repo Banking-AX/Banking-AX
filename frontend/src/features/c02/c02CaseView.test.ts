@@ -64,7 +64,7 @@ describe('C-02 case view', () => {
   })
 
   it('labels a provisional absence as unconfirmed', () => {
-    expect(visitLabel({ visitStatus: 'ABSENT', delegationMethod: 'RECEIPT' })).toBe('불참 · 위임 (AX뱅크 앱 위임장)')
+    expect(visitLabel({ visitStatus: 'ABSENT', delegationMethod: 'RECEIPT' })).toBe('불참 · 위임 (SolBank 앱 위임장)')
     expect(visitConfirmation({ visitStatus: 'UNCONFIRMED_ABSENT' })).toBe('잠정 불참 · 미확인')
   })
 

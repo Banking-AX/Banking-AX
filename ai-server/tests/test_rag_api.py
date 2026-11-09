@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from unittest.mock import patch
 
@@ -20,7 +21,10 @@ REQUEST = {'query': '충당순서는 어떻게 변경하나요?', 'task_code': '
 
 class RagApiContractTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(app)
+        env = patch.dict(os.environ, {'STAFF_AGENT_GATEWAY_TOKEN': 'rag-test-token'})
+        env.start()
+        self.addCleanup(env.stop)
+        self.client = TestClient(app, headers={'X-Staff-Agent-Token': 'rag-test-token'})
 
     @patch('app.main._run_search', return_value=[SAMPLE_RESULT])
     def test_search_preserves_anchor_and_context_contract(self, _: object) -> None:

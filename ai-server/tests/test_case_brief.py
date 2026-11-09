@@ -42,7 +42,7 @@ def facts(**verification):
 def test_llm_result_is_kept_and_marked():
     result = write_brief(FACTS, search=rag, llm=StubLlm(brief()))
 
-    assert result['method'] == 'LLM' and result['promptVersion'] == 'case-brief-3'
+    assert result['method'] == 'LLM' and result['promptVersion'] == 'case-brief-7'
     assert result['confirmed'] == ['위임장의 예금주 성명, 대리인 성명이 신청정보와 일치합니다.']
     assert [row['docId'] for row in result['evidence']] == ['C02-01']
 
@@ -123,6 +123,37 @@ def test_unreadable_notices_are_reported_instead_of_implying_there_are_none():
 
 def test_no_notices_adds_no_policy_line():
     assert not any('정책' in line for line in write_brief({**FACTS, 'approvedPolicyChanges': []}, search=rag, llm=None)['staffChecks'])
+
+
+STAFF_CHECKS = {**FACTS, 'staffDocumentChecks': [
+    {'document': '가족관계증명서(상세)', 'staffCheck': 'CONFIRMED'},
+    {'document': '인감증명서', 'staffCheck': 'SUPPLEMENT_REQUIRED'},
+    {'document': '기본증명서', 'staffCheck': 'NOT_REVIEWED'}]}
+
+
+def test_staff_checks_are_listed_from_the_record_not_the_model():
+    for llm in (StubLlm(brief()), None):
+        result = write_brief(STAFF_CHECKS, search=rag, llm=llm)
+        assert '직원 확인: 가족관계증명서(상세) 원본 확인 완료' in result['confirmed']
+        assert '보완 필요(직원 판단): 인감증명서' in result['staffChecks']
+        assert '직원 미확인: 기본증명서' in result['staffChecks']
+
+
+def test_the_model_cannot_claim_a_staff_check_that_was_not_recorded():
+    output = brief(confirmed=['위임장의 예금주 성명이 일치합니다.', '기본증명서 원본을 확인했습니다.'])
+    result = write_brief(STAFF_CHECKS, search=rag, llm=StubLlm(output))
+    assert not any('기본증명서' in line and '확인' in line and '미확인' not in line for line in result['confirmed'])
+
+
+def test_clarification_states_become_staff_checks_without_customer_words():
+    facts = {**FACTS, 'customerClarifications': [{'kind': 'VISIT_ATTENDANCE', 'status': 'EXPIRED'}, {'kind': 'DOCUMENT', 'status': 'ANSWERED'}]}
+    checks = write_brief(facts, search=rag, llm=None)['staffChecks']
+    assert '고객 미응답(잠정 처리): 방문 여부' in checks and '고객 답변 원문 확인: 서류' in checks
+
+
+def test_no_staff_checks_means_no_staff_lines():
+    result = write_brief(FACTS, search=rag, llm=None)
+    assert not any(line.startswith('직원 확인:') for line in result['confirmed'])
 
 
 def test_only_settled_facts_reach_the_model():

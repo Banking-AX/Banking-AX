@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Staff-requested review opinion. It stores reference text beside the Case and has no path to a Case status,
@@ -30,19 +33,24 @@ public class C02StaffBriefService {
     private static final String TASK_CODE = "INHERITANCE_DEPOSIT";
     private static final Set<String> METHODS = Set.of("LLM", "RULE_FALLBACK");
     private static final int DRAFT_LIMIT = 1000;
+    private static final String HISTORY_ENTITY = "STAFF_BRIEF", HISTORY_EVENT = "C02_STAFF_BRIEF_GENERATED";
 
     private final C02IntakeService intake;
     private final StaffBriefPort agent;
     private final OcrPersistence ocr;
     private final ObjectProvider<PolicyChangeReviewService> policy;
+    private final ObjectProvider<C02DocumentReviewService> documentReviews;
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
+    private final TransactionTemplate tx;
 
-    public C02StaffBriefService(C02IntakeService intake, StaffBriefPort agent, ObjectProvider<OcrPersistence> ocr, ObjectProvider<PolicyChangeReviewService> policy, JdbcTemplate jdbc, ObjectMapper json) {
+    public C02StaffBriefService(C02IntakeService intake, StaffBriefPort agent, ObjectProvider<OcrPersistence> ocr, ObjectProvider<PolicyChangeReviewService> policy, ObjectProvider<C02DocumentReviewService> documentReviews, JdbcTemplate jdbc, ObjectMapper json, PlatformTransactionManager transactions) {
+        this.tx = new TransactionTemplate(transactions);
         this.intake = intake;
         this.agent = agent;
         this.ocr = ocr.getIfAvailable();
         this.policy = policy;
+        this.documentReviews = documentReviews;
         this.jdbc = jdbc;
         this.json = json;
     }
@@ -61,21 +69,58 @@ public class C02StaffBriefService {
 
     /** An Agent failure returns FAILED and keeps any earlier opinion; the rule-based precheck on the page is untouched. */
     public JsonNode generate(long caseId, int revision) {
+        return generate(caseId, revision, null);
+    }
+
+    public JsonNode generate(long caseId, int revision, Long staffId) {
         C02IntakeService.StaffCaseOverview overview = intake.staffCaseOverview(caseId);
         if (overview.caseView().revision() != revision) throw new DomainException("VERSION_CONFLICT", "The Case changed; reload before asking again.", true);
         if (overview.finalDecision() != null) throw new DomainException("CASE_ALREADY_DECIDED", "This Case already has a final staff decision.");
         String status = overview.caseView().caseStatus().name();
         if (!Set.of("SUBMITTED", "IN_REVIEW").contains(status)) throw new DomainException("INVALID_STATE", "Only a submitted Case can be reviewed.");
         Map<String, Object> facts = C02StaffBriefFacts.of(overview, documentNames(), ocr == null ? List.of() : ocr.snapshot(caseId));
-        C02StaffBriefFacts.addPolicy(facts, approvedNotices(caseId));
+        List<PolicyChangeReviewService.Notice> notices = approvedNotices(caseId);
+        C02StaffBriefFacts.addPolicy(facts, notices, caseId);
+        C02DocumentReviewService reviews = documentReviews.getIfAvailable();
+        if (reviews != null) C02StaffBriefFacts.addStaffChecks(facts, reviews.overview(caseId).documents(), documentNames());
+        C02StaffBriefFacts.addClarifications(facts, jdbc.queryForList("select kind, status from clarification where case_id=? order by id", caseId));
+        // Only the number: the customer's words stay with staff, who read the original.
+        facts.put("customerStatementCount", jdbc.queryForObject("select count(*) from case_statement where case_id=? and expires_at > UTC_TIMESTAMP(6)", Integer.class, caseId));
         try {
             ObjectNode brief = guarded(agent.write(facts));
             brief.put("status", "SUCCEEDED").put("revision", revision).put("analyzedAt", Instant.now().toString());
-            store(caseId, revision, brief);
+            recordAppliedPolicies(brief, notices);
+            tx.executeWithoutResult(transaction -> {
+                store(caseId, revision, brief);
+                appendHistory(caseId, staffId, brief);
+            });
             return brief;
         } catch (DomainException exception) {
             return json.createObjectNode().put("status", "FAILED").put("code", exception.code()).put("revision", revision);
         }
+    }
+
+    /** Every opinion ever generated for the Case, oldest first. The agent_review_run row keeps only the latest per revision. */
+    public List<JsonNode> history(long caseId) {
+        intake.currentRevisionForStaff(caseId);
+        return jdbc.query("select payload from event_log where entity_type=? and entity_id=? and event_type=? order by id",
+                (rs, row) -> read(rs.getString(1)), HISTORY_ENTITY, String.valueOf(caseId), HISTORY_EVENT);
+    }
+
+    /** Taken from what Spring selected, not from Agent output, so the record says which approved versions were really supplied. */
+    private void recordAppliedPolicies(ObjectNode brief, List<PolicyChangeReviewService.Notice> notices) {
+        if (notices == null) { brief.put("approvedPoliciesUnavailable", true); return; }
+        ArrayNode applied = json.createArrayNode();
+        for (PolicyChangeReviewService.Notice notice : notices)
+            applied.addObject().put("noticeId", notice.id()).put("sourceVersion", notice.sourceVersion()).put("effectiveState", notice.effectiveState()).put("effectiveAt", String.valueOf(notice.effectiveAt()));
+        brief.set("approvedPolicies", applied);
+    }
+
+    /** Append-only on event_log, so no table or column is added. The opinion holds no names or customer statements. */
+    private void appendHistory(long caseId, Long staffId, ObjectNode brief) {
+        jdbc.update("insert into event_log(entity_type,entity_id,event_type,from_value,to_value,actor_type,actor_id,request_id,payload) values(?,?,?,?,?,?,?,?,cast(? as json))",
+                HISTORY_ENTITY, String.valueOf(caseId), HISTORY_EVENT, brief.path("promptVersion").asText(null), brief.path("method").asText(null),
+                staffId == null ? "SYSTEM" : "STAFF", staffId, "staff-brief-" + UUID.randomUUID(), brief.toString());
     }
 
     /** Empty means none apply; null means they could not be read, which the opinion must say rather than imply there are none. */

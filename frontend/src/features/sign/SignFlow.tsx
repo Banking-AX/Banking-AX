@@ -278,7 +278,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
           </div>
           <div className="sign-preview__body">
             <div className="sign-paper">
-              <div className="sign-paper__top"><strong className="sign-paper__bank">AX뱅크</strong><span className="sign-paper__tag">교육용 시연 문서</span></div>
+              <div className="sign-paper__top"><strong className="sign-paper__bank">SolBank</strong><span className="sign-paper__tag">교육용 시연 문서</span></div>
               <strong className="sign-paper__title">{currentDoc.name}</strong>
               <dl className="sign-paper__fields">
                 {currentDoc.fields.map(field => <div key={field.k} className="sign-paper__row">

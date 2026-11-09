@@ -26,7 +26,15 @@ class C02AgentReviewPersistenceMySqlIT {
     @Autowired JdbcTemplate jdbc;
 
     @BeforeEach void setup() {
-        jdbc.execute("DROP TABLE IF EXISTS review_item"); jdbc.execute("DROP TABLE IF EXISTS agent_review_run");
+        // clarification (V14) holds foreign keys to both tables, so they are dropped on one connection with checks off.
+        jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Void>) connection -> {
+            try (var statement = connection.createStatement()) {
+                statement.execute("SET FOREIGN_KEY_CHECKS=0");
+                statement.execute("DROP TABLE IF EXISTS review_item"); statement.execute("DROP TABLE IF EXISTS agent_review_run");
+                statement.execute("SET FOREIGN_KEY_CHECKS=1");
+            }
+            return null;
+        });
         jdbc.execute("CREATE TABLE agent_review_run (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, case_id BIGINT UNSIGNED NOT NULL, revision INT UNSIGNED NOT NULL, check_type VARCHAR(30) NOT NULL DEFAULT 'STAFF_PRECHECK', status VARCHAR(20) NOT NULL, attempt_count INT UNSIGNED NOT NULL DEFAULT 0, model_version VARCHAR(90) NULL, prompt_version VARCHAR(60) NULL, rule_version VARCHAR(40) NULL, failure_reason VARCHAR(255) NULL, report JSON NULL, started_at DATETIME(6) NULL, finished_at DATETIME(6) NULL, UNIQUE KEY uk_reviewrun_revision(case_id,revision,check_type), CONSTRAINT fk_reviewrun_revision FOREIGN KEY(case_id,revision) REFERENCES case_revision(case_id,revision)) ENGINE=InnoDB");
         jdbc.execute("CREATE TABLE review_item (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, case_id BIGINT UNSIGNED NOT NULL, revision INT UNSIGNED NOT NULL, agent_review_run_id BIGINT UNSIGNED NULL, source VARCHAR(30) NOT NULL, category VARCHAR(40) NOT NULL, result VARCHAR(36) NOT NULL, rule_id VARCHAR(70) NULL, rule_version VARCHAR(40) NULL, basis_doc_id VARCHAR(60) NULL, document_file_id BIGINT UNSIGNED NULL, heir_id BIGINT UNSIGNED NULL, message TEXT NULL, evidence JSON NULL, created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), CONSTRAINT fk_reviewitem_revision FOREIGN KEY(case_id,revision) REFERENCES case_revision(case_id,revision), CONSTRAINT fk_reviewitem_run FOREIGN KEY(agent_review_run_id) REFERENCES agent_review_run(id), CONSTRAINT fk_reviewitem_file FOREIGN KEY(document_file_id) REFERENCES document_file(id), CONSTRAINT fk_reviewitem_heir FOREIGN KEY(heir_id) REFERENCES heir(id)) ENGINE=InnoDB");
         jdbc.execute("SET FOREIGN_KEY_CHECKS=0");

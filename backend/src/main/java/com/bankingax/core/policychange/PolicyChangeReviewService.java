@@ -156,8 +156,12 @@ public class PolicyChangeReviewService {
         List<String> reasons = caseId == null ? List.of() : impacts.reasonsFor(row.change(), taskCode, caseId);
         if (caseId != null && reasons.isEmpty()) return Optional.empty();
         PolicyChange change = row.change();
+        List<String> added = new ArrayList<>();
+        change.detail().path("addedCheckItems").forEach(item -> added.add(item.asText()));
         return Optional.of(new Notice(row.id(), change.sourceVersion(), change.changeSummary(), effectiveState(change),
-                change.effectiveAt(), change.changeType().ruleChangeReviewRequired(), newerBankVersion, reasons));
+                change.effectiveAt(), change.changeType().ruleChangeReviewRequired(), newerBankVersion, reasons,
+                change.previousVersion(), change.detail().path("before").asText(null), change.detail().path("after").asText(null), added,
+                change.sourceReference().documentId(), change.sourceReference().title()));
     }
 
     private ObjectNode guarded(JsonNode raw, PolicyChangeStore.Received received, List<Map<String, Object>> candidates) {
@@ -249,5 +253,7 @@ public class PolicyChangeReviewService {
     public record DecisionView(String decision, Long staffId, Instant decidedAt, String note) { }
     public record Notices(String taskCode, Long caseId, List<Notice> approved, List<Notice> pending) { }
     public record Notice(long id, String sourceVersion, String summary, String effectiveState, Instant effectiveAt,
-                         boolean ruleChangeReviewRequired, String newerBankVersion, List<String> reasonCodes) { }
+                         boolean ruleChangeReviewRequired, String newerBankVersion, List<String> reasonCodes,
+                         String previousVersion, String before, String after, List<String> addedCheckItems,
+                         String sourceDocumentId, String sourceTitle) { }
 }

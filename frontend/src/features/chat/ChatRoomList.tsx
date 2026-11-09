@@ -76,7 +76,7 @@ export function ChatRoomList({ rooms, activeRoomId, now = new Date(), retentionD
     <div className="chat-rooms__top">
       <div className="chat-rooms__brand">
         <BotAvatar />
-        <div className="chat-rooms__brand-text"><strong className="chat-rooms__brand-name">AI 금융 도우미</strong><span className="chat-rooms__brand-sub">AX뱅크 개인뱅킹 · 교육용 시연</span></div>
+        <div className="chat-rooms__brand-text"><strong className="chat-rooms__brand-name">AI 금융 도우미</strong><span className="chat-rooms__brand-sub">SolBank 개인뱅킹 · 교육용 시연</span></div>
       </div>
       {onNewChat && <button type="button" onClick={onNewChat} className="chat-rooms__new">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>새 대화 시작

@@ -70,8 +70,9 @@ public class PolicyChangeStore {
                 "policy-q:" + sha256(body), payload);
     }
 
-    void insertSync(String source, String eventType, String cursor, long staffId, String requestId, Object payload) {
-        append(SOURCE, source, eventType, null, cursor, "STAFF", staffId,
+    /** staffId is null for the automatic poll. */
+    void insertSync(String source, String eventType, String cursor, Long staffId, String requestId, Object payload) {
+        append(SOURCE, source, eventType, null, cursor, staffId == null ? "SYSTEM" : "STAFF", staffId,
                 "policy-sync:" + sha256(source + "|" + requestId + "|" + eventType), payload);
     }
 

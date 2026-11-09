@@ -247,6 +247,9 @@ public final class C02IntakeService {
         try { draft.view=casePort.revise(customerId,caseId,expectedRevision,draft.view.application(),"DOCUMENT_METADATA_REGISTERED"); }
         catch(RuntimeException error) { documents.delete(metadata.documentFileId()); throw error; }
         StaffPrecheckResult precheck=draft.view.caseStatus()==com.bankingax.core.caseport.CaseStatus.SUBMITTED ? runStaffPrecheckInternal(draft,requestId+"-precheck") : null;
+        // DOC-20: a replaced file does not answer a question the customer still owes; a failed check stays visible to staff.
+        if(precheck!=null && decisionPersistence!=null && draft.view.reviewStatus()==ReviewStatus.READY_FOR_STAFF && decisionPersistence.openClarifications(caseId)>0)
+            draft.view=casePort.recordCheckResult(caseId,draft.view.revision(),ReviewStatus.WAITING_CUSTOMER);
         staffDecisionsByCase.remove(caseId);
         DocumentUpdate update=new DocumentUpdate(metadata,draft.view.revision(),draft.view.reviewStatus()==null?null:draft.view.reviewStatus().name(),precheck);
         documentUpdates.put(requestId,update); return update;
@@ -357,7 +360,7 @@ public final class C02IntakeService {
         String message=notificationMessage(command.outcome(),command.customerMessage());
         CustomerNotification notification;
         if (decisionPersistence != null) {
-            C02StaffDecisionPersistence.StoredDecision stored=decisionPersistence.persist(command.staffId(), command.caseId(), command.expectedRevision(), command.requestId(), command.outcome().name(), message, proposedCaseStatus);
+            C02StaffDecisionPersistence.StoredDecision stored=decisionPersistence.persist(command.staffId(), command.caseId(), command.expectedRevision(), command.requestId(), command.outcome().name(), message, proposedCaseStatus, command.exceptionReason());
             draft.view=casePort.get(draft.customerId,command.caseId());
             notification=new CustomerNotification(stored.notificationId(),stored.caseId(),stored.revision(),stored.outcome(),stored.message(),false);
         } else notification=new CustomerNotification("c02-web-"+command.caseId()+"-"+command.expectedRevision(),command.caseId(),command.expectedRevision(),command.outcome().name(),message,false);
@@ -375,6 +378,16 @@ public final class C02IntakeService {
         Draft draft=staffDraft(caseId); requireRevision(draft,expectedRevision);
         if(draft.view.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) throw new DomainException("INVALID_STATE","Only submitted cases can be prechecked.");
         return runStaffPrecheckInternal(draft,requestId);
+    }
+    /** STAFF-21: the answer moves the submitted Case to a new revision (application unchanged) and the precheck runs on it. */
+    public synchronized int recheckAfterClarification(long customerId,long caseId,String answerRequestId) {
+        Draft draft=owned(customerId,caseId);
+        ServiceCaseView latest=casePort.get(customerId,caseId);
+        if(latest.caseStatus()!=com.bankingax.core.caseport.CaseStatus.SUBMITTED) return latest.revision();
+        draft.view=casePort.revise(customerId,caseId,latest.revision(),latest.application(),"C02_CLARIFICATION_ANSWERED");
+        // Retries are de-duplicated by event_log.request_id and uk_reviewrun_revision, not by the in-memory replay map.
+        runStaffPrecheckInternal(draft,answerRequestId+"-recheck-r"+draft.view.revision()+"-"+System.nanoTime());
+        return draft.view.revision();
     }
     private StaffPrecheckResult runStaffPrecheckInternal(Draft draft,String requestId) {
         PrecheckRequest previous=prechecks.get(requestId);
@@ -553,7 +566,9 @@ public final class C02IntakeService {
     public record CaseIntakeView(String decedentName,LocalDate decedentBirthDate,LocalDate deathDate,long customerStatedDepositTotal,List<HeirView> heirs) {}
     public record HeirView(String personRef,String name,LocalDate birthDate,String relationship,boolean applicant,String visitStatus,String delegationMethod) {}
     public record CustomerDecision(String outcome,String customerMessage) {}
-    public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) {}
+    public record StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage,String exceptionReason) {
+        public StaffDecisionCommand(long staffId,long caseId,int expectedRevision,String requestId,StaffOutcome outcome,String customerMessage) { this(staffId,caseId,expectedRevision,requestId,outcome,customerMessage,null); }
+    }
     /** The final status is persisted when C-02 review persistence is enabled; otherwise this is the in-memory fallback proposal. */
     public record StaffDecisionResult(long caseId,long workItemId,long customerId,long staffId,int revision,StaffOutcome outcome,String currentCaseStatus,String proposedCaseStatus,String customerMessage,CustomerNotification notification) {}
     public record CustomerNotification(String notificationId,long caseId,int revision,String outcome,String message,boolean externalDeliveryAttempted) {}

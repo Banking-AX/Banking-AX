@@ -34,8 +34,15 @@ public class C02StaffBriefController {
 
     @PostMapping
     public ApiEnvelope<JsonNode> generate(JwtAuthenticationToken authentication, @PathVariable long caseId, @RequestBody Generate body) {
+        long staffId = principals.staff(authentication);
+        briefs.requireReviewer(staffId);
+        return ApiEnvelope.success(body.requestId(), "INHERITANCE_DEPOSIT", null, caseId, body.revision(), briefs.generate(caseId, body.revision(), staffId));
+    }
+
+    @GetMapping("/history")
+    public ApiEnvelope<java.util.List<JsonNode>> history(JwtAuthenticationToken authentication, @PathVariable long caseId, @RequestParam String requestId) {
         briefs.requireReviewer(principals.staff(authentication));
-        return ApiEnvelope.success(body.requestId(), "INHERITANCE_DEPOSIT", null, caseId, body.revision(), briefs.generate(caseId, body.revision()));
+        return ApiEnvelope.success(requestId, "INHERITANCE_DEPOSIT", null, caseId, null, briefs.history(caseId));
     }
 
     public record Generate(int revision, String requestId) { }

@@ -94,6 +94,9 @@ app:
     source-base-url: ${APP_POLICY_SOURCE_BASE_URL:}
     source-token: ${POLICY_SOURCE_TOKEN:}
     source-signing-secret: ${POLICY_SOURCE_SIGNING_SECRET:}
+    # Off by default, so teammates' servers and tests never poll; the button works either way.
+    auto-sync-enabled: ${APP_POLICY_AUTO_SYNC_ENABLED:false}
+    auto-sync-ms: ${APP_POLICY_AUTO_SYNC_MS:60000}
     # A new task joins here; add a PolicyTaskProfile bean only to narrow its candidate Cases.
     registered-tasks: ${APP_POLICY_REGISTERED_TASKS:TRANSACTION_SEARCH,LOAN_INQUIRY,REPAYMENT_ORDER_CHANGE,HOUSING_SAVINGS_CLOSE,DEBT_ADJUSTMENT,INHERITANCE_DEPOSIT}
   sms:

@@ -8,6 +8,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +33,12 @@ public class C02CaseListBffController {
         """;
     private final JdbcTemplate jdbc;
     private final TaskBffPrincipal principals;
+    private final ObjectProvider<C02DocumentReviewService> documentReviews;
 
-    public C02CaseListBffController(JdbcTemplate jdbc, TaskBffPrincipal principals) {
+    public C02CaseListBffController(JdbcTemplate jdbc, TaskBffPrincipal principals, ObjectProvider<C02DocumentReviewService> documentReviews) {
         this.jdbc = jdbc;
         this.principals = principals;
+        this.documentReviews = documentReviews;
     }
 
     @GetMapping("/api/v1/customer/c02/cases")
@@ -48,15 +52,40 @@ public class C02CaseListBffController {
 
     @GetMapping("/api/v1/staff/c02/cases")
     @Transactional(readOnly = true)
-    public ApiEnvelope<List<CaseRow>> staffQueue(JwtAuthenticationToken authentication, @RequestParam String requestId) {
+    public ApiEnvelope<List<StaffCaseRow>> staffQueue(JwtAuthenticationToken authentication, @RequestParam String requestId) {
         long staffId = principals.staff(authentication);
         Boolean allowed = jdbc.query("select can_pre_review from `user` where id=? and is_active=true",
                 rs -> rs.next() ? rs.getBoolean(1) : null, staffId);
         if (!Boolean.TRUE.equals(allowed)) throw new DomainException("FORBIDDEN", "Pre-review inbox access is not granted to this staff account.");
         List<CaseRow> rows = jdbc.query(COLUMNS + " where sc.case_type='INHERITANCE_DEPOSIT' and sc.case_status<>'DRAFT' order by sc.submitted_at desc, sc.id desc limit 100",
                 (rs, n) -> row(rs));
-        return ApiEnvelope.success(requestId, "INHERITANCE_DEPOSIT", null, null, null, rows);
+        List<Long> ids = rows.stream().map(CaseRow::caseId).toList();
+        C02DocumentReviewService service = documentReviews.getIfAvailable();
+        Map<Long, C02DocumentReviewService.Summary> checks = service == null ? Map.of() : service.summaries(ids);
+        // The assigned reviewer is whoever started the review (staff_review.staff_id); a Case nobody started has none.
+        Map<Long, Reviewer> reviewers = new java.util.HashMap<>();
+        if (!ids.isEmpty()) jdbc.query("select sr.case_id, sr.staff_id, u.name, sr.started_at from staff_review sr left join `user` u on u.id = sr.staff_id where sr.case_id in ("
+                + String.join(",", ids.stream().map(id -> "?").toList()) + ") order by sr.id", rs -> {
+            reviewers.put(rs.getLong(1), new Reviewer(rs.getLong(2), rs.getString(3), instant(rs.getTimestamp(4))));
+        }, ids.toArray());
+        List<StaffCaseRow> out = rows.stream().map(row -> {
+            C02DocumentReviewService.Summary summary = checks.get(row.caseId());
+            Reviewer reviewer = reviewers.get(row.caseId());
+            Instant lastReviewed = summary == null ? null : summary.lastReviewedAt();
+            return new StaffCaseRow(row.caseId(), row.workItemId(), row.caseStatus(), row.reviewStatus(), row.revision(), row.createdAt(), row.submittedAt(),
+                    row.decidedAt(), row.resultNotifiedAt(), row.customerName(), summary == null ? 0 : summary.submitted(), summary == null ? 0 : summary.confirmed(),
+                    summary == null ? 0 : summary.supplement(), summary == null ? 0 : summary.unreviewed(), reviewer == null ? null : reviewer.staffId(),
+                    reviewer == null ? null : reviewer.name(), reviewer == null ? null : reviewer.startedAt(), lastReviewed);
+        }).toList();
+        return ApiEnvelope.success(requestId, "INHERITANCE_DEPOSIT", null, null, null, out);
     }
+
+    private record Reviewer(long staffId, String name, Instant startedAt) { }
+
+    /** Staff inbox row. Document counts are staff checks on current files, never OCR matches. */
+    public record StaffCaseRow(long caseId, long workItemId, String caseStatus, String reviewStatus, int revision, Instant createdAt, Instant submittedAt,
+                               Instant decidedAt, Instant resultNotifiedAt, String customerName, int submittedDocuments, int staffConfirmed,
+                               int staffSupplement, int staffUnreviewed, Long reviewerId, String reviewerName, Instant reviewStartedAt, Instant lastReviewedAt) { }
 
     private static CaseRow row(ResultSet rs) throws SQLException {
         return new CaseRow(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4), rs.getInt(5),

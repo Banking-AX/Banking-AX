@@ -7,6 +7,7 @@ from app.core.staff_engine.fakes import FakeCase
 from app.core.staff_engine.rag_adapter import RagEvidenceAdapter, keyword_rag_search
 from app.staff_agent.case_brief import default_brief_llm, write_brief
 from app.staff_agent.policy_impact import analyze, default_policy_llm
+from app.staff_agent.policy_question import answer_question, default_question_llm
 from app.tasks.c01 import adapt_c01_response, register_c01_check
 from app.tasks.c02 import register_c02_check
 
@@ -53,9 +54,12 @@ def create_router(executor: StaffCheckExecutor | None = None) -> APIRouter:
         # Spring must send this only after its CasePort revision/ownership check.  The
         # local fixture preserves that first known revision so a later stale call is
         # stopped before the registered handler/RAG nodes run.
+        # A newer revision (customer answer or file supplement) advances the fixture; an older one is still stopped.
         case_port = getattr(selected, '_http_case_port', None)
-        if case_port is not None and request.case_id not in case_port._cases:
-            case_port._cases[request.case_id] = FakeCase(request.case_id, request.revision, request.task_code)
+        if case_port is not None:
+            known = case_port._cases.get(request.case_id)
+            if known is None or request.revision > known.revision:
+                case_port._cases[request.case_id] = FakeCase(request.case_id, request.revision, request.task_code)
         response = selected.run(request)
         if request.task_code == 'DEBT_ADJUSTMENT':
             response = adapt_c01_response(response)
@@ -78,5 +82,15 @@ def create_router(executor: StaffCheckExecutor | None = None) -> APIRouter:
         if not isinstance(payload.get('facts'), dict):
             raise HTTPException(422, 'CASE_BRIEF_REQUEST_INVALID')
         return write_brief(payload['facts'], llm=default_brief_llm(bool(os.getenv('OPENAI_API_KEY', '').strip())))
+
+    @router.post('/staff-agent/policy-question')
+    def policy_question(payload: dict = Body(...), x_staff_agent_token: str | None = Header(default=None)) -> dict:
+        expected = os.getenv('STAFF_AGENT_GATEWAY_TOKEN')
+        if not expected or x_staff_agent_token != expected:
+            raise HTTPException(403, 'STAFF_AGENT_GATEWAY_FORBIDDEN')
+        question, task_code = payload.get('question'), payload.get('taskCode')
+        if not isinstance(question, str) or not 2 <= len(question.strip()) <= 300 or task_code not in DEFAULT_RAG_QUERY:
+            raise HTTPException(422, 'POLICY_QUESTION_REQUEST_INVALID')
+        return answer_question(question.strip(), task_code, llm=default_question_llm(bool(os.getenv('OPENAI_API_KEY', '').strip())))
 
     return router

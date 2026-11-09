@@ -1,9 +1,10 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import type { C02ReviewItem, C02StaffCase } from '../../api/taskApi'
+import type { C02DocumentReviewRow, C02ReviewItem, C02StaffCase } from '../../api/taskApi'
 import { C02OcrResults } from './C02OcrResults'
-import { agentItemView, decisionGuide, runLabel, staffSummaryLines, statusLabel } from './c02StaffText'
+import { C02AiDraftCard } from './C02AiReview'
+import { STAFF_INPUT_MARK, agentItemView, customerNoticeDraft, decisionGuide, noticeDocumentLines, runLabel, staffSummaryLines, statusLabel } from './c02StaffText'
 
 const ocr: C02ReviewItem[] = [
   { category: 'C02_POA_DOCUMENT_TYPE', result: 'TYPE_MATCHED', source: 'SPRING_RULE', documentFileId: 51 },
@@ -33,6 +34,56 @@ function staffCase(overrides: Partial<C02StaffCase> = {}, reviewItems: C02Review
   }
 }
 const body = (data: C02StaffCase, title: string) => staffSummaryLines(data).find(line => line.title === title)?.body
+
+const checked = (documentTypeCode: string, requirement: string, file: number | null, result: 'CONFIRMED' | 'SUPPLEMENT_REQUIRED' | null, reason: string | null, personName: string | null = null): C02DocumentReviewRow => ({
+  requiredDocumentId: 1, documentTypeCode, requirement, personRef: null, personName, documentFileId: file, fileVersion: file && 1, fileName: null, uploadedAt: null, ocrMethod: null, ocrStatus: null,
+  review: result && { eventId: 1, result, reason, staffId: 1, staffName: null, reviewedAt: '2026-11-08T00:00:00Z' },
+})
+const LINES = ['- 상속인 신분증 (김민수): 제출 서류 양식이 달라요', '- 기본증명서: 아직 제출되지 않았어요']
+
+describe('customer notice draft', () => {
+  it('lists only missing required files and files staff marked for supplement', () => {
+    const lines = noticeDocumentLines([
+      checked('HEIR_ID_CARD', 'REQUIRED', 11, 'SUPPLEMENT_REQUIRED', '제출 서류 양식이 달라요', '김민수'),
+      checked('DECEDENT_BASIC_CERTIFICATE', 'REQUIRED', null, null, null),
+      checked('DECEDENT_FAMILY_RELATION_DETAIL', 'REQUIRED', 12, 'CONFIRMED', null),
+      checked('DECEDENT_BASIC_CERTIFICATE', 'REQUIRED', 13, null, null),
+      checked('DECEDENT_BASIC_CERTIFICATE', 'OPTIONAL', null, null, null),
+    ])
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toContain('(김민수): 제출 서류 양식이 달라요')
+    expect(lines[1]).toContain('아직 제출되지 않았어요')
+  })
+
+  it('names the documents and their reasons for an insufficient result', () => {
+    const draft = customerNoticeDraft('DOCUMENT_INSUFFICIENT', LINES)
+    for (const line of LINES) expect(draft).toContain(line)
+    expect(draft).toContain('새로 신청')
+    expect(draft).not.toContain(STAFF_INPUT_MARK)
+  })
+
+  it('leaves what only staff know to staff instead of guessing', () => {
+    expect(customerNoticeDraft('DOCUMENT_INSUFFICIENT', [])).toContain(STAFF_INPUT_MARK)
+    expect(customerNoticeDraft('REQUIREMENT_FAILED', LINES)).toContain(STAFF_INPUT_MARK)
+  })
+
+  it('tells a proceeding customer what to bring, and adds no list when nothing is open', () => {
+    expect(customerNoticeDraft('PROCEED', LINES)).toContain(LINES[0])
+    expect(customerNoticeDraft('PROCEED', [])).not.toContain('다시 준비')
+  })
+
+  it('has no draft of its own before a result is chosen unless documents are open', () => {
+    expect(customerNoticeDraft('', [])).toBeNull()
+    expect(customerNoticeDraft('', LINES)).toContain(LINES[1])
+  })
+
+  it('shows the composed draft, and offers to apply it only once a result is chosen', () => {
+    const card = (outcomeLabel: string | null) => renderToStaticMarkup(createElement(C02AiDraftCard, { caseId: 1, revision: 1, canGenerate: false, outcomeLabel, composedDraft: LINES[0], onApply: () => undefined }))
+    expect(card(null)).toContain(LINES[0])
+    expect(card(null)).not.toContain('안내 문구란에 넣고')
+    expect(card('서류 부족')).toContain('안내 문구란에 넣고')
+  })
+})
 
 describe('statusLabel', () => {
   it('turns stored codes into business wording', () => {

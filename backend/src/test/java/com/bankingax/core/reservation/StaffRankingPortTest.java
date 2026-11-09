@@ -17,12 +17,12 @@ class StaffRankingPortTest {
 
     @Test
     void httpAdapterFallsBackToWorkloadOrderWhenTheAgentIsUnreachable() {
-        HttpStaffRankingAdapter adapter = new HttpStaffRankingAdapter(new ObjectMapper(), "http://127.0.0.1:1");
+        HttpStaffRankingAdapter adapter = new HttpStaffRankingAdapter(new ObjectMapper(), "http://127.0.0.1:1", "token");
         assertEquals(List.of(102L, 103L, 101L), adapter.rank(candidates, "INHERITANCE_DEPOSIT"));
     }
 
     @Test
     void httpAdapterWithoutUrlUsesWorkloadOrder() {
-        assertEquals(List.of(102L, 103L, 101L), new HttpStaffRankingAdapter(new ObjectMapper(), "").rank(candidates, "X"));
+        assertEquals(List.of(102L, 103L, 101L), new HttpStaffRankingAdapter(new ObjectMapper(), "", "token").rank(candidates, "X"));
     }
 }
