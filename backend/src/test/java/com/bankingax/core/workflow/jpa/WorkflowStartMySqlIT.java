@@ -327,6 +327,37 @@ class WorkflowStartMySqlIT {
     }
 
     @Test
+    void optionallyReturnsAllReconnectCandidatesInStableOrder() throws Exception {
+        jdbc.update("insert into chat_room(id,customer_id) values(78,1),(79,1)");
+        var held = prepareB01("b01-candidate-held", 1, 77,
+                WorkflowStartService.B01PrepareMode.DISCOVER, null);
+        jdbc.update("update work_item set status='ON_HOLD' where id=?", held.workItem().workItemId());
+        var active = prepareB01("b01-candidate-active", 1, 78,
+                WorkflowStartService.B01PrepareMode.START_NEW, null);
+
+        http.perform(post("/api/v1/tools/workflows/b01/prepare").headers(headers())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"b01-candidate-discover\",\"customerId\":1,"
+                                + "\"chatRoomId\":79,\"mode\":\"DISCOVER\","
+                                + "\"includeCandidates\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.outcome").value("RECONNECT_CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.candidates.length()").value(2))
+                .andExpect(jsonPath("$.data.candidates[0].workItemId").value(active.workItem().workItemId()))
+                .andExpect(jsonPath("$.data.candidates[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.candidates[0].originalChatRoomId").value(78))
+                .andExpect(jsonPath("$.data.candidates[1].workItemId").value(held.workItem().workItemId()))
+                .andExpect(jsonPath("$.data.candidates[1].status").value("ON_HOLD"));
+
+        http.perform(post("/api/v1/tools/workflows/b01/prepare").headers(headers())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestId\":\"b01-candidate-legacy\",\"customerId\":1,"
+                                + "\"chatRoomId\":79,\"mode\":\"DISCOVER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.candidates").doesNotExist());
+    }
+
+    @Test
     void explicitlyContinuesOwnedB01WithoutChangingItsChatRoomOrStatus() {
         jdbc.update("insert into chat_room(id,customer_id) values(78,1)");
         var existing = prepareB01("b01-continue-source", 1, 77,

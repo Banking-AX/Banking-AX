@@ -59,7 +59,8 @@ public class WorkflowStartController {
         WorkflowStartService.B01PrepareMode mode = parseB01Mode(request.mode());
         WorkflowStartService.B01PrepareResult result = starts.prepareB01(
                 new WorkflowStartService.B01PrepareCommand(
-                        request.requestId(), request.customerId(), request.chatRoomId(), mode, request.workItemId()));
+                        request.requestId(), request.customerId(), request.chatRoomId(), mode, request.workItemId()),
+                Boolean.TRUE.equals(request.includeCandidates()));
         return ApiEnvelope.success(
                 request.requestId(), TaskCode.REPAYMENT_ORDER_CHANGE.name(),
                 result.workItem().workItemId(), null, null, result);
@@ -104,5 +105,5 @@ public class WorkflowStartController {
     public record StartRequest(String requestId, long customerId, Long chatRoomId, String taskCode) { }
 
     public record B01PrepareRequest(String requestId, long customerId, long chatRoomId,
-                                    String mode, Long workItemId) { }
+                                    String mode, Long workItemId, Boolean includeCandidates) { }
 }

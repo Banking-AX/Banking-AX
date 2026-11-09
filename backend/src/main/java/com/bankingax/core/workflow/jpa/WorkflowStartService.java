@@ -6,6 +6,8 @@ import com.bankingax.core.workflow.TaskCode;
 import com.bankingax.core.workflow.TaskHandler;
 import com.bankingax.core.workflow.WorkItemStatus;
 import com.bankingax.core.workflow.WorkItemView;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -56,8 +58,40 @@ public class WorkflowStartService {
     }
 
     public B01PrepareResult prepareB01(B01PrepareCommand command) {
+        return prepareB01(command, false);
+    }
+
+    public B01PrepareResult prepareB01(B01PrepareCommand command, boolean includeCandidates) {
         validateB01(command);
-        return Objects.requireNonNull(transactions.execute(status -> prepareB01InTransaction(command)));
+        return Objects.requireNonNull(transactions.execute(status -> {
+            B01PrepareResult result = prepareB01InTransaction(command);
+            if (!includeCandidates || result.outcome() != B01PrepareOutcome.RECONNECT_CONFIRMATION_REQUIRED) {
+                return result;
+            }
+            return new B01PrepareResult(result.outcome(), result.workItem(),
+                    b01Candidates(command.customerId(), command.chatRoomId()));
+        }));
+    }
+
+    void lockCustomerAndOwnedChat(long customerId, long chatRoomId) {
+        workflowRepository.lockActiveCustomerById(customerId)
+                .orElseThrow(() -> new DomainException("FORBIDDEN", "Customer is not active."));
+        lockOwnedChatRoom(customerId, chatRoomId);
+    }
+
+    List<B01Candidate> b01Candidates(long customerId, long currentChatRoomId) {
+        return workItemRepository.findAllUnfinishedInAnotherChat(
+                        customerId, currentChatRoomId, TaskCode.REPAYMENT_ORDER_CHANGE.name()).stream()
+                .map(item -> {
+                    WorkflowEntity workflow = workflowRepository.findById(item.workflowId)
+                            .orElseThrow(WorkflowStartService::unavailableB01);
+                    Long originalChatRoomId = workflow.chatRoomId;
+                    boolean available = originalChatRoomId != null
+                            && workflowRepository.existsChatRoomOwnedByCustomerId(
+                                    originalChatRoomId, customerId) == 1;
+                    return new B01Candidate(item.id, item.status, originalChatRoomId, available);
+                })
+                .toList();
     }
 
     private void lockOwnedChatRoom(long customerId, long chatRoomId) {
@@ -178,7 +212,7 @@ public class WorkflowStartService {
         if (workItemId == null || workItemId <= 0) {
             throw new DomainException("INVALID_REQUEST", "A workItemId is required to continue B-01.");
         }
-        WorkItemEntity item = workItemRepository.findById(workItemId)
+        WorkItemEntity item = workItemRepository.findForUpdate(workItemId)
                 .orElseThrow(WorkflowStartService::unavailableB01);
         WorkflowEntity workflow = workflowRepository.findById(item.workflowId)
                 .orElseThrow(WorkflowStartService::unavailableB01);
@@ -261,7 +295,15 @@ public class WorkflowStartService {
     public record B01PrepareCommand(String requestId, long customerId, long chatRoomId,
                                     B01PrepareMode mode, Long workItemId) { }
 
-    public record B01PrepareResult(B01PrepareOutcome outcome, StartResult workItem) {
+    public record B01Candidate(long workItemId, WorkItemStatus status, Long originalChatRoomId,
+                               boolean originalChatRoomAvailable) { }
+
+    public record B01PrepareResult(B01PrepareOutcome outcome, StartResult workItem,
+            @JsonInclude(JsonInclude.Include.NON_EMPTY) List<B01Candidate> candidates) {
+        public B01PrepareResult(B01PrepareOutcome outcome, StartResult workItem) {
+            this(outcome, workItem, List.of());
+        }
+
         StartResult startResult() {
             return workItem;
         }
