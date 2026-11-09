@@ -162,6 +162,27 @@ class CustomerTaskAction(BaseModel):
     actionRequestId: str = Field(min_length=1, max_length=90)
 
 
+class B01ReconnectCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    workItemId: int = Field(gt=0)
+    status: Literal["ACTIVE", "ON_HOLD"]
+    originalChatRoomId: int | None = Field(default=None, gt=0)
+    originalChatRoomAvailable: bool
+
+    @model_validator(mode="after")
+    def validate_original_chat(self) -> "B01ReconnectCandidate":
+        if self.originalChatRoomAvailable and self.originalChatRoomId is None:
+            raise ValueError("An available original chat room must have an id")
+        return self
+
+
+class B01ReconnectAction(BaseModel):
+    type: Literal["SELECT_B01_RECONNECT"] = "SELECT_B01_RECONNECT"
+    allowStartNew: bool
+    candidates: list[B01ReconnectCandidate] = Field(min_length=1)
+
+
 class B01PrepareData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -171,6 +192,19 @@ class B01PrepareData(BaseModel):
         "ACTIVE_WORK_ITEM_CONFLICT",
     ]
     workItem: WorkflowStartData
+    candidates: list[B01ReconnectCandidate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "B01PrepareData":
+        if self.outcome == "RECONNECT_CONFIRMATION_REQUIRED":
+            if not self.candidates:
+                raise ValueError("B-01 reconnect candidates are required")
+            ids = [candidate.workItemId for candidate in self.candidates]
+            if len(ids) != len(set(ids)):
+                raise ValueError("B-01 reconnect candidate ids must be unique")
+        elif self.candidates:
+            raise ValueError("B-01 reconnect candidates are only valid for reconnect confirmation")
+        return self
 
 
 class B01PrepareEnvelope(BaseModel):
@@ -217,6 +251,7 @@ class CustomerNaturalStartResponse(BaseModel):
     loanInquiry: LoanInquiryData | None = None
     executionStatus: ExecutionStatus | None = None
     taskAction: CustomerTaskAction | None = None
+    b01ReconnectAction: B01ReconnectAction | None = None
     b01Entry: B01GraphEntry | None = None
     answer: str | None = None
     answerStatus: Literal["GENERATED", "FAILED", "NOT_APPLICABLE"] = "NOT_APPLICABLE"
@@ -470,6 +505,7 @@ def _prepare_b01_entry(request: CustomerNaturalStartRequest,
             "customerId": request.customerId,
             "chatRoomId": request.chatRoomId,
             "mode": "DISCOVER",
+            "includeCandidates": True,
         })
         envelope = B01PrepareEnvelope.model_validate(raw)
         if envelope.requestId != request.requestId:
@@ -485,13 +521,18 @@ def _prepare_b01_entry(request: CustomerNaturalStartRequest,
 
     prepare_outcome = envelope.data.outcome
     if prepare_outcome == "RECONNECT_CONFIRMATION_REQUIRED":
+        candidates = envelope.data.candidates
         return CustomerNaturalStartResponse(
             requestId=request.requestId,
             customerId=request.customerId,
             outcome="B01_RECONNECT_CONFIRMATION_REQUIRED",
             classification=classification,
-            answer=("다른 채팅방에서 진행 중인 채무변제충당순서 변경 업무가 있습니다. "
-                    "기존 업무를 이어갈지 새 신청을 시작할지 확인해 주세요."),
+            answer=("진행 중인 채무변제충당순서 변경 업무가 있습니다. "
+                    "이어할 업무를 선택하거나 새 신청 가능 여부를 확인해 주세요."),
+            b01ReconnectAction=B01ReconnectAction(
+                allowStartNew=all(candidate.status == "ON_HOLD" for candidate in candidates),
+                candidates=candidates,
+            ),
             answerStatus="GENERATED",
         ).model_dump(mode="json")
     if prepare_outcome == "ACTIVE_WORK_ITEM_CONFLICT":

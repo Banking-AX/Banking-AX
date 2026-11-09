@@ -34,7 +34,8 @@ class SpringHttpToolGateway:
         headers = {"Content-Type": "application/json", "X-Actor-Id": str(customer_id),
                    "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": token}
         payload = {key: request[key]
-                   for key in ("requestId", "customerId", "chatRoomId", "mode", "workItemId")
+                   for key in ("requestId", "customerId", "chatRoomId", "mode", "workItemId",
+                               "includeCandidates")
                    if key in request and request[key] is not None}
         return self._post("/api/v1/tools/workflows/b01/prepare", payload, headers)
 

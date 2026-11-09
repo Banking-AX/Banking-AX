@@ -50,10 +50,13 @@ class StaticClassifier:
 
 
 class RecordingGateway:
-    def __init__(self, outcome: str = "CREATED", status: str = "ACTIVE") -> None:
+    def __init__(self, outcome: str = "CREATED", status: str = "ACTIVE",
+                 candidates: list[dict[str, object]] | None = None) -> None:
         self.outcome = outcome
         self.status = status
+        self.candidates = candidates
         self.b01_requests: list[dict[str, object]] = []
+        self.loan_requests: list[dict[str, object]] = []
         self.selection_requests: list[dict[str, object]] = []
         self.failure: Exception | None = None
 
@@ -61,21 +64,24 @@ class RecordingGateway:
         self.b01_requests.append(request)
         if self.failure is not None:
             raise self.failure
+        data: dict[str, object] = {
+            "outcome": self.outcome,
+            "workItem": {
+                "workflowId": 501,
+                "workItemId": 1001,
+                "taskCode": "REPAYMENT_ORDER_CHANGE",
+                "status": self.status,
+            },
+        }
+        if self.candidates is not None:
+            data["candidates"] = self.candidates
         return {
             "requestId": request["requestId"],
             "taskCode": "REPAYMENT_ORDER_CHANGE",
             "workItemId": 1001,
             "caseId": None,
             "revision": None,
-            "data": {
-                "outcome": self.outcome,
-                "workItem": {
-                    "workflowId": 501,
-                    "workItemId": 1001,
-                    "taskCode": "REPAYMENT_ORDER_CHANGE",
-                    "status": self.status,
-                },
-            },
+            "data": data,
             "error": None,
         }
 
@@ -83,6 +89,7 @@ class RecordingGateway:
         raise AssertionError("B-01 entry must use the dedicated prepare API")
 
     def b01_loans(self, request: dict[str, object]) -> dict[str, object]:
+        self.loan_requests.append(request)
         return self._tool_envelope(request, {"loans": [{
             "loanId": 501, "loanName": "직장인대출",
             "loanNoMasked": "210-***-000001", "repaymentOrder": "INTEREST_FIRST",
@@ -165,6 +172,7 @@ class B01GraphEntryTests(unittest.TestCase):
             "customerId": 7,
             "chatRoomId": 77,
             "mode": "DISCOVER",
+            "includeCandidates": True,
         }], gateway.b01_requests)
 
     def test_awaiting_input_contract_uses_named_wait_states_and_none(self) -> None:
@@ -195,7 +203,10 @@ class B01GraphEntryTests(unittest.TestCase):
         self.assertEqual([], gateway.b01_requests)
 
     def test_reconnect_confirmation_does_not_initialize_graph(self) -> None:
-        gateway = RecordingGateway("RECONNECT_CONFIRMATION_REQUIRED", "ON_HOLD")
+        gateway = RecordingGateway("RECONNECT_CONFIRMATION_REQUIRED", "ON_HOLD", [{
+            "workItemId": 1001, "status": "ON_HOLD", "originalChatRoomId": 5,
+            "originalChatRoomAvailable": True,
+        }])
         response = self.post(self.client(gateway))
 
         self.assertEqual(200, response.status_code)
@@ -204,7 +215,44 @@ class B01GraphEntryTests(unittest.TestCase):
         self.assertIsNone(body["workflow"])
         self.assertIsNone(body["taskAction"])
         self.assertIsNone(body["b01Entry"])
-        self.assertIn("이어갈지", body["answer"])
+        self.assertEqual("SELECT_B01_RECONNECT", body["b01ReconnectAction"]["type"])
+        self.assertTrue(body["b01ReconnectAction"]["allowStartNew"])
+        self.assertEqual([{
+            "workItemId": 1001, "status": "ON_HOLD", "originalChatRoomId": 5,
+            "originalChatRoomAvailable": True,
+        }], body["b01ReconnectAction"]["candidates"])
+        self.assertEqual([], gateway.loan_requests)
+
+    def test_reconnect_returns_all_candidates_in_spring_order_and_active_blocks_new(self) -> None:
+        candidates = [
+            {"workItemId": 18, "status": "ACTIVE", "originalChatRoomId": 5,
+             "originalChatRoomAvailable": True},
+            {"workItemId": 3, "status": "ON_HOLD", "originalChatRoomId": 1,
+             "originalChatRoomAvailable": True},
+        ]
+        gateway = RecordingGateway("RECONNECT_CONFIRMATION_REQUIRED", candidates=candidates)
+
+        response = self.post(self.client(gateway))
+
+        self.assertEqual(200, response.status_code)
+        action = response.json()["b01ReconnectAction"]
+        self.assertFalse(action["allowStartNew"])
+        self.assertEqual(candidates, action["candidates"])
+        self.assertIsNone(response.json()["taskAction"])
+        self.assertEqual([], gateway.loan_requests)
+
+    def test_reconnect_rejects_missing_or_invalid_candidates_without_running_graph(self) -> None:
+        for candidates in (None, [{
+            "workItemId": 18, "status": "DONE", "originalChatRoomId": 5,
+            "originalChatRoomAvailable": True,
+        }]):
+            with self.subTest(candidates=candidates):
+                gateway = RecordingGateway(
+                    "RECONNECT_CONFIRMATION_REQUIRED", candidates=candidates)
+                response = self.post(self.client(gateway))
+                self.assertEqual(502, response.status_code)
+                self.assertEqual("B01_PREPARE_INVALID_RESPONSE", response.json()["detail"])
+                self.assertEqual([], gateway.loan_requests)
 
     def test_active_work_item_conflict_does_not_initialize_graph(self) -> None:
         gateway = RecordingGateway("ACTIVE_WORK_ITEM_CONFLICT")
@@ -268,13 +316,14 @@ class B01PrepareHttpGatewayTests(unittest.TestCase):
                 "customerId": 7,
                 "chatRoomId": 77,
                 "mode": "DISCOVER",
+                "includeCandidates": True,
             })
 
         self.assertEqual(expected, actual)
         post.assert_called_once_with(
             "/api/v1/tools/workflows/b01/prepare",
             {"requestId": "b01-http-1", "customerId": 7,
-             "chatRoomId": 77, "mode": "DISCOVER"},
+             "chatRoomId": 77, "mode": "DISCOVER", "includeCandidates": True},
             {"Content-Type": "application/json", "X-Actor-Id": "7",
              "X-Actor-Role": "CUSTOMER", "X-Tool-Gateway-Token": "test-gateway-token"},
         )
