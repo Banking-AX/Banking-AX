@@ -417,11 +417,6 @@ export function ChatModal() {
 
         <BotMessage label="AI 금융 도우미" time={formatTime(openedAt)}>안녕하세요! AX AI 금융 도우미입니다.<br />어떤 금융업무를 도와드릴까요?</BotMessage>
 
-        {screen?.guide && <div className="chat-dock__guide">
-          <span className="chat-dock__guide-tag">이 화면 안내</span>
-          <span className="chat-dock__guide-text">{screen.guide}</span>
-        </div>}
-
         <div className="chat-dock__quick">
           <span className="chat-quick__title">자주 찾는 업무</span>
           {QUICK_TASKS.map(task => <button key={task.title} type="button" disabled={DOCK_STAGES[stage].locksInput} onClick={() => send(task.title)} className="chat-dock__task">
