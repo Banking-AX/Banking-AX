@@ -1,0 +1,3730 @@
+{
+ "keyword": [
+  {
+   "id": "H1",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "청년 주택드림 통장을 중도에 해지하면 이자는 어떻게 계산돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 중도해지이율"
+    ],
+    [
+     "B02-06",
+     "서비스 구현 범위"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 이자지급방식"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 전환신규를 위한 해지 시 소득공제 적용"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H2",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "해지할 때 우대이율을 받으려면 어떤 서류를 내야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 이자지급방식"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H3",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "인터넷뱅킹으로 해지할 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 계약의해지"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 이자지급방식"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H4",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "2년 이상 가입하면 이율이 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 표 (현재 기준, 세금공제 전,"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H5",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "비과세 한도는 얼마까지인가요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 한도"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 추징세율"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "H6",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "입증서류를 내지 않고 기존 이율로 해지하려면 무엇을 제출해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-07",
+     "주의"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 3,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H7",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "전환신규한 계좌의 전환원금에는 어떤 이율이 적용돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-06",
+     "서비스 구현 범위"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H8",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "세대주가 될 예정이었던 가입자는 어떤 서류로 입증해야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H9",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "2년 안에 해지해도 비과세 세액을 추징하지 않는 경우가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ],
+    [
+     "B02-07",
+     "주의"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H10",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "상속으로 받은 주택 지분을 처분했다면 무주택으로 보나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "4. 무주택 판단기준"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "H11",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "가입자가 사망하면 통장 명의를 변경할 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 유의사항"
+    ],
+    [
+     "B02-01",
+     "4. 무주택 판단기준"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H12",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "소득공제를 받은 뒤 해지하면 추징세율은 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 추징세율"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 전환신규를 위한 해지 시 소득공제 적용"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-07",
+     "주의"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R1",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "비용 원금 이자 순서로 상환하면 연체이자는 어떻게 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R2",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "별도 신청 없이 회수순서가 자동으로 바뀌는 경우가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 가. 연체이자 부담"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R3",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "기한의 이익을 부활시키려면 어떤 순서로 상환해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "[부록] 용어: 기한의 이익(상실)"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 은행·채무자로부터의 상계"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "R4",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "순서를 변경한 뒤 영업점에 갈 수 없으면 어떻게 상환해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 우선변제채무지정권"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R5",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "충당순서를 바꿔도 연체정보가 등록되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 나. 그 밖의 불이익"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": null,
+   "recall3": false,
+   "recall5": false,
+   "irrelevantTop3": 3,
+   "top3": 3
+  },
+  {
+   "id": "R6",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "변경 신청서에는 어떤 항목을 적어야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R7",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "담보제공자나 연대보증인도 서명해야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ],
+    [
+     "B01-01",
+     "신청인 확인 문구"
+    ],
+    [
+     "B01-01",
+     "양식 안내 문구"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R8",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "신청서 사본을 받을 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "신청인 확인 문구"
+    ],
+    [
+     "B01-01",
+     "양식 안내 문구"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 나. 그 밖의 불이익"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D1",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청 대상자 기준이 뭐예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 나. 그 밖의 불이익"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 대상자"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D2",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청이 아예 불가능한 경우는 언제예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D3",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정이 거절될 수 있는 사유를 알려주세요",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D4",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청할 때 필요한 서류는 뭐예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 요청방법"
+    ],
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 채무조정 요청시 필요서류"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D5",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 결과는 며칠 안에 안내받나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ],
+    [
+     "C01-04",
+     "신청인 확인 문구"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D6",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "비대면으로도 채무조정을 요청할 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청권이란?"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ],
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 요청방법"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 4,
+   "recall3": false,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D7",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정이 거절되면 어디서 도움을 받을 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-03",
+     "변제계획 불이행 시 안내"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무조정요청권"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D8",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정을 받으면 어떤 식으로 조정되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": null,
+   "recall3": false,
+   "recall5": false,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D9",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청 사유로 어떤 항목을 고를 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": null,
+   "recall3": false,
+   "recall5": false,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D10",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "변제계획을 몇 개월 이행하지 않으면 합의가 해지되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-03",
+     "합의 해지의 효과"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D11",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 합의가 해지되면 어떤 효과가 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-03",
+     "합의 해지의 효과"
+    ],
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D12",
+   "type": "audience_guard",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 합의가 해지되면 어떤 효과가 있어요?",
+   "audience": "customer",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "leaked": []
+  },
+  {
+   "id": "D13",
+   "type": "audience_guard",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정서 양식의 조정내용에는 무엇을 적어요?",
+   "audience": "customer",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "신청인 확인 문구"
+    ],
+    [
+     "C01-04",
+     "양식 기재 항목"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "leaked": []
+  },
+  {
+   "id": "I1",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속인이 모두 영업점에 가야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I2",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속예금 합계가 3백만원 이하면 한 명만 가도 돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I3",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "영업점에 갈 때 어떤 서류를 가져가야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I4",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "2007년 이전에 돌아가셨으면 어떤 서류가 더 필요해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I5",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "형제자매가 상속인이면 추가로 필요한 서류가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I6",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "못 오는 상속인은 무엇을 준비해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I7",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "불참 상속인의 인감증명서는 어떤 용도로 발급해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I8",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장을 영업점에서 작성해도 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I9",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "서류는 언제 발급된 것까지 인정돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I10",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장 양식은 어디서 받을 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "I11",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장에 대리인 정보는 무엇을 적어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 3,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "I12",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장과 함께 어떤 증표나 증명서를 제출해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "N1",
+   "type": "unanswerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속세 신고 기한은 언제까지예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N2",
+   "type": "unanswerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속받은 부동산 등기는 어떻게 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 1. 상속재산 (단위: 원)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N3",
+   "type": "unanswerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "청약 당첨 확률을 높이는 방법이 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "1. 상품 개요 및 특징"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 전환신규를 위한 해지 시 소득공제 적용"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N4",
+   "type": "unanswerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "해지 환급금을 해외 계좌로 받을 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "1. 상품 개요 및 특징"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 한도"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N5",
+   "type": "unanswerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "충당순서 변경 수수료는 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N6",
+   "type": "unanswerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "연금저축 해지 방법 알려주세요",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 2
+  },
+  {
+   "id": "N7",
+   "type": "unanswerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 승인 확률은 몇 퍼센트예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-05",
+     "합의 문구 및 서명"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N8",
+   "type": "unanswerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 중에 해외여행을 가도 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청권이란?"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  }
+ ],
+ "hybrid": [
+  {
+   "id": "H1",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "청년 주택드림 통장을 중도에 해지하면 이자는 어떻게 계산돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 중도해지이율"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 이자지급방식"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 표 (현재 기준, 세금공제 전,"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 전환신규를 위한 해지 시 소득공제 적용"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "H2",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "해지할 때 우대이율을 받으려면 어떤 서류를 내야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H3",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "인터넷뱅킹으로 해지할 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 계약의해지"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-06",
+     "서비스 구현 범위"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 이자지급방식"
+    ],
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H4",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "2년 이상 가입하면 이율이 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 표 (현재 기준, 세금공제 전,"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ],
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H5",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "비과세 한도는 얼마까지인가요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 한도"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 추징세율"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H6",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "입증서류를 내지 않고 기존 이율로 해지하려면 무엇을 제출해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H7",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "전환신규한 계좌의 전환원금에는 어떤 이율이 적용돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ],
+    [
+     "B02-06",
+     "서비스 구현 범위"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 표 (현재 기준, 세금공제 전,"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "H8",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "세대주가 될 예정이었던 가입자는 어떤 서류로 입증해야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-02",
+     "6. 동의서 > 본문"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H9",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "2년 안에 해지해도 비과세 세액을 추징하지 않는 경우가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-07",
+     "주의"
+    ],
+    [
+     "B02-07",
+     "비과세와 우대이율은 다른 조건 (상품설명서 5~6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 한도"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "H10",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "상속으로 받은 주택 지분을 처분했다면 무주택으로 보나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "4. 무주택 판단기준"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "H11",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "가입자가 사망하면 통장 명의를 변경할 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-02",
+     "5. 각서: 2. 유의사항"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "H12",
+   "type": "answerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "소득공제를 받은 뒤 해지하면 추징세율은 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 전환신규를 위한 해지 시 소득공제 적용"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 소득공제 (해지 관련 발췌) > 추징세율"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-07",
+     "주의"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R1",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "비용 원금 이자 순서로 상환하면 연체이자는 어떻게 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 가. 연체이자 부담"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R2",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "별도 신청 없이 회수순서가 자동으로 바뀌는 경우가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R3",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "기한의 이익을 부활시키려면 어떤 순서로 상환해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "[부록] 용어: 기한의 이익(상실)"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "R4",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "순서를 변경한 뒤 영업점에 갈 수 없으면 어떻게 상환해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 우선변제채무지정권"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R5",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "충당순서를 바꿔도 연체정보가 등록되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 나. 그 밖의 불이익"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "R6",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "변경 신청서에는 어떤 항목을 적어야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "신청인 확인 문구"
+    ],
+    [
+     "B01-01",
+     "양식 안내 문구"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R7",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "담보제공자나 연대보증인도 서명해야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ],
+    [
+     "B01-01",
+     "신청인 확인 문구"
+    ],
+    [
+     "B01-01",
+     "양식 안내 문구"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "R8",
+   "type": "answerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "신청서 사본을 받을 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "신청인 확인 문구"
+    ],
+    [
+     "B01-01",
+     "양식 안내 문구"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ],
+    [
+     "B01-01",
+     "양식 기재 항목"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D1",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청 대상자 기준이 뭐예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-01",
+     "요청대상 > 대상자"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청권이란?"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D2",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청이 아예 불가능한 경우는 언제예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D3",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정이 거절될 수 있는 사유를 알려주세요",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D4",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청할 때 필요한 서류는 뭐예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ],
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 채무조정 요청시 필요서류"
+    ],
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 요청방법"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무조정요청권"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D5",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 결과는 며칠 안에 안내받나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-01",
+     "채무조정 내용 (예시)"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D6",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "비대면으로도 채무조정을 요청할 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-01",
+     "요청방법 및 관련서류 > 요청방법"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청권이란?"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "D7",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정이 거절되면 어디서 도움을 받을 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D8",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정을 받으면 어떤 식으로 조정되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-05",
+     "2. 채무조정내역 > 1) 조정내용 (단위 : 원)"
+    ],
+    [
+     "C01-01",
+     "채무조정 내용 (예시)"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청권이란?"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 4,
+   "recall3": false,
+   "recall5": true,
+   "irrelevantTop3": 3,
+   "top3": 3
+  },
+  {
+   "id": "D9",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 요청 사유로 어떤 항목을 고를 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "채무조정 내용 (예시)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": null,
+   "recall3": false,
+   "recall5": false,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D10",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "변제계획을 몇 개월 이행하지 않으면 합의가 해지되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-03",
+     "합의 해지의 효과"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "D11",
+   "type": "answerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 합의가 해지되면 어떤 효과가 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-03",
+     "합의 해지의 효과"
+    ],
+    [
+     "C01-03",
+     "채무조정 합의 해지 사유"
+    ],
+    [
+     "C01-05",
+     "3. 채무조정 합의해지 기준"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "D12",
+   "type": "audience_guard",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 합의가 해지되면 어떤 효과가 있어요?",
+   "audience": "customer",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 결과 안내와 동의"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "leaked": []
+  },
+  {
+   "id": "D13",
+   "type": "audience_guard",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정서 양식의 조정내용에는 무엇을 적어요?",
+   "audience": "customer",
+   "top5": [
+    [
+     "C01-04",
+     "양식 기재 항목"
+    ],
+    [
+     "C01-04",
+     "양식 기재 항목"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 필요서류"
+    ],
+    [
+     "C01-01",
+     "채무조정 내용 (예시)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "leaked": []
+  },
+  {
+   "id": "I1",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속인이 모두 영업점에 가야 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I2",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속예금 합계가 3백만원 이하면 한 명만 가도 돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I3",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "영업점에 갈 때 어떤 서류를 가져가야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I4",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "2007년 이전에 돌아가셨으면 어떤 서류가 더 필요해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 1. 상속재산 (단위: 원)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I5",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "형제자매가 상속인이면 추가로 필요한 서류가 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 1. 상속재산 (단위: 원)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I6",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "못 오는 상속인은 무엇을 준비해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I7",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "불참 상속인의 인감증명서는 어떤 용도로 발급해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "I8",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장을 영업점에서 작성해도 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 1,
+   "top3": 3
+  },
+  {
+   "id": "I9",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "서류는 언제 발급된 것까지 인정돼요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-01",
+     "영업점 방문서류"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 3,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I10",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장 양식은 어디서 받을 수 있어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 2,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 2,
+   "top3": 3
+  },
+  {
+   "id": "I11",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장에 대리인 정보는 무엇을 적어요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "I12",
+   "type": "answerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "위임장과 함께 어떤 증표나 증명서를 제출해야 해요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "하단 안내"
+    ],
+    [
+     "C02-01",
+     "불참 상속인의 위임서류 (위 영업점 방문서류에 추가하여 준비)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-01",
+     "공통 유의사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "firstRank": 1,
+   "recall3": true,
+   "recall5": true,
+   "irrelevantTop3": 0,
+   "top3": 3
+  },
+  {
+   "id": "N1",
+   "type": "unanswerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속세 신고 기한은 언제까지예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "기재 항목 > 1. 상속재산 (단위: 원)"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-01",
+     "해지 요청 인원 원칙과 예외"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 작성일 및 은행 확인란"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N2",
+   "type": "unanswerable",
+   "task": "INHERITANCE_DEPOSIT",
+   "q": "상속받은 부동산 등기는 어떻게 하나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C02-02",
+     "본문"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 1. 상속재산 (단위: 원)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 3. 위임인 (5행)"
+    ],
+    [
+     "C02-02",
+     "기재 항목 > 2. 대리인 인적사항"
+    ],
+    [
+     "C02-02",
+     "하단 안내"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N3",
+   "type": "unanswerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "청약 당첨 확률을 높이는 방법이 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "1. 상품 개요 및 특징"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 한도 및 적용기간"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 요건(대상자)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 자격 입증서류(저축 해지 시 제"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 적용이율 > 「청년주택드림청약통장」 이율 표 (현재 기준, 세금공제 전,"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N4",
+   "type": "unanswerable",
+   "task": "HOUSING_SAVINGS_CLOSE",
+   "q": "해지 환급금을 해외 계좌로 받을 수 있나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B02-01",
+     "3. 유의사항: 기타 유의사항 (발췌)"
+    ],
+    [
+     "B02-06",
+     "종전 세대주 예정자의 입증서류 (상품설명서 9쪽)"
+    ],
+    [
+     "B02-06",
+     "전환 이후 기간과 전환원금 구분 (상품설명서 9~10쪽)"
+    ],
+    [
+     "B02-07",
+     "2년 이내 특별해지와 비과세 추징 예외 (상품설명서 6쪽)"
+    ],
+    [
+     "B02-01",
+     "2. 거래 조건: 비과세 > 비과세 한도"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N5",
+   "type": "unanswerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "충당순서 변경 수수료는 얼마예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 채무변제충당순서의 자동 변경"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→원금→이자 순서로 상환하"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 변경 신청시 유의사항: 비용→이자→원금 순서로 상환하"
+    ],
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 기타 확인사항"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N6",
+   "type": "unanswerable",
+   "task": "REPAYMENT_ORDER_CHANGE",
+   "q": "연금저축 해지 방법 알려주세요",
+   "audience": "staff",
+   "top5": [
+    [
+     "B01-01",
+     "채무변제충당순서 변경 시 유의사항 > 상환시 유의사항"
+    ],
+    [
+     "CM-01",
+     "8. 원리금 납부 연체에 따른 불이익 > 연체이자(지연배상금)를 납부해야 하는 경우"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 채무변제충당순서 변경 신청"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 은행·채무자로부터의 상계"
+    ],
+    [
+     "CM-01",
+     "11. 기타 유의사항 (발췌) > 대출기한 전에 채무를 상환해야 하는 경우"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N7",
+   "type": "unanswerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 승인 확률은 몇 퍼센트예요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-05",
+     "합의 문구 및 서명"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "채무조정 내용 (예시)"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  },
+  {
+   "id": "N8",
+   "type": "unanswerable",
+   "task": "DEBT_ADJUSTMENT",
+   "q": "채무조정 중에 해외여행을 가도 되나요?",
+   "audience": "staff",
+   "top5": [
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 거절될 수 있는 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-01",
+     "요청대상 > 채무조정 요청이 불가한 경우"
+    ],
+    [
+     "C01-04",
+     "채무조정 요청관련 안내사항 > 거절 시 및 다중 채무 시 안내"
+    ],
+    [
+     "C01-01",
+     "채무조정 요청권이란?"
+    ]
+   ],
+   "neverRetrieved": [],
+   "humanVerdict": null,
+   "returned": 5
+  }
+ ]
+}

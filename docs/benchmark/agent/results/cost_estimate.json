@@ -1,0 +1,55 @@
+{
+ "model": "gpt-4.1-mini",
+ "priceUsdPer1M": {
+  "input": 0.4,
+  "cached": 0.1,
+  "output": 1.6
+ },
+ "priceCheckedOn": "2026-11-09",
+ "method": "tokens over-estimated as UTF-8 bytes / 2.0; output assumes every field at its maximum",
+ "rows": [
+  {
+   "path": "고객 의도 분류",
+   "cases": 90,
+   "warmup": 5,
+   "plannedCalls": 95,
+   "maxHttpCallsWithRetry": 190,
+   "maxInputTokensPerCall": 2264,
+   "maxOutputTokensPerCall": 300,
+   "worstCaseUsd": 0.2632
+  },
+  {
+   "path": "직원 검토 의견",
+   "cases": 30,
+   "warmup": 5,
+   "plannedCalls": 35,
+   "maxHttpCallsWithRetry": 35,
+   "maxInputTokensPerCall": 6982,
+   "maxOutputTokensPerCall": 6180,
+   "worstCaseUsd": 0.4438
+  },
+  {
+   "path": "업무기준 영향 분석",
+   "cases": 8,
+   "warmup": 2,
+   "plannedCalls": 10,
+   "maxHttpCallsWithRetry": 10,
+   "maxInputTokensPerCall": 4550,
+   "maxOutputTokensPerCall": 6720,
+   "worstCaseUsd": 0.1257
+  },
+  {
+   "path": "안전성 추가 (인젝션·모순)",
+   "cases": 6,
+   "warmup": 0,
+   "plannedCalls": 6,
+   "maxHttpCallsWithRetry": 6,
+   "maxInputTokensPerCall": 6982,
+   "maxOutputTokensPerCall": 6180,
+   "worstCaseUsd": 0.0761
+  }
+ ],
+ "plannedCalls": 146,
+ "maxHttpCallsWithRetry": 241,
+ "worstCaseUsd": 0.9089
+}

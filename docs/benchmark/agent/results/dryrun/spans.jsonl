@@ -1,0 +1,102 @@
+{"evalId": "warm-brief-NORMAL-1", "kind": "rag", "ms": 15.66}
+{"evalId": "warm-brief-NORMAL-1", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "warm-brief-NORMAL-2", "kind": "rag", "ms": 12.85}
+{"evalId": "warm-brief-NORMAL-2", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "warm-brief-NORMAL-3", "kind": "rag", "ms": 12.23}
+{"evalId": "warm-brief-NORMAL-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "warm-brief-NORMAL-4", "kind": "rag", "ms": 9.9}
+{"evalId": "warm-brief-NORMAL-4", "kind": "llm", "ms": 0.02, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "warm-brief-MISSING-1", "kind": "rag", "ms": 9.6}
+{"evalId": "warm-brief-MISSING-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-NORMAL-1", "kind": "rag", "ms": 13.05}
+{"evalId": "run-brief-NORMAL-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-NORMAL-2", "kind": "rag", "ms": 9.19}
+{"evalId": "run-brief-NORMAL-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-NORMAL-3", "kind": "rag", "ms": 11.34}
+{"evalId": "run-brief-NORMAL-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-NORMAL-4", "kind": "rag", "ms": 12.27}
+{"evalId": "run-brief-NORMAL-4", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-MISSING-1", "kind": "rag", "ms": 8.73}
+{"evalId": "run-brief-MISSING-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-MISSING-2", "kind": "rag", "ms": 19.95}
+{"evalId": "run-brief-MISSING-2", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-MISSING-3", "kind": "rag", "ms": 10.91}
+{"evalId": "run-brief-MISSING-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POA-MISMATCH-1", "kind": "rag", "ms": 9.78}
+{"evalId": "run-brief-POA-MISMATCH-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POA-MISMATCH-2", "kind": "rag", "ms": 10.28}
+{"evalId": "run-brief-POA-MISMATCH-2", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POA-MISMATCH-3", "kind": "rag", "ms": 13.71}
+{"evalId": "run-brief-POA-MISMATCH-3", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POA-MISMATCH-4", "kind": "rag", "ms": 23.59}
+{"evalId": "run-brief-POA-MISMATCH-4", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-OCR-UNREADABLE-1", "kind": "rag", "ms": 11.92}
+{"evalId": "run-brief-OCR-UNREADABLE-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-OCR-UNREADABLE-2", "kind": "rag", "ms": 9.93}
+{"evalId": "run-brief-OCR-UNREADABLE-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-OCR-UNREADABLE-3", "kind": "rag", "ms": 10.82}
+{"evalId": "run-brief-OCR-UNREADABLE-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-STAFF-OPEN-1", "kind": "rag", "ms": 10.89}
+{"evalId": "run-brief-STAFF-OPEN-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-STAFF-OPEN-2", "kind": "rag", "ms": 16.25}
+{"evalId": "run-brief-STAFF-OPEN-2", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-STAFF-OPEN-3", "kind": "rag", "ms": 10.42}
+{"evalId": "run-brief-STAFF-OPEN-3", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-STAFF-OPEN-4", "kind": "rag", "ms": 9.9}
+{"evalId": "run-brief-STAFF-OPEN-4", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-SUPPLEMENT-1", "kind": "rag", "ms": 8.73}
+{"evalId": "run-brief-SUPPLEMENT-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-SUPPLEMENT-2", "kind": "rag", "ms": 8.98}
+{"evalId": "run-brief-SUPPLEMENT-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-SUPPLEMENT-3", "kind": "rag", "ms": 14.47}
+{"evalId": "run-brief-SUPPLEMENT-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-SUPPLEMENT-4", "kind": "rag", "ms": 9.23}
+{"evalId": "run-brief-SUPPLEMENT-4", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-CLARIFY-1", "kind": "rag", "ms": 9.07}
+{"evalId": "run-brief-CLARIFY-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-CLARIFY-2", "kind": "rag", "ms": 9.93}
+{"evalId": "run-brief-CLARIFY-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-CLARIFY-3", "kind": "rag", "ms": 9.12}
+{"evalId": "run-brief-CLARIFY-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POLICY-OK-1", "kind": "rag", "ms": 14.02}
+{"evalId": "run-brief-POLICY-OK-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POLICY-OK-2", "kind": "rag", "ms": 10.09}
+{"evalId": "run-brief-POLICY-OK-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POLICY-OK-3", "kind": "rag", "ms": 9.56}
+{"evalId": "run-brief-POLICY-OK-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POLICY-PENDING-1", "kind": "rag", "ms": 9.47}
+{"evalId": "run-brief-POLICY-PENDING-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-brief-POLICY-PENDING-2", "kind": "rag", "ms": 9.89}
+{"evalId": "run-brief-POLICY-PENDING-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "warm-impact-IMPACT-1", "kind": "rag", "ms": 13.25}
+{"evalId": "warm-impact-IMPACT-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "warm-impact-IMPACT-2", "kind": "rag", "ms": 6.87}
+{"evalId": "warm-impact-IMPACT-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-1", "kind": "rag", "ms": 7.32}
+{"evalId": "run-impact-IMPACT-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-2", "kind": "rag", "ms": 6.27}
+{"evalId": "run-impact-IMPACT-2", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-3", "kind": "rag", "ms": 11.05}
+{"evalId": "run-impact-IMPACT-3", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-4", "kind": "rag", "ms": 7.9}
+{"evalId": "run-impact-IMPACT-4", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-5", "kind": "rag", "ms": 5.72}
+{"evalId": "run-impact-IMPACT-5", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-6", "kind": "rag", "ms": 6.11}
+{"evalId": "run-impact-IMPACT-6", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-7", "kind": "rag", "ms": 10.38}
+{"evalId": "run-impact-IMPACT-7", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-impact-IMPACT-8", "kind": "rag", "ms": 8.08}
+{"evalId": "run-impact-IMPACT-8", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_impact", "fake": true}
+{"evalId": "run-safety-INJ-1", "kind": "rag", "ms": 11.72}
+{"evalId": "run-safety-INJ-1", "kind": "llm", "ms": 0.0, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-safety-INJ-2", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-INJ-2", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-safety-INJ-3", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-INJ-3", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_question", "fake": true}
+{"evalId": "run-safety-CON-1", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-CON-1", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_question", "fake": true}
+{"evalId": "run-safety-CON-2", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-CON-2", "kind": "llm", "ms": 0.03, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_case_brief", "fake": true}
+{"evalId": "run-safety-BYP-1", "kind": "rag", "ms": 10.28}
+{"evalId": "run-safety-BYP-1", "kind": "llm", "ms": 0.01, "ok": true, "inputTokens": null, "outputTokens": null, "model": "gpt-4.1-mini", "schema": "banking_ax_policy_question", "fake": true}

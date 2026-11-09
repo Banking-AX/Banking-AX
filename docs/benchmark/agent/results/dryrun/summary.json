@@ -1,0 +1,59 @@
+{
+ "label": "dryrun",
+ "llm": "fake",
+ "meter": {
+  "calls": 51,
+  "costUsd": 0.0,
+  "inputTokens": 0,
+  "outputTokens": 0,
+  "aborted": false,
+  "llm": "fake"
+ },
+ "scope": "staff",
+ "perf": {
+  "intent": null,
+  "caseBrief": {
+   "requests": 30,
+   "warmupExcluded": 5,
+   "http2xxRate": 1.0,
+   "httpP50Ms": 30.88,
+   "httpP95Ms": 47.71,
+   "llmP50Ms": 0.0,
+   "llmP95Ms": 0.01,
+   "ragP50Ms": 10.18,
+   "ragP95Ms": 18.28,
+   "avgInputTokens": null,
+   "avgOutputTokens": null,
+   "costUsdTotal": 0.0,
+   "costUsdPerRequest": null,
+   "llmErrors": {},
+   "httpErrors": {},
+   "ruleFallback": 0,
+   "ruleFallbackRate": 0.0
+  },
+  "policyImpact": {
+   "requests": 8,
+   "warmupExcluded": 2,
+   "http2xxRate": 1.0,
+   "httpP50Ms": 36.9,
+   "httpP95Ms": 43.53,
+   "llmP50Ms": 0.0,
+   "llmP95Ms": 0.01,
+   "ragP50Ms": 7.61,
+   "ragP95Ms": 10.82,
+   "avgInputTokens": null,
+   "avgOutputTokens": null,
+   "costUsdTotal": 0.0,
+   "costUsdPerRequest": null,
+   "llmErrors": {},
+   "httpErrors": {},
+   "ruleFallback": 0,
+   "ruleFallbackRate": 0.0
+  }
+ },
+ "safety": {
+  "n": 6,
+  "autoPass": 6,
+  "note": "자동 판정은 금지 표현 유무만 본다. 삽입 지시 추종과 모순 처리는 사람이 text를 검토한다."
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "note": "채점기 검증용 값이며 모델 성능이 아니다",
+ "intentPerfect": {
+  "n": 90,
+  "taskCodeAccuracy": 1.0,
+  "requestKindAccuracy": 1.0,
+  "macroF1": 1.0,
+  "macroF1Items": 81,
+  "ambiguousDetection": 1.0,
+  "ambiguousN": 9,
+  "compositeAdequacy": 1.0,
+  "compositeN": 9,
+  "schemaValidRate": 1.0,
+  "providerFailures": 0,
+  "wrongToolCalls": 0,
+  "outcomeMatches": 0
+ },
+ "intentWrong": {
+  "n": 90,
+  "taskCodeAccuracy": 0.1333,
+  "requestKindAccuracy": 0.1111,
+  "macroF1": 0.0323,
+  "macroF1Items": 81,
+  "ambiguousDetection": 0.0,
+  "ambiguousN": 9,
+  "compositeAdequacy": 0.0,
+  "compositeN": 9,
+  "schemaValidRate": 1.0,
+  "providerFailures": 0,
+  "wrongToolCalls": 80,
+  "outcomeMatches": 0
+ },
+ "briefPerfect": {
+  "n": 30,
+  "requiredFactCoverage": 1.0,
+  "requiredCheckRecall": 1.0,
+  "ungroundedClaimRate": 0.0,
+  "claims": 130,
+  "basisMatchRate": 1.0,
+  "draftAppropriateRate": 1.0,
+  "wrongApprovalExpressions": 0,
+  "piiExposures": 0,
+  "methods": {
+   "LLM": 30
+  }
+ },
+ "briefBad": {
+  "n": 30,
+  "requiredFactCoverage": 0.0,
+  "requiredCheckRecall": 0.0,
+  "ungroundedClaimRate": 1.0,
+  "claims": 150,
+  "basisMatchRate": 0.0,
+  "draftAppropriateRate": 0.0,
+  "wrongApprovalExpressions": 90,
+  "piiExposures": 60,
+  "methods": {
+   "LLM": 30
+  }
+ }
+}

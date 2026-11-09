@@ -1,0 +1,102 @@
+{"evalId": "warm-brief-NORMAL-1", "kind": "rag", "ms": 11.46}
+{"evalId": "warm-brief-NORMAL-1", "kind": "llm", "ms": 888.61, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-brief-NORMAL-2", "kind": "rag", "ms": 7.69}
+{"evalId": "warm-brief-NORMAL-2", "kind": "llm", "ms": 266.79, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-brief-NORMAL-3", "kind": "rag", "ms": 8.43}
+{"evalId": "warm-brief-NORMAL-3", "kind": "llm", "ms": 456.03, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-brief-NORMAL-4", "kind": "rag", "ms": 7.86}
+{"evalId": "warm-brief-NORMAL-4", "kind": "llm", "ms": 258.9, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-brief-MISSING-1", "kind": "rag", "ms": 11.71}
+{"evalId": "warm-brief-MISSING-1", "kind": "llm", "ms": 265.18, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-NORMAL-1", "kind": "rag", "ms": 11.09}
+{"evalId": "run-brief-NORMAL-1", "kind": "llm", "ms": 225.28, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-NORMAL-2", "kind": "rag", "ms": 9.08}
+{"evalId": "run-brief-NORMAL-2", "kind": "llm", "ms": 228.03, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-NORMAL-3", "kind": "rag", "ms": 8.06}
+{"evalId": "run-brief-NORMAL-3", "kind": "llm", "ms": 345.71, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-NORMAL-4", "kind": "rag", "ms": 14.75}
+{"evalId": "run-brief-NORMAL-4", "kind": "llm", "ms": 356.86, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-MISSING-1", "kind": "rag", "ms": 8.21}
+{"evalId": "run-brief-MISSING-1", "kind": "llm", "ms": 376.64, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-MISSING-2", "kind": "rag", "ms": 11.38}
+{"evalId": "run-brief-MISSING-2", "kind": "llm", "ms": 209.32, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-MISSING-3", "kind": "rag", "ms": 8.18}
+{"evalId": "run-brief-MISSING-3", "kind": "llm", "ms": 354.87, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POA-MISMATCH-1", "kind": "rag", "ms": 18.16}
+{"evalId": "run-brief-POA-MISMATCH-1", "kind": "llm", "ms": 371.75, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POA-MISMATCH-2", "kind": "rag", "ms": 10.02}
+{"evalId": "run-brief-POA-MISMATCH-2", "kind": "llm", "ms": 229.85, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POA-MISMATCH-3", "kind": "rag", "ms": 10.07}
+{"evalId": "run-brief-POA-MISMATCH-3", "kind": "llm", "ms": 197.8, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POA-MISMATCH-4", "kind": "rag", "ms": 9.83}
+{"evalId": "run-brief-POA-MISMATCH-4", "kind": "llm", "ms": 210.86, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-OCR-UNREADABLE-1", "kind": "rag", "ms": 9.4}
+{"evalId": "run-brief-OCR-UNREADABLE-1", "kind": "llm", "ms": 207.39, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-OCR-UNREADABLE-2", "kind": "rag", "ms": 20.56}
+{"evalId": "run-brief-OCR-UNREADABLE-2", "kind": "llm", "ms": 178.49, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-OCR-UNREADABLE-3", "kind": "rag", "ms": 8.78}
+{"evalId": "run-brief-OCR-UNREADABLE-3", "kind": "llm", "ms": 205.64, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-STAFF-OPEN-1", "kind": "rag", "ms": 11.17}
+{"evalId": "run-brief-STAFF-OPEN-1", "kind": "llm", "ms": 362.43, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-STAFF-OPEN-2", "kind": "rag", "ms": 12.05}
+{"evalId": "run-brief-STAFF-OPEN-2", "kind": "llm", "ms": 191.82, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-STAFF-OPEN-3", "kind": "rag", "ms": 12.69}
+{"evalId": "run-brief-STAFF-OPEN-3", "kind": "llm", "ms": 190.78, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-STAFF-OPEN-4", "kind": "rag", "ms": 18.03}
+{"evalId": "run-brief-STAFF-OPEN-4", "kind": "llm", "ms": 234.04, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-SUPPLEMENT-1", "kind": "rag", "ms": 12.08}
+{"evalId": "run-brief-SUPPLEMENT-1", "kind": "llm", "ms": 385.54, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-SUPPLEMENT-2", "kind": "rag", "ms": 11.37}
+{"evalId": "run-brief-SUPPLEMENT-2", "kind": "llm", "ms": 216.08, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-SUPPLEMENT-3", "kind": "rag", "ms": 11.23}
+{"evalId": "run-brief-SUPPLEMENT-3", "kind": "llm", "ms": 214.16, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-SUPPLEMENT-4", "kind": "rag", "ms": 8.55}
+{"evalId": "run-brief-SUPPLEMENT-4", "kind": "llm", "ms": 213.17, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-CLARIFY-1", "kind": "rag", "ms": 13.39}
+{"evalId": "run-brief-CLARIFY-1", "kind": "llm", "ms": 211.86, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-CLARIFY-2", "kind": "rag", "ms": 9.12}
+{"evalId": "run-brief-CLARIFY-2", "kind": "llm", "ms": 347.21, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-CLARIFY-3", "kind": "rag", "ms": 9.01}
+{"evalId": "run-brief-CLARIFY-3", "kind": "llm", "ms": 209.52, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POLICY-OK-1", "kind": "rag", "ms": 11.46}
+{"evalId": "run-brief-POLICY-OK-1", "kind": "llm", "ms": 344.03, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POLICY-OK-2", "kind": "rag", "ms": 8.99}
+{"evalId": "run-brief-POLICY-OK-2", "kind": "llm", "ms": 193.86, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POLICY-OK-3", "kind": "rag", "ms": 12.96}
+{"evalId": "run-brief-POLICY-OK-3", "kind": "llm", "ms": 213.27, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POLICY-PENDING-1", "kind": "rag", "ms": 9.66}
+{"evalId": "run-brief-POLICY-PENDING-1", "kind": "llm", "ms": 209.9, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-brief-POLICY-PENDING-2", "kind": "rag", "ms": 9.83}
+{"evalId": "run-brief-POLICY-PENDING-2", "kind": "llm", "ms": 217.49, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-impact-IMPACT-1", "kind": "rag", "ms": 9.76}
+{"evalId": "warm-impact-IMPACT-1", "kind": "llm", "ms": 382.65, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "warm-impact-IMPACT-2", "kind": "rag", "ms": 11.61}
+{"evalId": "warm-impact-IMPACT-2", "kind": "llm", "ms": 232.62, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-1", "kind": "rag", "ms": 7.17}
+{"evalId": "run-impact-IMPACT-1", "kind": "llm", "ms": 187.59, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-2", "kind": "rag", "ms": 7.54}
+{"evalId": "run-impact-IMPACT-2", "kind": "llm", "ms": 195.87, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-3", "kind": "rag", "ms": 9.72}
+{"evalId": "run-impact-IMPACT-3", "kind": "llm", "ms": 209.97, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-4", "kind": "rag", "ms": 16.49}
+{"evalId": "run-impact-IMPACT-4", "kind": "llm", "ms": 187.71, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-5", "kind": "rag", "ms": 6.04}
+{"evalId": "run-impact-IMPACT-5", "kind": "llm", "ms": 367.71, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-6", "kind": "rag", "ms": 7.99}
+{"evalId": "run-impact-IMPACT-6", "kind": "llm", "ms": 256.28, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-7", "kind": "rag", "ms": 5.95}
+{"evalId": "run-impact-IMPACT-7", "kind": "llm", "ms": 214.23, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-impact-IMPACT-8", "kind": "rag", "ms": 13.27}
+{"evalId": "run-impact-IMPACT-8", "kind": "llm", "ms": 199.35, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-INJ-1", "kind": "rag", "ms": 7.76}
+{"evalId": "run-safety-INJ-1", "kind": "llm", "ms": 200.63, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-INJ-2", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-INJ-2", "kind": "llm", "ms": 211.41, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-INJ-3", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-INJ-3", "kind": "llm", "ms": 208.35, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-CON-1", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-CON-1", "kind": "llm", "ms": 218.71, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-CON-2", "kind": "rag", "ms": 0.0}
+{"evalId": "run-safety-CON-2", "kind": "llm", "ms": 362.12, "ok": false, "error": "AuthenticationError", "status": 401}
+{"evalId": "run-safety-BYP-1", "kind": "rag", "ms": 7.03}
+{"evalId": "run-safety-BYP-1", "kind": "llm", "ms": 227.91, "ok": false, "error": "AuthenticationError", "status": 401}

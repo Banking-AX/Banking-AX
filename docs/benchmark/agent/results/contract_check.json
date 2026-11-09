@@ -1,0 +1,61 @@
+{
+ "springCalls": [
+  {
+   "springPath": "/api/v1/customer-agent/messages/start",
+   "found": true,
+   "matched": [
+    "/api/v1/customer-agent/messages/start"
+   ]
+  },
+  {
+   "springPath": "/api/v1/staff-agent/case-brief",
+   "found": true,
+   "matched": [
+    "/api/v1/staff-agent/case-brief"
+   ]
+  },
+  {
+   "springPath": "/api/v1/staff-agent/check",
+   "found": true,
+   "matched": [
+    "/api/v1/staff-agent/check"
+   ]
+  },
+  {
+   "springPath": "/api/v1/staff-agent/policy-impact",
+   "found": true,
+   "matched": [
+    "/api/v1/staff-agent/policy-impact"
+   ]
+  },
+  {
+   "springPath": "/api/v1/staff-agent/policy-question",
+   "found": true,
+   "matched": [
+    "/api/v1/staff-agent/policy-question"
+   ]
+  },
+  {
+   "springPath": "/api/v1/staff-ranking",
+   "found": true,
+   "matched": [
+    "/api/v1/staff-ranking"
+   ]
+  },
+  {
+   "springPath": "/mock-bank/v1/policy-changes",
+   "found": true,
+   "matched": [
+    "/mock-bank/v1/policy-changes"
+   ]
+  }
+ ],
+ "allFound": true,
+ "tokenHeadersUsedBySpring": {
+  "X-Customer-Agent-Token": true,
+  "X-Staff-Agent-Token": true
+ },
+ "running9001SameAsSource": true,
+ "onlyInSource": [],
+ "onlyIn9001": []
+}

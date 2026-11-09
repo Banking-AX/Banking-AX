@@ -1,0 +1,132 @@
+{
+  "requests": 20,
+  "http2xx": 0,
+  "http409": 0,
+  "http5xx": 0,
+  "transportErrors": 20,
+  "p50Ms": 2264.36,
+  "p95Ms": 2265.08,
+  "throughputRequestsPerSecond": 8.383,
+  "records": [
+    {
+      "caseId": 7001,
+      "status": 0,
+      "ms": 2264.007,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7002,
+      "status": 0,
+      "ms": 2263.276,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7003,
+      "status": 0,
+      "ms": 2264.857,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7004,
+      "status": 0,
+      "ms": 2264.037,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7005,
+      "status": 0,
+      "ms": 2264.245,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7006,
+      "status": 0,
+      "ms": 2385.868,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7007,
+      "status": 0,
+      "ms": 2265.056,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7008,
+      "status": 0,
+      "ms": 2264.452,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7009,
+      "status": 0,
+      "ms": 2264.969,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7010,
+      "status": 0,
+      "ms": 2264.192,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7011,
+      "status": 0,
+      "ms": 2264.94,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7012,
+      "status": 0,
+      "ms": 2262.323,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7013,
+      "status": 0,
+      "ms": 2263.481,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7014,
+      "status": 0,
+      "ms": 2264.36,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7015,
+      "status": 0,
+      "ms": 2263.954,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7016,
+      "status": 0,
+      "ms": 2264.91,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7017,
+      "status": 0,
+      "ms": 2263.27,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7018,
+      "status": 0,
+      "ms": 2264.651,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7019,
+      "status": 0,
+      "ms": 2264.822,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    },
+    {
+      "caseId": 7020,
+      "status": 0,
+      "ms": 2265.08,
+      "body": "<urlopen error [WinError 10061] \ub300\uc0c1 \ucef4\ud4e8\ud130\uc5d0\uc11c \uc5f0\uacb0\uc744 \uac70\ubd80\ud588\uc73c\ubbc0\ub85c \uc5f0\uacb0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4>"
+    }
+  ]
+}

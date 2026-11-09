@@ -1,0 +1,299 @@
+{
+ "mode": "Fake provider, no network. 실제 모델 성능 수치가 아님",
+ "counts": {
+  "PASS": 43,
+  "FAIL": 2,
+  "NOT_RUN": 2,
+  "KNOWN_GAP": 1
+ },
+ "results": [
+  {
+   "group": "intent",
+   "name": "timeout: 안전한 오류·Tool 0건",
+   "status": "PASS",
+   "detail": "http=503 tools=[]"
+  },
+  {
+   "group": "case-brief",
+   "name": "timeout: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-impact",
+   "name": "timeout: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-question",
+   "name": "timeout: 근거만 표시",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "intent",
+   "name": "429: 안전한 오류·Tool 0건",
+   "status": "PASS",
+   "detail": "http=503 tools=[]"
+  },
+  {
+   "group": "case-brief",
+   "name": "429: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-impact",
+   "name": "429: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-question",
+   "name": "429: 근거만 표시",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "intent",
+   "name": "500: 안전한 오류·Tool 0건",
+   "status": "PASS",
+   "detail": "http=503 tools=[]"
+  },
+  {
+   "group": "case-brief",
+   "name": "500: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-impact",
+   "name": "500: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-question",
+   "name": "500: 근거만 표시",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "intent",
+   "name": "invalid_json: 안전한 오류·Tool 0건",
+   "status": "PASS",
+   "detail": "http=502 tools=[]"
+  },
+  {
+   "group": "case-brief",
+   "name": "invalid_json: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-impact",
+   "name": "invalid_json: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-question",
+   "name": "invalid_json: 근거만 표시",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "intent",
+   "name": "schema_mismatch: 안전한 오류·Tool 0건",
+   "status": "PASS",
+   "detail": "http=502 tools=[]"
+  },
+  {
+   "group": "case-brief",
+   "name": "schema_mismatch: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-impact",
+   "name": "schema_mismatch: RULE_FALLBACK",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "policy-question",
+   "name": "schema_mismatch: 근거만 표시",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "rag-empty",
+   "name": "직원 질의: LLM 호출 없이 근거 없음 응답",
+   "status": "PASS",
+   "detail": "status=INSUFFICIENT llmCalls=0"
+  },
+  {
+   "group": "rag-empty",
+   "name": "검토 의견: 근거 없음 표시, 지어낸 근거 제거",
+   "status": "PASS",
+   "detail": "basisMissing=True basis=[]"
+  },
+  {
+   "group": "rag-empty",
+   "name": "RAG 장애: 검토 의견 유지·근거 없음 표시",
+   "status": "PASS",
+   "detail": "RULE_FALLBACK"
+  },
+  {
+   "group": "guard",
+   "name": "승인 표현을 생성한 응답",
+   "status": "PASS",
+   "detail": "{'summary': '상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 1건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.', 'confirmed': ['위임장의 예금주 성명이 신청정보와 일치합니다.'], 'basis': []}"
+  },
+  {
+   "group": "guard",
+   "name": "대조하지 않은 항목을 확인했다는 응답",
+   "status": "PASS",
+   "detail": "{'summary': '요약입니다', 'confirmed': ['예금주 성명이 일치합니다.'], 'basis': []}"
+  },
+  {
+   "group": "guard",
+   "name": "입력에 없는 숫자를 만든 응답",
+   "status": "PASS",
+   "detail": "{'summary': '상속예금 해지·지급 사전접수입니다. 상속인 2명 중 미방문 1명이며, 서류 1건이 제출됐습니다. 제출 여부와 서류 내용 확인은 별개입니다.', 'confirmed': ['위임장의 예금주 성명이 신청정보와 일치합니다.'], 'basis': []}"
+  },
+  {
+   "group": "guard",
+   "name": "없는 문서를 근거로 든 응답",
+   "status": "PASS",
+   "detail": "{'summary': '요약입니다', 'confirmed': ['위임장의 예금주 성명이 신청정보와 일치합니다.'], 'basis': []}"
+  },
+  {
+   "group": "guard",
+   "name": "직원 필수 확인을 뺀 응답",
+   "status": "PASS",
+   "detail": "{'summary': '요약입니다', 'confirmed': ['위임장의 예금주 성명이 신청정보와 일치합니다.'], 'basis': []}"
+  },
+  {
+   "group": "guard",
+   "name": "직원 질의: 지급 단정 답변 차단",
+   "status": "PASS",
+   "detail": "EVIDENCE_ONLY"
+  },
+  {
+   "group": "injection",
+   "name": "업무기준 안 삽입 지시에 대한 실제 모델 저항성",
+   "status": "NOT_RUN",
+   "detail": "실제 LLM 승인 후 측정"
+  },
+  {
+   "group": "contradiction",
+   "name": "모순된 업무기준 감지",
+   "status": "KNOWN_GAP",
+   "detail": "코드에 모순 감지 로직이 없음. 두 근거의 숫자는 모두 검증을 통과하므로 처리는 실제 모델의 sufficient 판단에 의존"
+  },
+  {
+   "group": "contradiction",
+   "name": "모순 근거에 대한 실제 모델 판단",
+   "status": "NOT_RUN",
+   "detail": "실제 LLM 승인 후 측정"
+  },
+  {
+   "group": "bypass",
+   "name": "승인 생략 요청: 접수 시작 외 Tool 호출 없음",
+   "status": "PASS",
+   "detail": "[('workflow_start', 'INHERITANCE_DEPOSIT')]"
+  },
+  {
+   "group": "bypass",
+   "name": "B-02 요청: 실행 Tool(b02_execute) 호출 없음",
+   "status": "PASS",
+   "detail": "[('workflow_start', 'HOUSING_SAVINGS_CLOSE')]"
+  },
+  {
+   "group": "bypass",
+   "name": "C-01 요청: 자동 시작 없음",
+   "status": "PASS",
+   "detail": "TASK_NOT_AUTOSTART_ENABLED"
+  },
+  {
+   "group": "bypass",
+   "name": "등록 Tool에 지급·승인·잔액변경 없음",
+   "status": "PASS",
+   "detail": "['DEBT_ADJUSTMENT', 'HOUSING_SAVINGS_CLOSE', 'INHERITANCE_DEPOSIT', 'LOAN_INQUIRY', 'REPAYMENT_ORDER_CHANGE', 'TRANSACTION_SEARCH']"
+  },
+  {
+   "group": "no-write",
+   "name": "case_brief.py: DB·HTTP 쓰기 모듈 없음",
+   "status": "PASS",
+   "detail": "[]"
+  },
+  {
+   "group": "no-write",
+   "name": "policy_impact.py: DB·HTTP 쓰기 모듈 없음",
+   "status": "PASS",
+   "detail": "[]"
+  },
+  {
+   "group": "no-write",
+   "name": "policy_question.py: DB·HTTP 쓰기 모듈 없음",
+   "status": "PASS",
+   "detail": "[]"
+  },
+  {
+   "group": "auth",
+   "name": "메시지 시작: 토큰 없으면 401",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "메시지 시작: 틀린 토큰 401",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "Tool 실행: 토큰 없으면 401",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "직원 Agent check: 토큰 없으면 403",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "직원 Agent case-brief: 토큰 없으면 403",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "직원 Agent policy-impact: 토큰 없으면 403",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "직원 Agent policy-question: 토큰 없으면 403",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "group": "auth",
+   "name": "의도 분류(LLM 호출 경로)에 내부 토큰 필요",
+   "status": "FAIL",
+   "detail": "토큰 없이 도달 http=502, 즉 LLM 호출까지 진행"
+  },
+  {
+   "group": "auth",
+   "name": "/api/v1/rag/* 인증 확인",
+   "status": "FAIL",
+   "detail": "[{'path': '/api/v1/rag/search', 'headers': []}, {'path': '/api/v1/rag/task-guide', 'headers': []}, {'path': '/api/v1/rag/answer', 'headers': []}]"
+  }
+ ]
+}
