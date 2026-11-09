@@ -42,8 +42,23 @@ export function badgeText(unread: number): string | null {
   return unread > 99 ? '99+' : String(unread)
 }
 
+/** True when the server sent a caseId without a task code, so the page has to look the case up itself. */
+export function needsCaseLookup(item: Pick<NotificationItem, 'taskCode' | 'caseId'>): boolean {
+  return item.taskCode === null && item.caseId !== null
+}
+
+/**
+ * The server's task code, or INHERITANCE_DEPOSIT when the caseId is one of the customer's own C-02 cases.
+ * Fallback for VISIT_CONFIRMED, which the server stores without a work item (so taskCode comes back null).
+ * Remove c02CaseIds once every C-02 notification from GET /api/v1/customer/notifications carries its taskCode.
+ */
+export function resolvedTaskCode(item: Pick<NotificationItem, 'taskCode' | 'caseId'>, c02CaseIds?: ReadonlySet<number>): string | null {
+  if (item.taskCode !== null) return item.taskCode
+  return item.caseId !== null && c02CaseIds?.has(item.caseId) ? 'INHERITANCE_DEPOSIT' : null
+}
+
 /** Related screen (NOTI-06/19). Only C-02 Cases have a customer detail page today; other items stay on this page. */
-export function relatedPath(item: Pick<NotificationItem, 'taskCode' | 'caseId'>): string | null {
-  if (item.taskCode === 'INHERITANCE_DEPOSIT' && item.caseId !== null) return `/tasks/c02/cases/${item.caseId}`
+export function relatedPath(item: Pick<NotificationItem, 'taskCode' | 'caseId'>, c02CaseIds?: ReadonlySet<number>): string | null {
+  if (resolvedTaskCode(item, c02CaseIds) === 'INHERITANCE_DEPOSIT' && item.caseId !== null) return `/tasks/c02/cases/${item.caseId}`
   return null
 }

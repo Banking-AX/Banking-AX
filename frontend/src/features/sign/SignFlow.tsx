@@ -27,9 +27,12 @@ export type SignFlowProps = {
   allowDemoSignature?: boolean
   /** Resume an already persisted task at the signature or OTP step. */
   initialStep?: 'doc' | 'sign' | 'otp'
+  /** Reports the visible step (and the server's masked phone once a code is issued), e.g. for the AI helper guide. */
+  onStepChange?: (step: SignStep, maskedPhone: string | null) => void
 }
 
-type Step = 'doc' | 'sign' | 'otp' | 'done'
+export type SignStep = 'doc' | 'sign' | 'otp' | 'done'
+type Step = SignStep
 type OtpMessage = { tone: 'error' | 'info'; text: string } | null
 
 const STEPS: { key: Step; label: string }[] = [
@@ -53,7 +56,7 @@ function formatDuration(sec: number): string {
   return minutes ? `${minutes}분` : `${seconds}초`
 }
 
-export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, onDone, doneLabel, storesSignature, demoPath, allowDemoSignature = true, initialStep = 'doc' }: SignFlowProps) {
+export function SignFlow({ adapter, docs, taskName, afterText, note, signer, backHref, doneHref, onDone, doneLabel, storesSignature, demoPath, allowDemoSignature = true, initialStep = 'doc', onStepChange }: SignFlowProps) {
   const [step, setStep] = useState<Step>(initialStep)
   // This changes only what is displayed. The persisted execution step remains OTP.
   const [reviewingPrevious, setReviewingPrevious] = useState(false)
@@ -104,6 +107,9 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [issue, verification])
+
+  const maskedPhone = issue?.maskedPhone ?? null
+  useEffect(() => { onStepChange?.(step, maskedPhone) }, [step, maskedPhone, onStepChange])
 
   // Move focus to the new step heading whenever the visible stage changes (not on first render).
   useEffect(() => {
@@ -375,7 +381,7 @@ export function SignFlow({ adapter, docs, taskName, afterText, note, signer, bac
           <dl className="sign-info sign-done__info">
             <dt className="sign-info__key">서명자</dt><dd className="sign-info__plain">{signer} · {issue?.maskedPhone} 인증</dd>
             <dt className="sign-info__key">서명 시각</dt><dd className="sign-info__value">{signedAt ? formatStamp(signedAt) : ''}</dd>
-            <dt className="sign-info__key">방식</dt><dd className="sign-info__plain">서명(화면) + SMS 인증번호 (서버 검증)</dd>
+            <dt className="sign-info__key">방식</dt><dd className="sign-info__plain">화면 서명 + SMS 인증번호 (서버 검증)</dd>
           </dl>
           {completedSignaturePreview(path)
             ? <div className="sign-done__image">

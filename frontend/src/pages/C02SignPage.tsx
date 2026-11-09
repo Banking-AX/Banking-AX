@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toUserMessageOr } from '../api/errorMessages'
 import { c02Api, taskBffEnabled, type C02CustomerCaseSnapshot } from '../api/taskApi'
@@ -7,7 +7,9 @@ import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { createC02SignAdapter } from '../features/c02/c02SignAdapter'
 import { formatDate, groupDocuments, uploadProgress, visitLabel } from '../features/c02/c02CaseView'
-import { SignFlow, type SignDocument } from '../features/sign/SignFlow'
+import { SignFlow, type SignDocument, type SignStep } from '../features/sign/SignFlow'
+import { useChatDock } from '../features/chat/chatDockContext'
+import { c02ScreenGuide, c02SignDocGuide, c02SignOtpGuide } from '../features/chat/chatGuideCopy'
 
 // Same sample path as the sign fixtures (docs/ui-reference ESign demo signature).
 const DEMO_PATH = 'M80 140 C 100 60, 150 70, 140 130 S 180 160, 200 90 M 230 70 L 235 150 M 260 110 C 290 70, 330 80, 320 130 S 360 160, 400 100 C 430 70, 470 90, 520 140'
@@ -57,6 +59,16 @@ export function C02SignPage() {
     return () => { active = false }
   }, [parsed])
 
+  // AI helper guide per signing step; cleared when the page closes so the route table takes over again.
+  const { setScreen } = useChatDock()
+  const docCount = useRef(0)
+  const onStepChange = useCallback((step: SignStep, maskedPhone: string | null) => {
+    const guide = step === 'doc' ? c02SignDocGuide(docCount.current) : step === 'sign' ? c02ScreenGuide('signSign')
+      : step === 'otp' ? c02SignOtpGuide(maskedPhone) : c02ScreenGuide('signDone')
+    setScreen({ name: '서명·인증', guide })
+  }, [setScreen])
+  useEffect(() => () => setScreen(null), [setScreen])
+
   const detailHref = `/tasks/c02/cases/${parsed}`
   const adapter = useMemo(() => snapshot ? createC02SignAdapter(snapshot.caseId, snapshot.revision, () => undefined) : null, [snapshot?.caseId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,9 +84,12 @@ export function C02SignPage() {
   if (progress.missingRequired > 0) return <SignBlocked href={`/tasks/c02/${snapshot.workItemId}`} text={`필수 서류 ${progress.missingRequired}건을 먼저 올려 주세요.`} />
 
   const signer = snapshot.intake?.heirs.find(heir => heir.applicant)?.name || user?.name || '신청인'
+  const docs = documentsFor(snapshot, signer)
+  docCount.current = docs.length
   return <SignFlow
     adapter={adapter}
-    docs={documentsFor(snapshot, signer)}
+    docs={docs}
+    onStepChange={onStepChange}
     taskName="상속예금 해지 및 지급 사전접수"
     afterText="서명을 마치면 사전검토가 요청돼요"
     note={`지금은 신청인 ${signer}님만 서명해요. 방문 상속인 전원의 서명·도장은 영업점 방문 때 받고, 불참 상속인은 인감 날인 위임장으로 대신해요.`}

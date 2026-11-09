@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toUserMessageOr } from '../api/errorMessages'
-import { c02Api, taskBffEnabled, type C02CustomerCaseSnapshot, type Reservation } from '../api/taskApi'
-import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, lastActivityAt, timelineSteps, uploadProgress, visitConfirmation, visitLabel, type StatusPill } from '../features/c02/c02CaseView'
+import { c02Api, taskBffEnabled, type Branch, type C02CustomerCaseSnapshot, type Reservation } from '../api/taskApi'
+import { useChatDock } from '../features/chat/chatDockContext'
+import { c02ScreenGuide, type C02GuideKey } from '../features/chat/chatGuideCopy'
+import { caseNumber, casePill, formatDateTime, groupDocuments, heirCaption, isVisitLocked, lastActivityAt, seoulStamp, timelineSteps, uploadProgress, visitCancelDeadline, visitConfirmation, visitLabel, type StatusPill } from '../features/c02/c02CaseView'
 import '../features/t2/customer-pages.css'
 import '../features/c02/c02-case.css'
 
@@ -14,6 +16,28 @@ const RESULT_COPY = {
 const RESERVATION_LABEL: Record<string, StatusPill> = {
   SELECTED: { label: '예약 · 선택됨', tone: 'info' }, PENDING_ASSIGNMENT: { label: '예약 · 담당자 배정 중', tone: 'info' },
   CONFIRMED: { label: '예약 확정', tone: 'success' }, NEEDS_MANUAL_ASSIGNMENT: { label: '예약 · 수동 배정 대기', tone: 'warn' },
+  CANCELED: { label: '예약 취소', tone: 'muted' },
+}
+
+/** Reservation states read from the server list; staff names, branch phones and changing a booking are not offered yet. */
+type VisitState = 'none' | 'booked' | 'locked' | 'canceled'
+
+function visitStateOf(reservation: Reservation | null, canceledReservation: Reservation | null, now: number): VisitState {
+  if (reservation) return isVisitLocked(reservation.startsAt, now) ? 'locked' : 'booked'
+  return canceledReservation ? 'canceled' : 'none'
+}
+
+/** AI helper guide for this page, from server state only; states without a design guide show just the screen name. */
+function detailGuideKey(snapshot: C02CustomerCaseSnapshot | null, reservation: Reservation | null, canceledReservation: Reservation | null, submittedModal: boolean): C02GuideKey | null {
+  if (!snapshot) return null
+  if (submittedModal) return 'submitted'
+  if ((snapshot.caseStatus === 'SUBMITTED' || snapshot.caseStatus === 'IN_REVIEW') && !snapshot.finalDecision) return 'wait'
+  if (snapshot.caseStatus !== 'REVIEW_PASSED') return null
+  const state = visitStateOf(reservation, canceledReservation, Date.now())
+  if (state === 'none') return 'proceed'
+  if (state === 'canceled') return 'canceled'
+  if (state === 'locked') return 'locked'
+  return reservation?.status === 'CONFIRMED' ? 'confirmed' : null
 }
 
 const Pill = ({ pill }: { pill: StatusPill }) => <span className={`c02-pill c02-pill--${pill.tone}`}>{pill.label}</span>
@@ -25,6 +49,9 @@ export function C02CaseDetailPage() {
   const navigate = useNavigate()
   const [snapshot, setSnapshot] = useState<C02CustomerCaseSnapshot | null>(null)
   const [reservation, setReservation] = useState<Reservation | null>(null)
+  // The latest cancelled booking, shown only while the case has no active one (the server list keeps CANCELED rows).
+  const [canceledReservation, setCanceledReservation] = useState<Reservation | null>(null)
+  const [branches, setBranches] = useState<Branch[]>([])
   const [error, setError] = useState<string | null>(null)
   const valid = Number.isSafeInteger(parsed) && parsed > 0
   const load = useCallback(async () => {
@@ -33,8 +60,15 @@ export function C02CaseDetailPage() {
       const response = await c02Api.snapshot(parsed, `c02-detail-${Date.now()}`)
       setSnapshot(response.data); setError(null)
       if (response.data?.caseStatus === 'REVIEW_PASSED') {
-        const reservations = await c02Api.reservations(`c02-detail-reservations-${Date.now()}`).catch(() => null)
-        setReservation(reservations?.data?.find(item => item.caseId === parsed && item.status !== 'CANCELED') ?? null)
+        const [reservations, branchRows] = await Promise.all([
+          c02Api.reservations(`c02-detail-reservations-${Date.now()}`).catch(() => null),
+          c02Api.branches(`c02-detail-branches-${Date.now()}`).catch(() => null),
+        ])
+        const mine = reservations?.data?.filter(item => item.caseId === parsed) ?? []
+        const active = mine.find(item => item.status !== 'CANCELED') ?? null
+        setReservation(active)
+        setCanceledReservation(active ? null : mine.filter(item => item.status === 'CANCELED').sort((a, b) => b.id - a.id)[0] ?? null)
+        setBranches(branchRows?.data ?? [])
       }
     } catch (cause) { setError(toUserMessageOr(cause, '접수 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')) }
   }, [parsed, valid])
@@ -48,6 +82,21 @@ export function C02CaseDetailPage() {
     catch (cause) { setError(toUserMessageOr(cause, '접수를 취소하지 못했어요. 잠시 후 다시 시도해 주세요.')) }
     finally { setBusy(false); setConfirmCancel(false); await load() }
   }
+  const { setScreen } = useChatDock()
+  const guideKey = detailGuideKey(snapshot, reservation, canceledReservation, params.get('submitted') === '1' && snapshot?.caseStatus !== 'DRAFT')
+  useEffect(() => {
+    setScreen(guideKey ? { name: '상속예금 사전접수 상세', guide: c02ScreenGuide(guideKey) } : null)
+  }, [guideKey, setScreen])
+  useEffect(() => () => setScreen(null), [setScreen])
+
+  const [confirmVisitCancel, setConfirmVisitCancel] = useState(false)
+  // The server re-checks the 24-hour lock; a refusal (RESERVATION_CHANGE_LOCKED) is shown and the page reloads.
+  const cancelVisit = async (id: number) => {
+    setBusy(true)
+    try { await c02Api.cancelReservation(id, `c02-detail-visit-cancel-${id}-${crypto.randomUUID()}`); setError(null) }
+    catch (cause) { setError(toUserMessageOr(cause, '예약을 취소하지 못했어요. 잠시 후 다시 시도해 주세요.')) }
+    finally { setBusy(false); setConfirmVisitCancel(false); await load() }
+  }
 
   if (!valid) return <main className="c02-detail"><p className="c02-alert" role="alert">접수 번호가 올바르지 않아요.</p></main>
   if (!snapshot) return <main className="c02-detail">{error ? <p className="c02-alert" role="alert">{error}</p> : <p className="c02-notice" role="status">접수 정보를 불러오고 있어요.</p>}</main>
@@ -59,8 +108,13 @@ export function C02CaseDetailPage() {
   const progress = uploadProgress(groups)
   const decision = snapshot.finalDecision
   const result = decision ? RESULT_COPY[decision.outcome] : null
+  const visitStartsAt = reservation ? Date.parse(reservation.startsAt) : NaN
+  const visitDeadline = reservation ? visitCancelDeadline(reservation.startsAt) : NaN
+  const visitState = visitStateOf(reservation, canceledReservation, Date.now())
+  const visitBranch = reservation ? branches.find(item => item.id === reservation.branchId)?.name ?? '—' : '—'
+  const shownReservation = reservation ?? canceledReservation
   const pills: StatusPill[] = [casePill(snapshot.caseStatus, snapshot.reviewStatus)]
-  if (snapshot.caseStatus === 'REVIEW_PASSED') pills.push(reservation ? RESERVATION_LABEL[reservation.status] ?? { label: '예약 상태 확인', tone: 'info' } : { label: '예약 · 예약 전', tone: 'info' })
+  if (snapshot.caseStatus === 'REVIEW_PASSED') pills.push(shownReservation ? RESERVATION_LABEL[shownReservation.status] ?? { label: '예약 상태 확인', tone: 'info' } : { label: '예약 · 예약 전', tone: 'info' })
   const number = caseNumber(snapshot.caseId, snapshot.timeline?.createdAt)
   const showModal = params.get('submitted') === '1' && snapshot.caseStatus !== 'DRAFT'
 
@@ -94,12 +148,32 @@ export function C02CaseDetailPage() {
     </section>}
 
     <section className={`c02-detail__card c02-reservation${snapshot.caseStatus === 'REVIEW_PASSED' && !reservation ? ' is-open' : ''}`}>
-      <div className="c02-reservation__title"><h2>방문 예약</h2><span className="c02-pill c02-pill--muted">{reservation ? (RESERVATION_LABEL[reservation.status]?.label ?? reservation.status) : snapshot.caseStatus === 'REVIEW_PASSED' ? '예약 전' : '결과 대기'}</span></div>
-      {snapshot.caseStatus === 'REVIEW_PASSED'
-        ? reservation
-          ? <p>{formatDateTime(reservation.startsAt)} 방문으로 예약돼 있어요. {reservation.status === 'CONFIRMED' ? '담당 직원이 배정됐어요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
-          : <div className="c02-reservation__row"><p>아직 예약하지 않았어요. 가까운 영업점과 방문 시간을 골라 주세요. 예약하면 그 지점의 담당 직원이 배정돼요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>방문 영업점 예약</button></div>
-        : <p>{decision ? '이 접수는 방문 예약 대상이 아니에요.' : '직원 검토 결과를 기다리고 있어요. 결과가 ‘진행 가능’이면 알림을 받은 뒤 방문할 영업점과 시간을 예약할 수 있어요. 지금은 예약 정보가 없어요.'}</p>}
+      <div className="c02-reservation__title"><h2>방문 예약</h2><span className="c02-pill c02-pill--muted">{shownReservation ? (RESERVATION_LABEL[shownReservation.status]?.label ?? shownReservation.status) : snapshot.caseStatus === 'REVIEW_PASSED' ? '예약 전' : '결과 대기'}</span></div>
+      {snapshot.caseStatus !== 'REVIEW_PASSED'
+        ? <p>{decision ? '이 접수는 방문 예약 대상이 아니에요.' : '직원 검토 결과를 기다리고 있어요. 결과가 ‘진행 가능’이면 알림을 받은 뒤 방문할 영업점과 시간을 예약할 수 있어요. 지금은 예약 정보가 없어요.'}</p>
+        : reservation
+          ? <>
+            {/* Hidden until the server provides them: the assigned staff member's name, the branch phone number,
+                manual-assignment guidance and [예약 변경] (no change API on main; only cancel exists). */}
+            <dl className="c02-modal__summary">
+              <div><dt>영업점</dt><dd><b>{visitBranch}</b></dd></div>
+              <div><dt>방문 일시</dt><dd><b>{seoulStamp(visitStartsAt)}</b></dd></div>
+              <div><dt>취소 가능</dt><dd>{seoulStamp(visitDeadline)}까지</dd></div>
+            </dl>
+            <p>{visitState === 'locked'
+              ? '방문까지 24시간이 남지 않았어요. 준비서류를 챙겨 예약 시간에 방문해 주세요.'
+              : reservation.status === 'CONFIRMED' ? '예약이 확정되었어요. 담당 직원이 방문 전에 접수 내용과 서류를 미리 확인해요.' : '담당 직원 배정을 기다리고 있어요. 배정 전에는 예약 확정이 아니에요.'}</p>
+            <div className="c02-detail__actions c02-cancel">
+              {visitState === 'locked'
+                ? <><button type="button" className="c02-danger" disabled>예약 취소</button><span>방문 24시간 전부터는 취소할 수 없어요. 예약한 영업점에 문의해 주세요.</span></>
+                : confirmVisitCancel
+                  ? <><span role="alert">예약을 취소할까요? 접수 검토 결과(진행 가능)는 그대로 남고, 다시 예약할 수 있어요.</span><button type="button" className="c02-secondary" disabled={busy} onClick={() => setConfirmVisitCancel(false)}>돌아가기</button><button type="button" className="c02-danger" disabled={busy} onClick={() => void cancelVisit(reservation.id)}>예약 취소</button></>
+                  : <button type="button" className="c02-danger" onClick={() => setConfirmVisitCancel(true)}>예약 취소</button>}
+            </div>
+          </>
+          : visitState === 'canceled'
+            ? <div className="c02-reservation__row"><p>예약을 취소했어요. 접수 검토 결과는 그대로이니 다시 예약할 수 있어요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>다시 예약</button></div>
+            : <div className="c02-reservation__row"><p>아직 예약하지 않았어요. 가까운 영업점과 방문 시간을 골라 주세요. 예약하면 그 지점의 담당 직원이 배정돼요.</p><button type="button" className="c02-primary" onClick={() => navigate(`/tasks/c02/reservations?caseId=${snapshot.caseId}`)}>방문 영업점 예약</button></div>}
     </section>
 
     <div className="c02-detail__grid">
