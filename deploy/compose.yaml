@@ -1,0 +1,81 @@
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: banking-ax-mysql
+    restart: unless-stopped
+
+    env_file:
+      - mysql.env
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+
+    container_name: banking-ax-backend
+    restart: unless-stopped
+
+    env_file:
+      - backend.env
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    volumes:
+      - backend-files:/app/var
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_MOCK_AUTH: "false"
+        VITE_BFF_TASKS_ENABLED: "true"
+
+    container_name: banking-ax-frontend
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - backend
+      - ai-server
+
+  ai-server:
+    build:
+      context: ../ai-server
+      dockerfile: Dockerfile
+
+    container_name: banking-ax-ai
+    restart: unless-stopped
+
+    env_file:
+      - ai-server.env
+
+    environment:
+      HF_HOME: /app/.cache/huggingface
+
+    volumes:
+      - ai-vector-data:/app/.vector_db
+      - ai-index-data:/app/.index
+      - ai-checkpoints:/app/.state
+      - ai-hf-cache:/app/.cache/huggingface
+volumes:
+  mysql-data:
+  backend-files:
+  ai-vector-data:
+  ai-index-data:
+  ai-checkpoints:
+  ai-hf-cache:
