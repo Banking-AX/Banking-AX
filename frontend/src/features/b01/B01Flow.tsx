@@ -270,7 +270,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
         <div className="b01-done__actions">
           <button type="button" onClick={() => void resume()} disabled={resuming}
             className="b01-button b01-button--primary">{resuming ? '재개 상태 확인 중…' : '이어서 진행'}</button>
-          <Link to="/chat" className="b01-button b01-button--plain">채팅으로 돌아가기</Link>
+          <Link to="/" className="b01-button b01-button--plain">홈으로</Link>
         </div>
       </section>
     </main>
@@ -317,7 +317,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           <div className="b01-tags"><span className="b01-tag b01-tag--auto">B · 자동처리</span></div>
           <h1 className="b01-title">채무변제 충당순서 변경</h1>
         </div>
-        {phase !== 'done' && <Link to="/chat" className="b01-button b01-button--plain b01-top__back">채팅으로 돌아가기</Link>}
+        {phase !== 'done' && <Link to="/" className="b01-button b01-button--plain b01-top__back">홈으로</Link>}
       </div>
 
       <ol aria-label="진행 단계" className="b01-steps">
@@ -462,7 +462,7 @@ export function B01Flow({ adapter, workItemId, signerName }: { adapter: B01Adapt
           {/* BDetail 화면 연결 때 복구 예정: "처리 내역은 대화가 삭제된 뒤에도 업무 요청 기록에서 볼 수 있어요." */}
           {result.status === 'DONE' && <p className="b01-done__note">연체금을 모두 갚는 등 기한의 이익이 다시 생기면 순서가 자동으로 원래대로 돌아가고, 처리 이력에 남아요.</p>}
           {/* ChatBReturn 연결 예정. The "업무 요청 기록에서 보기" button waits for BDetail. */}
-          <div className="b01-done__actions"><Link to="/chat" className="b01-button b01-button--primary">채팅으로 돌아가기</Link></div>
+          <div className="b01-done__actions"><Link to="/" className="b01-button b01-button--primary">홈으로</Link></div>
         </div>
       </section>}
 
