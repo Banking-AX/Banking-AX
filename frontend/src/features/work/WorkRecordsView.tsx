@@ -143,7 +143,6 @@ export function WorkRecordsView({ data }: { data: WorkRecordList }) {
         {rows.length === 0 && <div className="work-empty">
           <strong className="work-empty__title">이 상태의 업무가 없어요</strong>
           <span className="work-empty__text">AI 금융 도우미에서 업무를 요청하면 여기에 기록돼요.</span>
-          <Link to="/chat" className="work-action work-empty__link">AI 금융 도우미 열기</Link>
         </div>}
       </div>
     </section>

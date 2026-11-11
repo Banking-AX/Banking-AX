@@ -50,7 +50,7 @@ export function C02CaseListPage() {
         {starting ? '새 신청을 준비하고 있어요…' : '새 상속예금 사전접수 시작'}
       </button>
       {rows === null && !error && <p className="c02-notice" role="status">접수 내역을 불러오고 있어요.</p>}
-      {rows?.length === 0 && <p className="c02-notice">아직 상속예금 접수가 없어요. 위 버튼으로 새 사전접수를 시작하거나, 안내가 필요하면 <Link to="/chat">채팅으로 가기</Link>를 이용해 주세요.</p>}
+      {rows?.length === 0 && <p className="c02-notice">아직 상속예금 접수가 없어요. 위 버튼으로 새 사전접수를 시작해 주세요.</p>}
       {rows && rows.length > 0 && <ul className="c02-case-list">{rows.map(row => {
         const pill = casePill(row.caseStatus, row.reviewStatus)
         const href = row.caseStatus === 'DRAFT' ? `/tasks/c02/${row.workItemId}` : `/tasks/c02/cases/${row.caseId}`

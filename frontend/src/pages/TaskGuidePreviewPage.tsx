@@ -30,6 +30,8 @@ export function TaskGuidePreviewPage() {
     {asked && <div className="tg-bubble">{asked}</div>}
     {busy && <TaskGuideSteps steps={[]} running />}
     {error && <p role="alert">{error}</p>}
-    {guide && <TaskGuideCard guide={guide} onStart={code => { if (code === 'INHERITANCE_DEPOSIT') navigate('/tasks/c02'); else navigate('/chat') }} onOther={() => { setGuide(null); setAsked(null) }} />}
+    {guide && <TaskGuideCard guide={guide}
+      onStart={guide.taskCode === 'INHERITANCE_DEPOSIT' ? () => navigate('/tasks/c02') : undefined}
+      onOther={() => { setGuide(null); setAsked(null) }} />}
   </main>
 }
