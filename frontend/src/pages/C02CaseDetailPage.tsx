@@ -209,11 +209,11 @@ export function C02CaseDetailPage() {
     </div>
 
     {showModal && <SubmittedModal number={number} submittedAt={snapshot.timeline?.submittedAt ?? null} heirCount={heirs.length} documentCount={rows.filter(row => row.uploaded).length} pill={pills[0]}
-      onClose={() => { params.delete('submitted'); setParams(params, { replace: true }) }} onChat={() => navigate('/chat')} />}
+      onClose={() => { params.delete('submitted'); setParams(params, { replace: true }) }} />}
   </main>
 }
 
-function SubmittedModal({ number, submittedAt, heirCount, documentCount, pill, onClose, onChat }: { number: string; submittedAt: string | null; heirCount: number; documentCount: number; pill: StatusPill; onClose: () => void; onChat: () => void }) {
+function SubmittedModal({ number, submittedAt, heirCount, documentCount, pill, onClose }: { number: string; submittedAt: string | null; heirCount: number; documentCount: number; pill: StatusPill; onClose: () => void }) {
   const primary = useRef<HTMLButtonElement>(null)
   useEffect(() => { primary.current?.focus() }, [])
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose])
@@ -235,7 +235,7 @@ function SubmittedModal({ number, submittedAt, heirCount, documentCount, pill, o
         <li>결과를 웹 알림으로 안내해요. 결과가 ‘진행 가능’이면 그때 방문할 영업점과 시간을 예약해요.</li>
       </ol>
       <p className="c02-notice">직원이 검토를 시작하기 전까지는 접수를 취소할 수 있어요. 검토가 시작되면 취소할 수 없어요.</p>
-      <div className="c02-modal__actions"><button type="button" className="c02-secondary" onClick={onChat}>채팅으로 돌아가기</button><button type="button" ref={primary} className="c02-primary" onClick={onClose}>접수 상세 확인</button></div>
+      <div className="c02-modal__actions"><button type="button" ref={primary} className="c02-primary" onClick={onClose}>접수 상세 확인</button></div>
     </div>
   </div>
 }
